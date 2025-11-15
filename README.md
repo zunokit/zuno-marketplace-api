@@ -62,27 +62,65 @@ services/
 ### Prerequisites
 
 - Docker Desktop
-- Go 1.25.1+
-- PostgreSQL client (optional, for manual DB access)
+- Go 1.21+
+- Make (optional but recommended)
+- Tilt (optional, for hot reload)
 
-### Start Infrastructure
+### Option 1: Docker Compose (Simple)
 
 ```bash
-# Start postgres, redis, rabbitmq
+# Start infrastructure services
+make dev
+# or
 docker compose up -d
 
 # Check services status
 docker compose ps
 
-# Test database connection
-docker exec nft-postgres psql -U postgres -d nft_marketplace -c "\dt"
-
-# Test Redis
-docker exec nft-redis redis-cli ping
-
-# Test RabbitMQ
-docker exec nft-rabbitmq rabbitmq-diagnostics ping
+# View logs
+make dev-logs
 ```
+
+### Option 2: Tilt (Hot Reload - Recommended)
+
+```bash
+# Start Tilt (requires Kubernetes enabled in Docker Desktop)
+make tilt-up
+# or
+tilt up
+
+# Open Tilt UI: http://localhost:10350
+
+# Stop Tilt
+make tilt-down
+```
+
+### Common Commands
+
+```bash
+# Show all available commands
+make help
+
+# Run tests
+make test
+
+# Build services
+make build
+
+# Generate protobuf code
+make proto
+
+# Run linter
+make lint
+
+# Format code
+make format
+
+# Run CI pipeline locally
+make ci
+```
+
+**📖 For detailed development guide, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 
 ### Environment Variables
 
@@ -182,20 +220,28 @@ Recommended implementation order:
 
 ## 🔧 Development Tools
 
+**Makefile** - Comprehensive development commands
 ```bash
-# Install Go dependencies
-go mod download
-
-# Generate protobuf code (when proto files exist)
-make generate-proto
-
-# Run tests
-go test ./...
-
-# Run specific service tests
-cd services/auth-service
-go test ./...
+make help          # Show all commands
+make dev           # Start development environment
+make test          # Run tests
+make build         # Build all services
+make lint          # Run linter
+make ci            # Run CI pipeline locally
 ```
+
+**Tiltfile** - Hot reload development with Kubernetes
+- 🔥 Automatic rebuilds on code changes
+- 📊 Real-time logs and resource monitoring
+- 🎯 Interactive UI at http://localhost:10350
+
+**GitHub Actions** - CI/CD Pipeline
+- ✅ Automated linting and testing
+- 🐳 Docker image builds
+- 🔒 Security scanning with gosec
+- 📊 Test coverage reports
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for complete guide.
 
 ## 📝 Commit Message Format
 
