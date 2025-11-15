@@ -51,6 +51,8 @@ services:
       - .env
     environment:
       - AUTH_GRPC_PORT=:${AUTH_GRPC_PORT}
+      - USER_SERVICE_URL=user-service:${USER_GRPC_PORT}
+      - WALLET_SERVICE_URL=wallet-service:${WALLET_GRPC_PORT}
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
@@ -71,12 +73,96 @@ services:
       - postgres
       - redis
       - rabbitmq
+      - user-service
+      - wallet-service
     networks:
       - nft-network
     develop:
       watch:
         - path: ./services/auth-service
           target: /app/services/auth-service
+          action: sync
+        - path: ./go.mod
+          target: /app/go.mod
+          action: sync
+        - path: ./go.sum
+          target: /app/go.sum
+          action: sync
+        - path: .
+          action: rebuild
+
+  user-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/user-service.Dockerfile
+      args:
+        - CGO_ENABLED=0
+        - GOOS=linux
+        - GOARCH=amd64
+    container_name: nft-user-service
+    env_file:
+      - .env
+    environment:
+      - USER_GRPC_PORT=:${USER_GRPC_PORT}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+    ports:
+      - "${USER_GRPC_PORT}:${USER_GRPC_PORT}"
+    depends_on:
+      - postgres
+    networks:
+      - nft-network
+    develop:
+      watch:
+        - path: ./services/user-service
+          target: /app/services/user-service
+          action: sync
+        - path: ./shared
+          target: /app/shared
+          action: sync
+        - path: ./go.mod
+          target: /app/go.mod
+          action: sync
+        - path: ./go.sum
+          target: /app/go.sum
+          action: sync
+        - path: .
+          action: rebuild
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/wallet-service.Dockerfile
+      args:
+        - CGO_ENABLED=0
+        - GOOS=linux
+        - GOARCH=amd64
+    container_name: nft-wallet-service
+    env_file:
+      - .env
+    environment:
+      - WALLET_GRPC_PORT=:${WALLET_GRPC_PORT}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+    ports:
+      - "${WALLET_GRPC_PORT}:${WALLET_GRPC_PORT}"
+    depends_on:
+      - postgres
+    networks:
+      - nft-network
+    develop:
+      watch:
+        - path: ./services/wallet-service
+          target: /app/services/wallet-service
+          action: sync
+        - path: ./shared
+          target: /app/shared
           action: sync
         - path: ./go.mod
           target: /app/go.mod
@@ -95,6 +181,8 @@ services:
     environment:
       - GATEWAY_HTTP_ADDR=:${GATEWAY_HTTP_ADDR}
       - AUTH_SERVICE_URL=auth-service:${AUTH_GRPC_PORT}
+      - USER_SERVICE_URL=user-service:${USER_GRPC_PORT}
+      - WALLET_SERVICE_URL=wallet-service:${WALLET_GRPC_PORT}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=${RABBITMQ_USER}
@@ -104,6 +192,8 @@ services:
       - "${GATEWAY_HTTP_ADDR}:${GATEWAY_HTTP_ADDR}"
     depends_on:
       - auth-service
+      - user-service
+      - wallet-service
     networks:
       - nft-network
     develop:

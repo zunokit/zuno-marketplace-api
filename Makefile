@@ -113,7 +113,7 @@ proto: generate-proto ## Generate protobuf code
 
 generate-proto: ## Generate protobuf code
 	@echo Generating protobuf code...
-	@if not exist "shared\proto" mkdir shared\proto
+	@mkdir -p shared/proto/auth shared/proto/user shared/proto/wallet
 	protoc --go_out=shared/proto --go_opt=paths=source_relative --go-grpc_out=shared/proto --go-grpc_opt=paths=source_relative proto/*.proto
 	@echo Protobuf generation complete!
 
