@@ -54,8 +54,9 @@ All 7 containers running successfully:
 ### 5. **Database Migrations** ✓
 **Setup:**
 - Installed `golang-migrate`
-- Created unified migration: `000001_init_schema.up.sql`
-- All three service schemas in one migration
+- Created unified migration: `db/migrations/000001_init_schema.up.sql`
+- All three service schemas in one migration file
+- Removed individual `services/*/db/up.sql` files (consolidated to migrations)
 - Makefile commands added
 
 **Available Commands:**
@@ -71,6 +72,8 @@ make db-reset           # Reset DB and run migrations
 - ✅ User tables: `users`, `profiles`, `user_preferences`, `user_stats`, `user_follows`
 - ✅ Wallet tables: `wallet_links`, `wallet_activity`, `wallet_verifications`
 - ✅ Triggers & functions for auto-management
+
+**Note:** All services share one PostgreSQL database. Schema is managed centrally via migrations (not per-service SQL files).
 
 ---
 

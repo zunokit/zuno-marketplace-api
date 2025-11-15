@@ -145,8 +145,9 @@ DB_PASSWORD ?= postgres
 DB_NAME ?= nft_marketplace
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-migrate-up: ## Run database migrations
+migrate-up: ## Run database migrations (applies all pending migrations)
 	@echo Running database migrations...
+	@echo Database: $(DB_NAME) at $(DB_HOST):$(DB_PORT)
 	migrate -path db/migrations -database "$(DB_URL)" up
 	@echo Migrations complete!
 
