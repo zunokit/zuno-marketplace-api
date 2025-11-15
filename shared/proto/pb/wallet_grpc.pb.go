@@ -4,7 +4,7 @@
 // - protoc             v6.32.0--rc1
 // source: proto/wallet.proto
 
-package wallet
+package pb
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WalletService_UpsertLink_FullMethodName = "/wallet.WalletService/UpsertLink"
-	WalletService_GetWallets_FullMethodName = "/wallet.WalletService/GetWallets"
+	WalletService_UpsertLink_FullMethodName = "/pb.WalletService/UpsertLink"
+	WalletService_GetWallets_FullMethodName = "/pb.WalletService/GetWallets"
 )
 
 // WalletServiceClient is the client API for WalletService service.
@@ -146,7 +146,7 @@ func _WalletService_GetWallets_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var WalletService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "wallet.WalletService",
+	ServiceName: "pb.WalletService",
 	HandlerType: (*WalletServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

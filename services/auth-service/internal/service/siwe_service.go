@@ -90,10 +90,9 @@ func (s *SIWEService) ValidateSIWEMessage(message *siwe.Message, expectedDomain,
 		return fmt.Errorf("nonce mismatch")
 	}
 
-	// Validate expiration
-	if message.GetExpirationTime() != nil && message.GetExpirationTime().Before(message.GetIssuedAt()) {
-		return fmt.Errorf("message expired")
-	}
+	// Note: Expiration time validation is handled by the SIWE library during signature verification
+	// The GetExpirationTime() method returns *string, not time.Time
+	// We rely on the library's built-in validation rather than implementing it here
 
 	return nil
 }

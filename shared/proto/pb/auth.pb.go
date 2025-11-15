@@ -4,7 +4,7 @@
 // 	protoc        v6.32.0--rc1
 // source: proto/auth.proto
 
-package auth
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -84,6 +84,7 @@ func (x *GetNonceRequest) GetDomain() string {
 type GetNonceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Nonce         string                 `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	ExpiresAt     string                 `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,6 +122,13 @@ func (*GetNonceResponse) Descriptor() ([]byte, []int) {
 func (x *GetNonceResponse) GetNonce() string {
 	if x != nil {
 		return x.Nonce
+	}
+	return ""
+}
+
+func (x *GetNonceResponse) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
 	}
 	return ""
 }
@@ -577,14 +585,16 @@ var File_proto_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x10proto/auth.proto\x12\x04auth\"c\n" +
+	"\x10proto/auth.proto\x12\x02pb\"c\n" +
 	"\x0fGetNonceRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x19\n" +
 	"\bchain_id\x18\x02 \x01(\tR\achainId\x12\x16\n" +
-	"\x06domain\x18\x03 \x01(\tR\x06domain\"(\n" +
+	"\x06domain\x18\x03 \x01(\tR\x06domain\"G\n" +
 	"\x10GetNonceResponse\x12\x14\n" +
-	"\x05nonce\x18\x01 \x01(\tR\x05nonce\"j\n" +
+	"\x05nonce\x18\x01 \x01(\tR\x05nonce\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\tR\texpiresAt\"j\n" +
 	"\x11VerifySiweRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x18\n" +
@@ -618,14 +628,14 @@ const file_proto_auth_proto_rawDesc = "" +
 	"\"RevokeSessionByRefreshTokenRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"?\n" +
 	"#RevokeSessionByRefreshTokenResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x94\x03\n" +
-	"\vAuthService\x129\n" +
-	"\bGetNonce\x12\x15.auth.GetNonceRequest\x1a\x16.auth.GetNonceResponse\x12?\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x80\x03\n" +
+	"\vAuthService\x125\n" +
+	"\bGetNonce\x12\x13.pb.GetNonceRequest\x1a\x14.pb.GetNonceResponse\x12;\n" +
 	"\n" +
-	"VerifySiwe\x12\x17.auth.VerifySiweRequest\x1a\x18.auth.VerifySiweResponse\x12K\n" +
-	"\x0eRefreshSession\x12\x1b.auth.RefreshSessionRequest\x1a\x1c.auth.RefreshSessionResponse\x12H\n" +
-	"\rRevokeSession\x12\x1a.auth.RevokeSessionRequest\x1a\x1b.auth.RevokeSessionResponse\x12r\n" +
-	"\x1bRevokeSessionByRefreshToken\x12(.auth.RevokeSessionByRefreshTokenRequest\x1a).auth.RevokeSessionByRefreshTokenResponseB\x18Z\x16shared/proto/auth;authb\x06proto3"
+	"VerifySiwe\x12\x15.pb.VerifySiweRequest\x1a\x16.pb.VerifySiweResponse\x12G\n" +
+	"\x0eRefreshSession\x12\x19.pb.RefreshSessionRequest\x1a\x1a.pb.RefreshSessionResponse\x12D\n" +
+	"\rRevokeSession\x12\x18.pb.RevokeSessionRequest\x1a\x19.pb.RevokeSessionResponse\x12n\n" +
+	"\x1bRevokeSessionByRefreshToken\x12&.pb.RevokeSessionByRefreshTokenRequest\x1a'.pb.RevokeSessionByRefreshTokenResponseB\x14Z\x12shared/proto/pb;pbb\x06proto3"
 
 var (
 	file_proto_auth_proto_rawDescOnce sync.Once
@@ -641,28 +651,28 @@ func file_proto_auth_proto_rawDescGZIP() []byte {
 
 var file_proto_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_auth_proto_goTypes = []any{
-	(*GetNonceRequest)(nil),                     // 0: auth.GetNonceRequest
-	(*GetNonceResponse)(nil),                    // 1: auth.GetNonceResponse
-	(*VerifySiweRequest)(nil),                   // 2: auth.VerifySiweRequest
-	(*VerifySiweResponse)(nil),                  // 3: auth.VerifySiweResponse
-	(*RefreshSessionRequest)(nil),               // 4: auth.RefreshSessionRequest
-	(*RefreshSessionResponse)(nil),              // 5: auth.RefreshSessionResponse
-	(*RevokeSessionRequest)(nil),                // 6: auth.RevokeSessionRequest
-	(*RevokeSessionResponse)(nil),               // 7: auth.RevokeSessionResponse
-	(*RevokeSessionByRefreshTokenRequest)(nil),  // 8: auth.RevokeSessionByRefreshTokenRequest
-	(*RevokeSessionByRefreshTokenResponse)(nil), // 9: auth.RevokeSessionByRefreshTokenResponse
+	(*GetNonceRequest)(nil),                     // 0: pb.GetNonceRequest
+	(*GetNonceResponse)(nil),                    // 1: pb.GetNonceResponse
+	(*VerifySiweRequest)(nil),                   // 2: pb.VerifySiweRequest
+	(*VerifySiweResponse)(nil),                  // 3: pb.VerifySiweResponse
+	(*RefreshSessionRequest)(nil),               // 4: pb.RefreshSessionRequest
+	(*RefreshSessionResponse)(nil),              // 5: pb.RefreshSessionResponse
+	(*RevokeSessionRequest)(nil),                // 6: pb.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),               // 7: pb.RevokeSessionResponse
+	(*RevokeSessionByRefreshTokenRequest)(nil),  // 8: pb.RevokeSessionByRefreshTokenRequest
+	(*RevokeSessionByRefreshTokenResponse)(nil), // 9: pb.RevokeSessionByRefreshTokenResponse
 }
 var file_proto_auth_proto_depIdxs = []int32{
-	0, // 0: auth.AuthService.GetNonce:input_type -> auth.GetNonceRequest
-	2, // 1: auth.AuthService.VerifySiwe:input_type -> auth.VerifySiweRequest
-	4, // 2: auth.AuthService.RefreshSession:input_type -> auth.RefreshSessionRequest
-	6, // 3: auth.AuthService.RevokeSession:input_type -> auth.RevokeSessionRequest
-	8, // 4: auth.AuthService.RevokeSessionByRefreshToken:input_type -> auth.RevokeSessionByRefreshTokenRequest
-	1, // 5: auth.AuthService.GetNonce:output_type -> auth.GetNonceResponse
-	3, // 6: auth.AuthService.VerifySiwe:output_type -> auth.VerifySiweResponse
-	5, // 7: auth.AuthService.RefreshSession:output_type -> auth.RefreshSessionResponse
-	7, // 8: auth.AuthService.RevokeSession:output_type -> auth.RevokeSessionResponse
-	9, // 9: auth.AuthService.RevokeSessionByRefreshToken:output_type -> auth.RevokeSessionByRefreshTokenResponse
+	0, // 0: pb.AuthService.GetNonce:input_type -> pb.GetNonceRequest
+	2, // 1: pb.AuthService.VerifySiwe:input_type -> pb.VerifySiweRequest
+	4, // 2: pb.AuthService.RefreshSession:input_type -> pb.RefreshSessionRequest
+	6, // 3: pb.AuthService.RevokeSession:input_type -> pb.RevokeSessionRequest
+	8, // 4: pb.AuthService.RevokeSessionByRefreshToken:input_type -> pb.RevokeSessionByRefreshTokenRequest
+	1, // 5: pb.AuthService.GetNonce:output_type -> pb.GetNonceResponse
+	3, // 6: pb.AuthService.VerifySiwe:output_type -> pb.VerifySiweResponse
+	5, // 7: pb.AuthService.RefreshSession:output_type -> pb.RefreshSessionResponse
+	7, // 8: pb.AuthService.RevokeSession:output_type -> pb.RevokeSessionResponse
+	9, // 9: pb.AuthService.RevokeSessionByRefreshToken:output_type -> pb.RevokeSessionByRefreshTokenResponse
 	5, // [5:10] is the sub-list for method output_type
 	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

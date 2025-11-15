@@ -113,8 +113,9 @@ proto: generate-proto ## Generate protobuf code
 
 generate-proto: ## Generate protobuf code
 	@echo Generating protobuf code...
-	@mkdir -p shared/proto/auth shared/proto/user shared/proto/wallet
-	protoc --go_out=shared/proto --go_opt=paths=source_relative --go-grpc_out=shared/proto --go-grpc_opt=paths=source_relative proto/*.proto
+	@mkdir -p shared/proto/pb
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/*.proto
+	@if exist proto\*.pb.go move /Y proto\*.pb.go shared\proto\pb\
 	@echo Protobuf generation complete!
 
 ##@ Code Quality
@@ -136,11 +137,39 @@ vet: ## Run go vet
 
 ##@ Database
 
+# Database configuration
+DB_HOST ?= localhost
+DB_PORT ?= 5432
+DB_USER ?= postgres
+DB_PASSWORD ?= postgres
+DB_NAME ?= nft_marketplace
+DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
+migrate-up: ## Run database migrations
+	@echo Running database migrations...
+	migrate -path db/migrations -database "$(DB_URL)" up
+	@echo Migrations complete!
+
+migrate-create: ## Create a new migration (use NAME=migration_name)
+	@echo Creating migration: $(NAME)
+	migrate create -ext sql -dir db/migrations -seq $(NAME)
+
+migrate-force: ## Force migration version (use VERSION=N)
+	@echo Forcing migration to version $(VERSION)
+	migrate -path db/migrations -database "$(DB_URL)" force $(VERSION)
+
+migrate-version: ## Show current migration version
+	@migrate -path db/migrations -database "$(DB_URL)" version
+
 db-reset: ## Reset database
 	@echo Resetting database...
 	docker compose down postgres
-	docker volume rm zuno-marketplace-api_postgres_data
+	docker volume rm zuno-marketplace-api_postgres_data || true
 	docker compose up -d postgres
+	@echo Waiting for postgres to be ready...
+	@sleep 5
+	@echo Running migrations...
+	@$(MAKE) migrate-up
 
 ##@ Docker
 

@@ -4,7 +4,7 @@
 // - protoc             v6.32.0--rc1
 // source: proto/auth.proto
 
-package auth
+package pb
 
 import (
 	context "context"
@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_GetNonce_FullMethodName                    = "/auth.AuthService/GetNonce"
-	AuthService_VerifySiwe_FullMethodName                  = "/auth.AuthService/VerifySiwe"
-	AuthService_RefreshSession_FullMethodName              = "/auth.AuthService/RefreshSession"
-	AuthService_RevokeSession_FullMethodName               = "/auth.AuthService/RevokeSession"
-	AuthService_RevokeSessionByRefreshToken_FullMethodName = "/auth.AuthService/RevokeSessionByRefreshToken"
+	AuthService_GetNonce_FullMethodName                    = "/pb.AuthService/GetNonce"
+	AuthService_VerifySiwe_FullMethodName                  = "/pb.AuthService/VerifySiwe"
+	AuthService_RefreshSession_FullMethodName              = "/pb.AuthService/RefreshSession"
+	AuthService_RevokeSession_FullMethodName               = "/pb.AuthService/RevokeSession"
+	AuthService_RevokeSessionByRefreshToken_FullMethodName = "/pb.AuthService/RevokeSessionByRefreshToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -244,7 +244,7 @@ func _AuthService_RevokeSessionByRefreshToken_Handler(srv interface{}, ctx conte
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "auth.AuthService",
+	ServiceName: "pb.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

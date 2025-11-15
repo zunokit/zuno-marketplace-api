@@ -13,7 +13,7 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/repository"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/server"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/service"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/proto"
+	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"

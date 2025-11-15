@@ -10,7 +10,7 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/models"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/repository"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/service"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/proto"
+	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

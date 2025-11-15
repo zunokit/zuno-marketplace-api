@@ -4,7 +4,7 @@
 // - protoc             v6.32.0--rc1
 // source: proto/user.proto
 
-package user
+package pb
 
 import (
 	context "context"
@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_EnsureUser_FullMethodName    = "/user.UserService/EnsureUser"
-	UserService_GetUser_FullMethodName       = "/user.UserService/GetUser"
-	UserService_UpsertProfile_FullMethodName = "/user.UserService/UpsertProfile"
+	UserService_EnsureUser_FullMethodName    = "/pb.UserService/EnsureUser"
+	UserService_GetUser_FullMethodName       = "/pb.UserService/GetUser"
+	UserService_UpsertProfile_FullMethodName = "/pb.UserService/UpsertProfile"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -182,7 +182,7 @@ func _UserService_UpsertProfile_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "user.UserService",
+	ServiceName: "pb.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

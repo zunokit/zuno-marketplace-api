@@ -4,7 +4,7 @@
 // 	protoc        v6.32.0--rc1
 // source: proto/user.proto
 
-package user
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -497,7 +497,7 @@ var File_proto_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_proto_rawDesc = "" +
 	"\n" +
-	"\x10proto/user.proto\x12\x04user\"M\n" +
+	"\x10proto/user.proto\x12\x02pb\"M\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
@@ -527,20 +527,19 @@ const file_proto_user_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\bR\acreated\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"Z\n" +
-	"\x0fGetUserResponse\x12\x1e\n" +
-	"\x04user\x18\x01 \x01(\v2\n" +
-	".user.UserR\x04user\x12'\n" +
-	"\aprofile\x18\x02 \x01(\v2\r.user.ProfileR\aprofile\"?\n" +
-	"\x14UpsertProfileRequest\x12'\n" +
-	"\aprofile\x18\x01 \x01(\v2\r.user.ProfileR\aprofile\"@\n" +
-	"\x15UpsertProfileResponse\x12'\n" +
-	"\aprofile\x18\x01 \x01(\v2\r.user.ProfileR\aprofile2\xd0\x01\n" +
-	"\vUserService\x12?\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"V\n" +
+	"\x0fGetUserResponse\x12\x1c\n" +
+	"\x04user\x18\x01 \x01(\v2\b.pb.UserR\x04user\x12%\n" +
+	"\aprofile\x18\x02 \x01(\v2\v.pb.ProfileR\aprofile\"=\n" +
+	"\x14UpsertProfileRequest\x12%\n" +
+	"\aprofile\x18\x01 \x01(\v2\v.pb.ProfileR\aprofile\">\n" +
+	"\x15UpsertProfileResponse\x12%\n" +
+	"\aprofile\x18\x01 \x01(\v2\v.pb.ProfileR\aprofile2\xc4\x01\n" +
+	"\vUserService\x12;\n" +
 	"\n" +
-	"EnsureUser\x12\x17.user.EnsureUserRequest\x1a\x18.user.EnsureUserResponse\x126\n" +
-	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x15.user.GetUserResponse\x12H\n" +
-	"\rUpsertProfile\x12\x1a.user.UpsertProfileRequest\x1a\x1b.user.UpsertProfileResponseB\x18Z\x16shared/proto/user;userb\x06proto3"
+	"EnsureUser\x12\x15.pb.EnsureUserRequest\x1a\x16.pb.EnsureUserResponse\x122\n" +
+	"\aGetUser\x12\x12.pb.GetUserRequest\x1a\x13.pb.GetUserResponse\x12D\n" +
+	"\rUpsertProfile\x12\x18.pb.UpsertProfileRequest\x1a\x19.pb.UpsertProfileResponseB\x14Z\x12shared/proto/pb;pbb\x06proto3"
 
 var (
 	file_proto_user_proto_rawDescOnce sync.Once
@@ -556,26 +555,26 @@ func file_proto_user_proto_rawDescGZIP() []byte {
 
 var file_proto_user_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_user_proto_goTypes = []any{
-	(*User)(nil),                  // 0: user.User
-	(*Profile)(nil),               // 1: user.Profile
-	(*EnsureUserRequest)(nil),     // 2: user.EnsureUserRequest
-	(*EnsureUserResponse)(nil),    // 3: user.EnsureUserResponse
-	(*GetUserRequest)(nil),        // 4: user.GetUserRequest
-	(*GetUserResponse)(nil),       // 5: user.GetUserResponse
-	(*UpsertProfileRequest)(nil),  // 6: user.UpsertProfileRequest
-	(*UpsertProfileResponse)(nil), // 7: user.UpsertProfileResponse
+	(*User)(nil),                  // 0: pb.User
+	(*Profile)(nil),               // 1: pb.Profile
+	(*EnsureUserRequest)(nil),     // 2: pb.EnsureUserRequest
+	(*EnsureUserResponse)(nil),    // 3: pb.EnsureUserResponse
+	(*GetUserRequest)(nil),        // 4: pb.GetUserRequest
+	(*GetUserResponse)(nil),       // 5: pb.GetUserResponse
+	(*UpsertProfileRequest)(nil),  // 6: pb.UpsertProfileRequest
+	(*UpsertProfileResponse)(nil), // 7: pb.UpsertProfileResponse
 }
 var file_proto_user_proto_depIdxs = []int32{
-	0, // 0: user.GetUserResponse.user:type_name -> user.User
-	1, // 1: user.GetUserResponse.profile:type_name -> user.Profile
-	1, // 2: user.UpsertProfileRequest.profile:type_name -> user.Profile
-	1, // 3: user.UpsertProfileResponse.profile:type_name -> user.Profile
-	2, // 4: user.UserService.EnsureUser:input_type -> user.EnsureUserRequest
-	4, // 5: user.UserService.GetUser:input_type -> user.GetUserRequest
-	6, // 6: user.UserService.UpsertProfile:input_type -> user.UpsertProfileRequest
-	3, // 7: user.UserService.EnsureUser:output_type -> user.EnsureUserResponse
-	5, // 8: user.UserService.GetUser:output_type -> user.GetUserResponse
-	7, // 9: user.UserService.UpsertProfile:output_type -> user.UpsertProfileResponse
+	0, // 0: pb.GetUserResponse.user:type_name -> pb.User
+	1, // 1: pb.GetUserResponse.profile:type_name -> pb.Profile
+	1, // 2: pb.UpsertProfileRequest.profile:type_name -> pb.Profile
+	1, // 3: pb.UpsertProfileResponse.profile:type_name -> pb.Profile
+	2, // 4: pb.UserService.EnsureUser:input_type -> pb.EnsureUserRequest
+	4, // 5: pb.UserService.GetUser:input_type -> pb.GetUserRequest
+	6, // 6: pb.UserService.UpsertProfile:input_type -> pb.UpsertProfileRequest
+	3, // 7: pb.UserService.EnsureUser:output_type -> pb.EnsureUserResponse
+	5, // 8: pb.UserService.GetUser:output_type -> pb.GetUserResponse
+	7, // 9: pb.UserService.UpsertProfile:output_type -> pb.UpsertProfileResponse
 	7, // [7:10] is the sub-list for method output_type
 	4, // [4:7] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name

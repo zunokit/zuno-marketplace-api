@@ -4,7 +4,7 @@
 // 	protoc        v6.32.0--rc1
 // source: proto/wallet.proto
 
-package wallet
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -383,7 +383,7 @@ var File_proto_wallet_proto protoreflect.FileDescriptor
 
 const file_proto_wallet_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/wallet.proto\x12\x06wallet\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x02\n" +
+	"\x12proto/wallet.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdb\x02\n" +
 	"\n" +
 	"WalletLink\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -410,20 +410,20 @@ const file_proto_wallet_proto_rawDesc = "" +
 	"is_primary\x18\x05 \x01(\bR\tisPrimary\x12\x12\n" +
 	"\x04type\x18\x06 \x01(\tR\x04type\x12\x1c\n" +
 	"\tconnector\x18\a \x01(\tR\tconnector\x12\x14\n" +
-	"\x05label\x18\b \x01(\tR\x05label\"\x7f\n" +
-	"\x12UpsertLinkResponse\x12&\n" +
-	"\x04link\x18\x01 \x01(\v2\x12.wallet.WalletLinkR\x04link\x12\x18\n" +
+	"\x05label\x18\b \x01(\tR\x05label\"{\n" +
+	"\x12UpsertLinkResponse\x12\"\n" +
+	"\x04link\x18\x01 \x01(\v2\x0e.pb.WalletLinkR\x04link\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\bR\acreated\x12'\n" +
 	"\x0fprimary_changed\x18\x03 \x01(\bR\x0eprimaryChanged\",\n" +
 	"\x11GetWalletsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"B\n" +
-	"\x12GetWalletsResponse\x12,\n" +
-	"\awallets\x18\x01 \x03(\v2\x12.wallet.WalletLinkR\awallets2\x99\x01\n" +
-	"\rWalletService\x12C\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\">\n" +
+	"\x12GetWalletsResponse\x12(\n" +
+	"\awallets\x18\x01 \x03(\v2\x0e.pb.WalletLinkR\awallets2\x89\x01\n" +
+	"\rWalletService\x12;\n" +
 	"\n" +
-	"UpsertLink\x12\x19.wallet.UpsertLinkRequest\x1a\x1a.wallet.UpsertLinkResponse\x12C\n" +
+	"UpsertLink\x12\x15.pb.UpsertLinkRequest\x1a\x16.pb.UpsertLinkResponse\x12;\n" +
 	"\n" +
-	"GetWallets\x12\x19.wallet.GetWalletsRequest\x1a\x1a.wallet.GetWalletsResponseB\x1cZ\x1ashared/proto/wallet;walletb\x06proto3"
+	"GetWallets\x12\x15.pb.GetWalletsRequest\x1a\x16.pb.GetWalletsResponseB\x14Z\x12shared/proto/pb;pbb\x06proto3"
 
 var (
 	file_proto_wallet_proto_rawDescOnce sync.Once
@@ -439,23 +439,23 @@ func file_proto_wallet_proto_rawDescGZIP() []byte {
 
 var file_proto_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_wallet_proto_goTypes = []any{
-	(*WalletLink)(nil),            // 0: wallet.WalletLink
-	(*UpsertLinkRequest)(nil),     // 1: wallet.UpsertLinkRequest
-	(*UpsertLinkResponse)(nil),    // 2: wallet.UpsertLinkResponse
-	(*GetWalletsRequest)(nil),     // 3: wallet.GetWalletsRequest
-	(*GetWalletsResponse)(nil),    // 4: wallet.GetWalletsResponse
+	(*WalletLink)(nil),            // 0: pb.WalletLink
+	(*UpsertLinkRequest)(nil),     // 1: pb.UpsertLinkRequest
+	(*UpsertLinkResponse)(nil),    // 2: pb.UpsertLinkResponse
+	(*GetWalletsRequest)(nil),     // 3: pb.GetWalletsRequest
+	(*GetWalletsResponse)(nil),    // 4: pb.GetWalletsResponse
 	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
 }
 var file_proto_wallet_proto_depIdxs = []int32{
-	5, // 0: wallet.WalletLink.verified_at:type_name -> google.protobuf.Timestamp
-	5, // 1: wallet.WalletLink.created_at:type_name -> google.protobuf.Timestamp
-	5, // 2: wallet.WalletLink.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 3: wallet.UpsertLinkResponse.link:type_name -> wallet.WalletLink
-	0, // 4: wallet.GetWalletsResponse.wallets:type_name -> wallet.WalletLink
-	1, // 5: wallet.WalletService.UpsertLink:input_type -> wallet.UpsertLinkRequest
-	3, // 6: wallet.WalletService.GetWallets:input_type -> wallet.GetWalletsRequest
-	2, // 7: wallet.WalletService.UpsertLink:output_type -> wallet.UpsertLinkResponse
-	4, // 8: wallet.WalletService.GetWallets:output_type -> wallet.GetWalletsResponse
+	5, // 0: pb.WalletLink.verified_at:type_name -> google.protobuf.Timestamp
+	5, // 1: pb.WalletLink.created_at:type_name -> google.protobuf.Timestamp
+	5, // 2: pb.WalletLink.updated_at:type_name -> google.protobuf.Timestamp
+	0, // 3: pb.UpsertLinkResponse.link:type_name -> pb.WalletLink
+	0, // 4: pb.GetWalletsResponse.wallets:type_name -> pb.WalletLink
+	1, // 5: pb.WalletService.UpsertLink:input_type -> pb.UpsertLinkRequest
+	3, // 6: pb.WalletService.GetWallets:input_type -> pb.GetWalletsRequest
+	2, // 7: pb.WalletService.UpsertLink:output_type -> pb.UpsertLinkResponse
+	4, // 8: pb.WalletService.GetWallets:output_type -> pb.GetWalletsResponse
 	7, // [7:9] is the sub-list for method output_type
 	5, // [5:7] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name

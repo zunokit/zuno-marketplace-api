@@ -1,6 +1,6 @@
 syntax = "proto3";
-package wallet;
-option go_package = "shared/proto/wallet;wallet";
+package pb;
+option go_package = "shared/proto/pb;pb";
 import "google/protobuf/timestamp.proto";
 
 message WalletLink {

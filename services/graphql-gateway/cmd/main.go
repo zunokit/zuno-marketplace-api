@@ -1,21 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/proto"
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
+	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
+	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-type Server struct {
-	authClient   pb.AuthServiceClient
-	userClient   pb.UserServiceClient
-	walletClient pb.WalletServiceClient
-}
 
 func main() {
 	log.Println("Starting GraphQL Gateway...")
@@ -25,30 +24,65 @@ func main() {
 	authURL := getEnv("AUTH_SERVICE_URL", "localhost:50051")
 	userURL := getEnv("USER_SERVICE_URL", "localhost:50052")
 	walletURL := getEnv("WALLET_SERVICE_URL", "localhost:50053")
+	playgroundEnabled := getEnv("GRAPHQL_PLAYGROUND", "true") == "true"
 
-	// Connect to services
-	authConn, _ := grpc.Dial(authURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	userConn, _ := grpc.Dial(userURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	walletConn, _ := grpc.Dial(walletURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Connect to gRPC services
+	log.Println("Connecting to gRPC services...")
+	authConn, err := grpc.Dial(authURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to auth service: %v", err)
+	}
+	defer authConn.Close()
 
-	server := &Server{
-		authClient:   pb.NewAuthServiceClient(authConn),
-		userClient:   pb.NewUserServiceClient(userConn),
-		walletClient: pb.NewWalletServiceClient(walletConn),
+	userConn, err := grpc.Dial(userURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to user service: %v", err)
+	}
+	defer userConn.Close()
+
+	walletConn, err := grpc.Dial(walletURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to wallet service: %v", err)
+	}
+	defer walletConn.Close()
+
+	// Create GraphQL resolver with gRPC clients
+	resolver := &graph.Resolver{
+		AuthClient:   pb.NewAuthServiceClient(authConn),
+		UserClient:   pb.NewUserServiceClient(userConn),
+		WalletClient: pb.NewWalletServiceClient(walletConn),
 	}
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	// Create GraphQL server
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+
+	// Setup HTTP router
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.RequestID)
+
+	// Health check endpoint
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"ok"}`)
+		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"message":"GraphQL Gateway - TODO: Implement GraphQL schema"}`)
-	})
+	// GraphQL endpoint with context middleware
+	router.Handle("/graphql", contextMiddleware(srv))
 
+	// GraphQL Playground (development only)
+	if playgroundEnabled {
+		router.Handle("/playground", playground.Handler("GraphQL Playground", "/graphql"))
+		log.Println("GraphQL Playground enabled at http://localhost" + httpAddr + "/playground")
+	}
+
+	// Start server
 	log.Printf("GraphQL Gateway listening on %s", httpAddr)
-	if err := http.ListenAndServe(httpAddr, nil); err != nil {
+	log.Printf("GraphQL endpoint: http://localhost%s/graphql", httpAddr)
+
+	if err := http.ListenAndServe(httpAddr, router); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -58,4 +92,14 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// contextMiddleware adds HTTP request and response to GraphQL context
+func contextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		ctx = appcontext.WithHTTPRequest(ctx, r)
+		ctx = appcontext.WithHTTPResponse(ctx, w)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

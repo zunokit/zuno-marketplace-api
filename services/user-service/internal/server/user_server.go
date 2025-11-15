@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/models"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/repository"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/proto"
+	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

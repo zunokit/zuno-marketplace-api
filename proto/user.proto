@@ -1,6 +1,6 @@
 syntax = "proto3";
-package user;
-option go_package = "shared/proto/user;user";
+package pb;
+option go_package = "shared/proto/pb;pb";
 
 message User {
   string id = 1;
