@@ -38,6 +38,12 @@ message UpsertProfileRequest { Profile profile = 1; }
 message UpsertProfileResponse { Profile profile = 1; }
 
 service UserService {
+  // EnsureUser creates user if not exists, otherwise returns existing (idempotent)
   rpc EnsureUser(EnsureUserRequest) returns (EnsureUserResponse);
 
+  // GetUser retrieves user by ID with profile
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // UpsertProfile updates user profile
+  rpc UpsertProfile(UpsertProfileRequest) returns (UpsertProfileResponse);
 }
