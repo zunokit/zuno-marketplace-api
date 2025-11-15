@@ -103,7 +103,7 @@ build_service(
     'auth-service',
     'auth-service',
     '50051:50051',
-    deps=['postgres', 'redis', 'rabbitmq']
+    deps=['postgres', 'redis', 'rabbitmq', 'user-service', 'wallet-service']
 )
 
 # User Service

@@ -77,19 +77,6 @@ services:
       - wallet-service
     networks:
       - nft-network
-    develop:
-      watch:
-        - path: ./services/auth-service
-          target: /app/services/auth-service
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
 
   user-service:
     build:
@@ -115,22 +102,6 @@ services:
       - postgres
     networks:
       - nft-network
-    develop:
-      watch:
-        - path: ./services/user-service
-          target: /app/services/user-service
-          action: sync
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
 
   wallet-service:
     build:
@@ -156,22 +127,6 @@ services:
       - postgres
     networks:
       - nft-network
-    develop:
-      watch:
-        - path: ./services/wallet-service
-          target: /app/services/wallet-service
-          action: sync
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
 
   graphql-gateway:
     build:
@@ -196,19 +151,6 @@ services:
       - wallet-service
     networks:
       - nft-network
-    develop:
-      watch:
-        - path: ./services/graphql-gateway
-          target: /app/services/graphql-gateway
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
 
 volumes:
   postgres_data:
