@@ -17,7 +17,7 @@ ARG CGO_ENABLED=0
 ARG GOOS=linux
 ARG GOARCH=amd64
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    go build -o build/graphql-gateway ./services/graphql-gateway
+    go build -o build/graphql-gateway ./services/graphql-gateway/cmd/main.go
 
 # Final stage
 FROM alpine:latest
