@@ -13,23 +13,29 @@ NC :=
 ##@ General
 
 help: ## Display this help message
-	@echo "=============================================================="
-	@echo "  Zuno NFT Marketplace API - Development Commands"
-	@echo "=============================================================="
-	@echo.
+	@echo ==============================================================
+	@echo   Zuno NFT Marketplace API - Development Commands
+	@echo ==============================================================
 	@echo Usage: make [target]
-	@echo.
-	@echo Targets:
-	@echo   dev              Start development environment with docker-compose
-	@echo   dev-stop         Stop development environment
-	@echo   test             Run all tests
-	@echo   build            Build all services
-	@echo   proto            Generate protobuf code
-	@echo   lint             Run linter
-	@echo   format           Format code
-	@echo   docker-up        Start Docker services
-	@echo   tilt-up          Start Tilt (hot reload)
-	@echo   ci               Run CI pipeline
+	@echo
+	@echo Development:
+	@echo   make dev         - Start development environment
+	@echo   make dev-stop    - Stop development environment
+	@echo   make tilt-up     - Start Tilt with hot reload
+	@echo Testing:
+	@echo   make test        - Run all tests
+	@echo   make test-coverage - Tests with coverage report
+	@echo Building:
+	@echo   make build       - Build all services
+	@echo   make proto       - Generate protobuf code
+	@echo Quality:
+	@echo   make lint        - Run golangci-lint
+	@echo   make format      - Format code
+	@echo   make ci          - Run CI pipeline locally
+	@echo Docker:
+	@echo   make docker-up   - Start all Docker services
+	@echo   make docker-down - Stop all Docker services
+	@echo For complete guide: See DEVELOPMENT.md
 
 ##@ Development
 
@@ -192,17 +198,14 @@ info: ## Show project info
 	@echo ============================================================
 	@echo   Zuno NFT Marketplace API - Project Info
 	@echo ============================================================
-	@echo.
 	@echo Version: 0.1.0
 	@go version
-	@echo.
 	@echo Services:
-	@echo   - auth-service (gRPC: 50051)
-	@echo   - user-service (gRPC: 50052)
-	@echo   - wallet-service (gRPC: 50053)
-	@echo   - graphql-gateway (HTTP: 8081)
-	@echo.
+	@echo   - auth-service [gRPC: 50051]
+	@echo   - user-service [gRPC: 50052]
+	@echo   - wallet-service [gRPC: 50053]
+	@echo   - graphql-gateway [HTTP: 8081]
 	@echo Infrastructure:
 	@echo   - PostgreSQL: 5432
 	@echo   - Redis: 6379
-	@echo   - RabbitMQ: 5672, 15672
+	@echo   - RabbitMQ: 5672 and 15672
