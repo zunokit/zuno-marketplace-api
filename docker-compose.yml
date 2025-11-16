@@ -2,7 +2,7 @@ services:
   # Infrastructure Services
   postgres:
     image: postgres:15-alpine
-    container_name: nft-postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DATABASE}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -13,19 +13,19 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./db/migrations/000001_init_schema.up.sql:/docker-entrypoint-initdb.d/01-init-schema.sql
     networks:
-      - nft-network
+      - app-network
 
   redis:
     image: redis:7-alpine
-    container_name: nft-redis
+    container_name: redis
     ports:
       - "${REDIS_PORT}:6379"
     networks:
-      - nft-network
+      - app-network
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: nft-rabbitmq
+    container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -33,7 +33,7 @@ services:
       - "${RABBITMQ_PORT}:5672"
       - "15672:15672"
     networks:
-      - nft-network
+      - app-network
 
   # Application Services
   auth-service:
@@ -44,7 +44,7 @@ services:
         - CGO_ENABLED=0
         - GOOS=linux
         - GOARCH=amd64
-    container_name: nft-auth-service
+    container_name: auth-service
     env_file:
       - .env
     environment:
@@ -74,7 +74,7 @@ services:
       - user-service
       - wallet-service
     networks:
-      - nft-network
+      - app-network
 
   user-service:
     build:
@@ -84,7 +84,7 @@ services:
         - CGO_ENABLED=0
         - GOOS=linux
         - GOARCH=amd64
-    container_name: nft-user-service
+    container_name: user-service
     env_file:
       - .env
     environment:
@@ -99,7 +99,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - nft-network
+      - app-network
 
   wallet-service:
     build:
@@ -109,7 +109,7 @@ services:
         - CGO_ENABLED=0
         - GOOS=linux
         - GOARCH=amd64
-    container_name: nft-wallet-service
+    container_name: wallet-service
     env_file:
       - .env
     environment:
@@ -124,13 +124,13 @@ services:
     depends_on:
       - postgres
     networks:
-      - nft-network
+      - app-network
 
   graphql-gateway:
     build:
       context: .
-      dockerfile: infra/development/docker/graph-gateway.Dockerfile
-    container_name: nft-graphql-gateway
+      dockerfile: infra/development/docker/graphql-gateway.Dockerfile
+    container_name: graphql-gateway
     environment:
       - GATEWAY_HTTP_ADDR=:${GATEWAY_HTTP_ADDR}
       - AUTH_SERVICE_URL=auth-service:${AUTH_GRPC_PORT}
@@ -148,11 +148,11 @@ services:
       - user-service
       - wallet-service
     networks:
-      - nft-network
+      - app-network
 
 volumes:
   postgres_data:
 
 networks:
-  nft-network:
+  app-network:
     driver: bridge

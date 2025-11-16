@@ -65,7 +65,7 @@ k8s_resource(
 def build_service(name, path, port, deps=['postgres', 'redis', 'rabbitmq']):
     # Build Docker image with live update
     docker_build(
-        'nft-{}'.format(name),
+        '{}'.format(name),
         '.',
         dockerfile='infra/development/docker/{}.Dockerfile'.format(name),
         only=[
@@ -124,7 +124,7 @@ build_service(
 
 # GraphQL Gateway
 docker_build(
-    'nft-graphql-gateway',
+    'graphql-gateway',
     '.',
     dockerfile='infra/development/docker/graphql-gateway.Dockerfile',
     only=[
@@ -192,7 +192,7 @@ local_resource(
 # Group services by type
 update_settings(
     k8s_upsert_timeout_secs=60,
-    suppress_unused_image_warnings=['nft-auth-service', 'nft-user-service', 'nft-wallet-service', 'nft-graphql-gateway']
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'graphql-gateway']
 )
 
 print("""

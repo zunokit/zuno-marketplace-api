@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: nft-auth-service
+          image: auth-service
           imagePullPolicy: Never
           ports:
             - containerPort: 50051
@@ -41,70 +41,70 @@ spec:
             - name: POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_HOST
             - name: POSTGRES_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_PORT
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_DATABASE
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_DATABASE
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: REDIS_HOST
             - name: REDIS_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: REDIS_PORT
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_HOST
             - name: RABBITMQ_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_PORT
             - name: RABBITMQ_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_USER
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: RABBITMQ_PASSWORD
             - name: RABBITMQ_EXCHANGE
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_EXCHANGE
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: JWT_SECRET
             - name: REFRESH_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: REFRESH_SECRET

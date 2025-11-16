@@ -176,10 +176,10 @@ db-reset: ## Reset database
 
 docker-build: ## Build Docker images
 	@echo Building Docker images...
-	docker build -f infra/development/docker/auth-service.Dockerfile -t nft-auth-service .
-	docker build -f infra/development/docker/user-service.Dockerfile -t nft-user-service .
-	docker build -f infra/development/docker/wallet-service.Dockerfile -t nft-wallet-service .
-	docker build -f infra/development/docker/graph-gateway.Dockerfile -t nft-graphql-gateway .
+	docker build -f infra/development/docker/auth-service.Dockerfile -t auth-service .
+	docker build -f infra/development/docker/user-service.Dockerfile -t user-service .
+	docker build -f infra/development/docker/wallet-service.Dockerfile -t wallet-service .
+	docker build -f infra/development/docker/graphql-gateway.Dockerfile -t graphql-gateway .
 
 docker-up: ## Start Docker services
 	docker compose up -d

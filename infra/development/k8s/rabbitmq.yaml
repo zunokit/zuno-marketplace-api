@@ -39,10 +39,10 @@ spec:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_USER
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: RABBITMQ_PASSWORD

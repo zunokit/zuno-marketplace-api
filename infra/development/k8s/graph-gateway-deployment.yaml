@@ -27,7 +27,8 @@ spec:
     spec:
       containers:
         - name: graphql-gateway
-          image: nft-marketplace/graphql-gateway
+          image: graphql-gateway
+          imagePullPolicy: Never
           ports:
             - containerPort: 8081
           env:
@@ -52,25 +53,25 @@ spec:
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_HOST
             - name: RABBITMQ_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_PORT
             - name: RABBITMQ_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_USER
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: RABBITMQ_PASSWORD
             - name: RABBITMQ_EXCHANGE
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: RABBITMQ_EXCHANGE

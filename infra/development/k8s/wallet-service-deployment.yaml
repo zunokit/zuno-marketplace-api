@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: wallet-service
-          image: nft-wallet-service
+          image: wallet-service
           imagePullPolicy: Never
           ports:
             - containerPort: 50053
@@ -37,25 +37,25 @@ spec:
             - name: POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_HOST
             - name: POSTGRES_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_PORT
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_DATABASE
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_DATABASE
