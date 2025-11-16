@@ -31,7 +31,7 @@ k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 k8s_yaml('infra/development/k8s/postgres.yaml')
 k8s_resource(
     'postgres',
-    port_forwards=['5432:5432'],
+    port_forwards=['5433:5432'],
     labels=['infrastructure'],
     resource_deps=[]
 )
@@ -123,11 +123,35 @@ build_service(
 )
 
 # GraphQL Gateway
-build_service(
+docker_build(
+    'nft-graphql-gateway',
+    '.',
+    dockerfile='infra/development/docker/graphql-gateway.Dockerfile',
+    only=[
+        './shared',
+        './services/graphql-gateway',
+        './proto',
+        './go.mod',
+        './go.sum',
+    ],
+    live_update=[
+        sync('./shared', '/app/shared'),
+        sync('./services/graphql-gateway', '/app/services/graphql-gateway'),
+        sync('./proto', '/app/proto'),
+        sync('./go.mod', '/app/go.mod'),
+        sync('./go.sum', '/app/go.sum'),
+        run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+    ],
+)
+
+k8s_yaml('infra/development/k8s/graphql-gateway-deployment.yaml')
+k8s_resource(
     'graphql-gateway',
-    'graphql-gateway',
-    '8081:8081',
-    deps=['auth-service', 'user-service', 'wallet-service']
+    port_forwards=['8081:8081'],
+    labels=['services'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service'],
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ===================================

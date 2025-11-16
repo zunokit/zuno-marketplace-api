@@ -27,8 +27,7 @@ spec:
     spec:
       containers:
         - name: graphql-gateway
-          image: nft-graphql-gateway
-          imagePullPolicy: Never
+          image: nft-marketplace/graphql-gateway
           ports:
             - containerPort: 8081
           env:

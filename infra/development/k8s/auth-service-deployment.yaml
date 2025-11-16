@@ -27,7 +27,8 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: nft-marketplace/auth-service
+          image: nft-auth-service
+          imagePullPolicy: Never
           ports:
             - containerPort: 50051
           env:
