@@ -69,7 +69,7 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	}
 
 	address := siweMsg.GetAddress().Hex()
-	chainIDStr := fmt.Sprintf("%d", siweMsg.GetChainID())
+	chainIDStr := fmt.Sprintf("eip155:%d", siweMsg.GetChainID())
 	nonce := siweMsg.GetNonce()
 	domain := siweMsg.GetDomain()
 
