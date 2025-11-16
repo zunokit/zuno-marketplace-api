@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.83
 	github.com/ethereum/go-ethereum v1.16.2
 	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 	google.golang.org/grpc v1.75.0
@@ -17,7 +18,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dchest/uniuri v1.2.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
-	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect

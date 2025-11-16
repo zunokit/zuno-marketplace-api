@@ -136,6 +136,7 @@ services:
       - AUTH_SERVICE_URL=auth-service:${AUTH_GRPC_PORT}
       - USER_SERVICE_URL=user-service:${USER_GRPC_PORT}
       - WALLET_SERVICE_URL=wallet-service:${WALLET_GRPC_PORT}
+      - JWT_ACCESS_SECRET=${JWT_SECRET}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=${RABBITMQ_USER}

@@ -11,6 +11,7 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/cookie"
+	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 )
 
@@ -180,8 +181,28 @@ func (r *queryResolver) GetNonce(ctx context.Context, accountID string, chainID 
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	// TODO: Extract user ID from JWT token in Authorization header
-	return nil, fmt.Errorf("authentication required - implement JWT validation first")
+	// Extract user claims from context
+	claims, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch user from user service
+	req := &pb.GetUserRequest{
+		UserId: claims.UserID,
+	}
+
+	res, err := r.UserClient.GetUser(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &model.User{
+		ID:        res.User.Id,
+		Status:    res.User.Status,
+		CreatedAt: res.User.CreatedAt,
+		Profile:   profileFromProto(res.Profile),
+	}, nil
 }
 
 // GetUser is the resolver for the getUser field.
@@ -205,8 +226,27 @@ func (r *queryResolver) GetUser(ctx context.Context, userID string) (*model.User
 
 // MyWallets is the resolver for the myWallets field.
 func (r *queryResolver) MyWallets(ctx context.Context) ([]*model.WalletLink, error) {
-	// TODO: Extract user ID from JWT token in Authorization header
-	return nil, fmt.Errorf("authentication required - implement JWT validation first")
+	// Extract user claims from context
+	claims, err := middleware.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch wallets from wallet service
+	req := &pb.GetWalletsRequest{
+		UserId: claims.UserID,
+	}
+
+	res, err := r.WalletClient.GetWallets(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallets: %w", err)
+	}
+
+	wallets := make([]*model.WalletLink, len(res.Wallets))
+	for i, w := range res.Wallets {
+		wallets[i] = walletLinkFromProto(w)
+	}
+	return wallets, nil
 }
 
 // GetWallets is the resolver for the getWallets field.

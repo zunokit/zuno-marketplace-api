@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
+	authmiddleware "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,7 +26,12 @@ func main() {
 	authURL := getEnv("AUTH_SERVICE_URL", "localhost:50051")
 	userURL := getEnv("USER_SERVICE_URL", "localhost:50052")
 	walletURL := getEnv("WALLET_SERVICE_URL", "localhost:50053")
+	jwtSecret := getEnv("JWT_ACCESS_SECRET", "")
 	playgroundEnabled := getEnv("GRAPHQL_PLAYGROUND", "true") == "true"
+
+	if jwtSecret == "" {
+		log.Fatal("JWT_ACCESS_SECRET environment variable is required")
+	}
 
 	// Connect to gRPC services
 	log.Println("Connecting to gRPC services...")
@@ -72,6 +78,9 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
+
+	// JWT authentication middleware
+	router.Use(authmiddleware.AuthMiddleware(jwtSecret))
 
 	// Health check endpoint
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
