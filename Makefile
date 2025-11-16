@@ -139,7 +139,7 @@ vet: ## Run go vet
 
 # Database configuration
 DB_HOST ?= localhost
-DB_PORT ?= 5432
+DB_PORT ?= 5433
 DB_USER ?= postgres
 DB_PASSWORD ?= postgres
 DB_NAME ?= nft_marketplace
@@ -216,6 +216,7 @@ install-tools: ## Install dev tools
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 ##@ CI/CD
 
