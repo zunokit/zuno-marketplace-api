@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/client"
+	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/config"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/repository"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/server"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/service"
@@ -27,23 +26,10 @@ func main() {
 	log.Println("Starting Auth Service...")
 
 	// Load configuration
-	grpcPort := getEnv("AUTH_GRPC_PORT", ":50051")
-	userServiceURL := getEnv("USER_SERVICE_URL", "localhost:50052")
-	walletServiceURL := getEnv("WALLET_SERVICE_URL", "localhost:50053")
-
-	dbHost := getEnv("POSTGRES_HOST", "localhost")
-	dbPort := getEnv("POSTGRES_PORT", "5432")
-	dbUser := getEnv("POSTGRES_USER", "postgres")
-	dbPassword := getEnv("POSTGRES_PASSWORD", "postgres")
-	dbName := getEnv("POSTGRES_DATABASE", "nft_marketplace")
-	dbSSLMode := getEnv("POSTGRES_SSL_MODE", "disable")
-
-	jwtSecret := getEnv("JWT_SECRET", "your-jwt-secret-key-change-in-production")
-	refreshSecret := getEnv("REFRESH_SECRET", "your-refresh-secret-key-change-in-production")
+	cfg := config.Load()
 
 	// Initialize database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSLMode)
+	dsn := cfg.Database.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -60,10 +46,15 @@ func main() {
 
 	// Initialize services
 	siweService := service.NewSIWEService()
-	jwtService := service.NewJWTService(jwtSecret, refreshSecret, 1*time.Hour, 7*24*time.Hour)
+	jwtService := service.NewJWTService(
+		cfg.JWT.Secret,
+		cfg.JWT.RefreshSecret,
+		cfg.JWT.AccessExpiration,
+		cfg.JWT.RefreshExpiration,
+	)
 
 	// Initialize gRPC clients
-	clients, err := client.NewServiceClients(userServiceURL, walletServiceURL)
+	clients, err := client.NewServiceClients(cfg.Services.UserServiceURL, cfg.Services.WalletServiceURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize gRPC clients: %v", err)
 	}
@@ -88,12 +79,12 @@ func main() {
 	reflection.Register(grpcServer)
 
 	// Start gRPC server
-	listener, err := net.Listen("tcp", grpcPort)
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", grpcPort, err)
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
 	}
 
-	log.Printf("Auth Service listening on %s", grpcPort)
+	log.Printf("Auth Service listening on %s", cfg.Server.GRPCPort)
 
 	// Graceful shutdown
 	go func() {
@@ -108,11 +99,4 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

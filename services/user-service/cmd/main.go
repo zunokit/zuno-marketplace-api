@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/config"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/repository"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/server"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
@@ -23,18 +23,11 @@ import (
 func main() {
 	log.Println("Starting User Service...")
 
-	// Load configuration from environment
-	grpcPort := getEnv("USER_GRPC_PORT", ":50052")
-	dbHost := getEnv("POSTGRES_HOST", "localhost")
-	dbPort := getEnv("POSTGRES_PORT", "5432")
-	dbUser := getEnv("POSTGRES_USER", "postgres")
-	dbPassword := getEnv("POSTGRES_PASSWORD", "postgres")
-	dbName := getEnv("POSTGRES_DATABASE", "nft_marketplace")
-	dbSSLMode := getEnv("POSTGRES_SSL_MODE", "disable")
+	// Load configuration
+	cfg := config.Load()
 
 	// Initialize database connection
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSLMode)
+	dsn := cfg.Database.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -67,12 +60,12 @@ func main() {
 	reflection.Register(grpcServer)
 
 	// Start gRPC server
-	listener, err := net.Listen("tcp", grpcPort)
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", grpcPort, err)
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
 	}
 
-	log.Printf("User Service listening on %s", grpcPort)
+	log.Printf("User Service listening on %s", cfg.Server.GRPCPort)
 
 	// Graceful shutdown
 	go func() {
@@ -89,12 +82,4 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
-}
-
-// getEnv retrieves environment variable or returns default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

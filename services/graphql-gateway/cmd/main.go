@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -11,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
+	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/config"
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
 	authmiddleware "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
@@ -21,33 +21,29 @@ import (
 func main() {
 	log.Println("Starting GraphQL Gateway...")
 
-	// Load config
-	httpAddr := getEnv("GATEWAY_HTTP_ADDR", ":8081")
-	authURL := getEnv("AUTH_SERVICE_URL", "localhost:50051")
-	userURL := getEnv("USER_SERVICE_URL", "localhost:50052")
-	walletURL := getEnv("WALLET_SERVICE_URL", "localhost:50053")
-	jwtSecret := getEnv("JWT_ACCESS_SECRET", "")
-	playgroundEnabled := getEnv("GRAPHQL_PLAYGROUND", "true") == "true"
+	// Load configuration
+	cfg := config.Load()
 
-	if jwtSecret == "" {
-		log.Fatal("JWT_ACCESS_SECRET environment variable is required")
+	// Validate configuration
+	if err := cfg.Validate(); err != nil {
+		log.Fatal(err)
 	}
 
 	// Connect to gRPC services
 	log.Println("Connecting to gRPC services...")
-	authConn, err := grpc.Dial(authURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.Dial(cfg.Services.AuthServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to auth service: %v", err)
 	}
 	defer authConn.Close()
 
-	userConn, err := grpc.Dial(userURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	userConn, err := grpc.Dial(cfg.Services.UserServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to user service: %v", err)
 	}
 	defer userConn.Close()
 
-	walletConn, err := grpc.Dial(walletURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	walletConn, err := grpc.Dial(cfg.Services.WalletServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to wallet service: %v", err)
 	}
@@ -80,7 +76,7 @@ func main() {
 	}))
 
 	// JWT authentication middleware
-	router.Use(authmiddleware.AuthMiddleware(jwtSecret))
+	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.AccessSecret))
 
 	// Health check endpoint
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -93,25 +89,18 @@ func main() {
 	router.Handle("/graphql", contextMiddleware(srv))
 
 	// GraphQL Playground (development only)
-	if playgroundEnabled {
+	if cfg.Features.PlaygroundEnabled {
 		router.Handle("/playground", playground.Handler("GraphQL Playground", "/graphql"))
-		log.Println("GraphQL Playground enabled at http://localhost" + httpAddr + "/playground")
+		log.Println("GraphQL Playground enabled at http://localhost" + cfg.Server.HTTPAddr + "/playground")
 	}
 
 	// Start server
-	log.Printf("GraphQL Gateway listening on %s", httpAddr)
-	log.Printf("GraphQL endpoint: http://localhost%s/graphql", httpAddr)
+	log.Printf("GraphQL Gateway listening on %s", cfg.Server.HTTPAddr)
+	log.Printf("GraphQL endpoint: http://localhost%s/graphql", cfg.Server.HTTPAddr)
 
-	if err := http.ListenAndServe(httpAddr, router); err != nil {
+	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 // contextMiddleware adds HTTP request and response to GraphQL context
