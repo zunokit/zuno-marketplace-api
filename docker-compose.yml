@@ -11,9 +11,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./services/auth-service/db/up.sql:/docker-entrypoint-initdb.d/01-auth-schema.sql
-      - ./services/user-service/db/up.sql:/docker-entrypoint-initdb.d/02-user-schema.sql
-      - ./services/wallet-service/db/up.sql:/docker-entrypoint-initdb.d/03-wallet-schema.sql
+      - ./db/migrations/000001_init_schema.up.sql:/docker-entrypoint-initdb.d/01-init-schema.sql
     networks:
       - nft-network
 
