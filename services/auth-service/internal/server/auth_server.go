@@ -265,5 +265,43 @@ func (s *AuthServer) RefreshSession(ctx context.Context, req *pb.RefreshSessionR
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		ExpiresAt:    tokens.ExpiresAt.Format(time.RFC3339),
+		UserId:       session.UserID.String(),
+	}, nil
+}
+
+func (s *AuthServer) RevokeSession(ctx context.Context, req *pb.RevokeSessionRequest) (*pb.RevokeSessionResponse, error) {
+	if req.SessionId == "" {
+		return nil, status.Error(codes.InvalidArgument, "session_id is required")
+	}
+
+	sessionID, err := uuid.Parse(req.SessionId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid session_id format")
+	}
+
+	err = s.sessionRepo.RevokeSession(ctx, sessionID, "user_requested")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to revoke session: %v", err)
+	}
+
+	return &pb.RevokeSessionResponse{
+		Success: true,
+	}, nil
+}
+
+func (s *AuthServer) RevokeSessionByRefreshToken(ctx context.Context, req *pb.RevokeSessionByRefreshTokenRequest) (*pb.RevokeSessionByRefreshTokenResponse, error) {
+	if req.RefreshToken == "" {
+		return nil, status.Error(codes.InvalidArgument, "refresh_token is required")
+	}
+
+	refreshHash := repository.HashRefreshToken(req.RefreshToken)
+
+	err := s.sessionRepo.RevokeByRefreshToken(ctx, refreshHash, "user_logout")
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to revoke session: %v", err)
+	}
+
+	return &pb.RevokeSessionByRefreshTokenResponse{
+		Success: true,
 	}, nil
 }

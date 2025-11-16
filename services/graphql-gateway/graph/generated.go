@@ -47,17 +47,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	AuthResponse struct {
-		AccessToken  func(childComplexity int) int
-		Address      func(childComplexity int) int
-		ChainID      func(childComplexity int) int
-		ExpiresAt    func(childComplexity int) int
-		RefreshToken func(childComplexity int) int
-		UserID       func(childComplexity int) int
+		AccessToken func(childComplexity int) int
+		Address     func(childComplexity int) int
+		ChainID     func(childComplexity int) int
+		ExpiresAt   func(childComplexity int) int
+		UserID      func(childComplexity int) int
 	}
 
 	Mutation struct {
 		LinkWallet     func(childComplexity int, input model.LinkWalletInput) int
-		RefreshSession func(childComplexity int, refreshToken string, userAgent *string, ipAddress *string) int
+		Logout         func(childComplexity int) int
+		RefreshSession func(childComplexity int, refreshToken *string, userAgent *string, ipAddress *string) int
 		RevokeSession  func(childComplexity int, sessionID string) int
 		UpdateProfile  func(childComplexity int, input model.UpdateProfileInput) int
 		VerifySiwe     func(childComplexity int, accountID string, message string, signature string) int
@@ -90,10 +90,9 @@ type ComplexityRoot struct {
 	}
 
 	RefreshResponse struct {
-		AccessToken  func(childComplexity int) int
-		ExpiresAt    func(childComplexity int) int
-		RefreshToken func(childComplexity int) int
-		UserID       func(childComplexity int) int
+		AccessToken func(childComplexity int) int
+		ExpiresAt   func(childComplexity int) int
+		UserID      func(childComplexity int) int
 	}
 
 	User struct {
@@ -118,8 +117,9 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	VerifySiwe(ctx context.Context, accountID string, message string, signature string) (*model.AuthResponse, error)
-	RefreshSession(ctx context.Context, refreshToken string, userAgent *string, ipAddress *string) (*model.RefreshResponse, error)
+	RefreshSession(ctx context.Context, refreshToken *string, userAgent *string, ipAddress *string) (*model.RefreshResponse, error)
 	RevokeSession(ctx context.Context, sessionID string) (bool, error)
+	Logout(ctx context.Context) (bool, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*model.Profile, error)
 	LinkWallet(ctx context.Context, input model.LinkWalletInput) (*model.WalletLink, error)
 }
@@ -174,12 +174,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthResponse.ExpiresAt(childComplexity), true
-	case "AuthResponse.refreshToken":
-		if e.complexity.AuthResponse.RefreshToken == nil {
-			break
-		}
-
-		return e.complexity.AuthResponse.RefreshToken(childComplexity), true
 	case "AuthResponse.userId":
 		if e.complexity.AuthResponse.UserID == nil {
 			break
@@ -198,6 +192,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.LinkWallet(childComplexity, args["input"].(model.LinkWalletInput)), true
+	case "Mutation.logout":
+		if e.complexity.Mutation.Logout == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Logout(childComplexity), true
 	case "Mutation.refreshSession":
 		if e.complexity.Mutation.RefreshSession == nil {
 			break
@@ -208,7 +208,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RefreshSession(childComplexity, args["refreshToken"].(string), args["userAgent"].(*string), args["ipAddress"].(*string)), true
+		return e.complexity.Mutation.RefreshSession(childComplexity, args["refreshToken"].(*string), args["userAgent"].(*string), args["ipAddress"].(*string)), true
 	case "Mutation.revokeSession":
 		if e.complexity.Mutation.RevokeSession == nil {
 			break
@@ -375,12 +375,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RefreshResponse.ExpiresAt(childComplexity), true
-	case "RefreshResponse.refreshToken":
-		if e.complexity.RefreshResponse.RefreshToken == nil {
-			break
-		}
-
-		return e.complexity.RefreshResponse.RefreshToken(childComplexity), true
 	case "RefreshResponse.userId":
 		if e.complexity.RefreshResponse.UserID == nil {
 			break
@@ -586,18 +580,24 @@ type Nonce {
   expiresAt: String!
 }
 
+"""
+Response from SIWE verification.
+Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
+"""
 type AuthResponse {
   accessToken: String!
-  refreshToken: String!
   expiresAt: String!
   userId: String!
   address: String!
   chainId: String!
 }
 
+"""
+Response from session refresh.
+Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
+"""
 type RefreshResponse {
   accessToken: String!
-  refreshToken: String!
   expiresAt: String!
   userId: String!
 }
@@ -692,13 +692,25 @@ type Mutation {
     signature: String!
   ): AuthResponse!
 
+  """
+  Refresh the current session to get a new access token.
+  - refreshToken: Optional. If not provided, will use refresh_token from HttpOnly cookie.
+  - userAgent: Optional. User agent string for session tracking.
+  - ipAddress: Optional. IP address for session tracking.
+  """
   refreshSession(
-    refreshToken: String!
+    refreshToken: String
     userAgent: String
     ipAddress: String
   ): RefreshResponse!
 
   revokeSession(sessionId: ID!): Boolean!
+
+  """
+  Logout the current user by revoking the session from refresh_token cookie.
+  Clears the HttpOnly cookie automatically.
+  """
+  logout: Boolean!
 
   # User
   updateProfile(input: UpdateProfileInput!): Profile!
@@ -728,7 +740,7 @@ func (ec *executionContext) field_Mutation_linkWallet_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_refreshSession_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "refreshToken", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "refreshToken", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
@@ -924,35 +936,6 @@ func (ec *executionContext) fieldContext_AuthResponse_accessToken(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthResponse_refreshToken(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AuthResponse_refreshToken,
-		func(ctx context.Context) (any, error) {
-			return obj.RefreshToken, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AuthResponse_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _AuthResponse_expiresAt(ctx context.Context, field graphql.CollectedField, obj *model.AuthResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1096,8 +1079,6 @@ func (ec *executionContext) fieldContext_Mutation_verifySiwe(ctx context.Context
 			switch field.Name {
 			case "accessToken":
 				return ec.fieldContext_AuthResponse_accessToken(ctx, field)
-			case "refreshToken":
-				return ec.fieldContext_AuthResponse_refreshToken(ctx, field)
 			case "expiresAt":
 				return ec.fieldContext_AuthResponse_expiresAt(ctx, field)
 			case "userId":
@@ -1132,7 +1113,7 @@ func (ec *executionContext) _Mutation_refreshSession(ctx context.Context, field 
 		ec.fieldContext_Mutation_refreshSession,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RefreshSession(ctx, fc.Args["refreshToken"].(string), fc.Args["userAgent"].(*string), fc.Args["ipAddress"].(*string))
+			return ec.resolvers.Mutation().RefreshSession(ctx, fc.Args["refreshToken"].(*string), fc.Args["userAgent"].(*string), fc.Args["ipAddress"].(*string))
 		},
 		nil,
 		ec.marshalNRefreshResponse2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse,
@@ -1151,8 +1132,6 @@ func (ec *executionContext) fieldContext_Mutation_refreshSession(ctx context.Con
 			switch field.Name {
 			case "accessToken":
 				return ec.fieldContext_RefreshResponse_accessToken(ctx, field)
-			case "refreshToken":
-				return ec.fieldContext_RefreshResponse_refreshToken(ctx, field)
 			case "expiresAt":
 				return ec.fieldContext_RefreshResponse_expiresAt(ctx, field)
 			case "userId":
@@ -1212,6 +1191,35 @@ func (ec *executionContext) fieldContext_Mutation_revokeSession(ctx context.Cont
 	if fc.Args, err = ec.field_Mutation_revokeSession_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_logout,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -2060,35 +2068,6 @@ func (ec *executionContext) _RefreshResponse_accessToken(ctx context.Context, fi
 }
 
 func (ec *executionContext) fieldContext_RefreshResponse_accessToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RefreshResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RefreshResponse_refreshToken(ctx context.Context, field graphql.CollectedField, obj *model.RefreshResponse) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RefreshResponse_refreshToken,
-		func(ctx context.Context) (any, error) {
-			return obj.RefreshToken, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_RefreshResponse_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RefreshResponse",
 		Field:      field,
@@ -4173,11 +4152,6 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "refreshToken":
-			out.Values[i] = ec._AuthResponse_refreshToken(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "expiresAt":
 			out.Values[i] = ec._AuthResponse_expiresAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4257,6 +4231,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "revokeSession":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_revokeSession(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4566,11 +4547,6 @@ func (ec *executionContext) _RefreshResponse(ctx context.Context, sel ast.Select
 			out.Values[i] = graphql.MarshalString("RefreshResponse")
 		case "accessToken":
 			out.Values[i] = ec._RefreshResponse_accessToken(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "refreshToken":
-			out.Values[i] = ec._RefreshResponse_refreshToken(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

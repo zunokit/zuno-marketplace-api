@@ -1,0 +1,19 @@
+# ============================================
+# Root Schema - Base Query & Mutation Types
+# ============================================
+
+"""
+Root query type.
+All domain-specific queries are defined in their respective schema files.
+"""
+type Query {
+  _empty: String
+}
+
+"""
+Root mutation type.
+All domain-specific mutations are defined in their respective schema files.
+"""
+type Mutation {
+  _empty: String
+}

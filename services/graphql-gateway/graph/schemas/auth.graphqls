@@ -1,0 +1,76 @@
+# ============================================
+# Auth Types & Operations
+# ============================================
+
+type Nonce {
+  nonce: String!
+  expiresAt: String!
+}
+
+"""
+Response from SIWE verification.
+Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
+"""
+type AuthResponse {
+  accessToken: String!
+  expiresAt: String!
+  userId: String!
+  address: String!
+  chainId: String!
+}
+
+"""
+Response from session refresh.
+Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
+"""
+type RefreshResponse {
+  accessToken: String!
+  expiresAt: String!
+  userId: String!
+}
+
+extend type Query {
+  """
+  Get a nonce for SIWE authentication.
+  - accountId: Ethereum address (0x...) or CAIP-10 format
+  - chainId: CAIP-2 format (e.g., eip155:1)
+  - domain: Application domain (e.g., localhost:3000)
+  """
+  getNonce(accountId: String!, chainId: String!, domain: String!): Nonce!
+}
+
+extend type Mutation {
+  """
+  Verify a SIWE signature and create an authenticated session.
+  Returns access token in response body and sets refresh token as HttpOnly cookie.
+  """
+  verifySiwe(
+    accountId: String!
+    message: String!
+    signature: String!
+  ): AuthResponse!
+
+  """
+  Refresh the current session to get a new access token.
+  - refreshToken: Optional. If not provided, will use refresh_token from HttpOnly cookie.
+  - userAgent: Optional. User agent string for session tracking.
+  - ipAddress: Optional. IP address for session tracking.
+  """
+  refreshSession(
+    refreshToken: String
+    userAgent: String
+    ipAddress: String
+  ): RefreshResponse!
+
+  """
+  Revoke a specific session by session ID.
+  Requires the session ID to be known (e.g., from session management UI).
+  """
+  revokeSession(sessionId: ID!): Boolean!
+
+  """
+  Logout the current user by revoking the session from refresh_token cookie.
+  Clears the HttpOnly cookie automatically.
+  """
+  logout: Boolean!
+}

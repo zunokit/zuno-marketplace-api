@@ -12,7 +12,7 @@ import (
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/cookie"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 )
 
 // VerifySiwe is the resolver for the verifySiwe field.
@@ -34,20 +34,21 @@ func (r *mutationResolver) VerifySiwe(ctx context.Context, accountID string, mes
 	}
 
 	return &model.AuthResponse{
-		AccessToken:  res.AccessToken,
-		RefreshToken: "", // Don't return refresh token in response body
-		ExpiresAt:    res.ExpiresAt,
-		UserID:       res.UserId,
-		Address:      res.Address,
-		ChainID:      res.ChainId,
+		AccessToken: res.AccessToken,
+		ExpiresAt:   res.ExpiresAt,
+		UserID:      res.UserId,
+		Address:     res.Address,
+		ChainID:     res.ChainId,
 	}, nil
 }
 
 // RefreshSession is the resolver for the refreshSession field.
-func (r *mutationResolver) RefreshSession(ctx context.Context, refreshToken string, userAgent *string, ipAddress *string) (*model.RefreshResponse, error) {
+func (r *mutationResolver) RefreshSession(ctx context.Context, refreshToken *string, userAgent *string, ipAddress *string) (*model.RefreshResponse, error) {
 	// Try to get refresh token from cookie if not provided
-	token := refreshToken
-	if token == "" {
+	var token string
+	if refreshToken != nil && *refreshToken != "" {
+		token = *refreshToken
+	} else {
 		if req, ok := appcontext.GetHTTPRequest(ctx); ok {
 			if cookieToken, err := cookie.GetRefreshTokenFromCookie(req); err == nil {
 				token = cookieToken
@@ -80,10 +81,9 @@ func (r *mutationResolver) RefreshSession(ctx context.Context, refreshToken stri
 	}
 
 	return &model.RefreshResponse{
-		AccessToken:  res.AccessToken,
-		RefreshToken: "", // Don't return refresh token in response body
-		ExpiresAt:    res.ExpiresAt,
-		UserID:       res.UserId,
+		AccessToken: res.AccessToken,
+		ExpiresAt:   res.ExpiresAt,
+		UserID:      res.UserId,
 	}, nil
 }
 
@@ -96,6 +96,38 @@ func (r *mutationResolver) RevokeSession(ctx context.Context, sessionID string) 
 	res, err := r.AuthClient.RevokeSession(ctx, req)
 	if err != nil {
 		return false, fmt.Errorf("failed to revoke session: %w", err)
+	}
+
+	// Clear refresh token cookie
+	if w, ok := appcontext.GetHTTPResponse(ctx); ok {
+		cookie.ClearRefreshTokenCookie(w)
+	}
+
+	return res.Success, nil
+}
+
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	// Get refresh token from cookie
+	var refreshToken string
+	if req, ok := appcontext.GetHTTPRequest(ctx); ok {
+		if token, err := cookie.GetRefreshTokenFromCookie(req); err == nil {
+			refreshToken = token
+		}
+	}
+
+	if refreshToken == "" {
+		return false, fmt.Errorf("no active session found")
+	}
+
+	// Revoke session using refresh token
+	req := &pb.RevokeSessionByRefreshTokenRequest{
+		RefreshToken: refreshToken,
+	}
+
+	res, err := r.AuthClient.RevokeSessionByRefreshToken(ctx, req)
+	if err != nil {
+		return false, fmt.Errorf("failed to logout: %w", err)
 	}
 
 	// Clear refresh token cookie

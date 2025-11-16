@@ -2,13 +2,14 @@
 
 package model
 
+// Response from SIWE verification.
+// Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
 type AuthResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresAt    string `json:"expiresAt"`
-	UserID       string `json:"userId"`
-	Address      string `json:"address"`
-	ChainID      string `json:"chainId"`
+	AccessToken string `json:"accessToken"`
+	ExpiresAt   string `json:"expiresAt"`
+	UserID      string `json:"userId"`
+	Address     string `json:"address"`
+	ChainID     string `json:"chainId"`
 }
 
 type LinkWalletInput struct {
@@ -45,11 +46,12 @@ type Profile struct {
 type Query struct {
 }
 
+// Response from session refresh.
+// Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
 type RefreshResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresAt    string `json:"expiresAt"`
-	UserID       string `json:"userId"`
+	AccessToken string `json:"accessToken"`
+	ExpiresAt   string `json:"expiresAt"`
+	UserID      string `json:"userId"`
 }
 
 type UpdateProfileInput struct {
