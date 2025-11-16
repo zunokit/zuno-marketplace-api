@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -57,8 +58,8 @@ func (s *AuthServer) GetNonce(ctx context.Context, req *pb.GetNonceRequest) (*pb
 }
 
 func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) (*pb.VerifySiweResponse, error) {
-	if req.Message == "" || req.Signature == "" {
-		return nil, status.Error(codes.InvalidArgument, "message and signature are required")
+	if req.AccountId == "" || req.Message == "" || req.Signature == "" {
+		return nil, status.Error(codes.InvalidArgument, "account_id, message and signature are required")
 	}
 
 	// Parse SIWE message
@@ -68,7 +69,7 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	}
 
 	address := siweMsg.GetAddress().Hex()
-	chainID := "eip155:" + string(rune(siweMsg.GetChainID()))
+	chainIDStr := fmt.Sprintf("%d", siweMsg.GetChainID())
 	nonce := siweMsg.GetNonce()
 	domain := siweMsg.GetDomain()
 
@@ -77,16 +78,16 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 		return nil, status.Error(codes.Unauthenticated, "signature verification failed")
 	}
 
-	// Validate and consume nonce
-	if err := s.nonceRepo.ValidateAndConsumeNonce(ctx, nonce, strings.ToLower(address), chainID, domain); err != nil {
+	// Validate and consume nonce using accountId from request
+	if err := s.nonceRepo.ValidateAndConsumeNonce(ctx, nonce, strings.ToLower(req.AccountId), chainIDStr, domain); err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid or expired nonce")
 	}
 
 	// Ensure user exists (call user-service)
 	userResp, err := s.clients.UserClient.EnsureUser(ctx, &pb.EnsureUserRequest{
-		AccountId: strings.ToLower(address),
+		AccountId: strings.ToLower(req.AccountId),
 		Address:   strings.ToLower(address),
-		ChainId:   chainID,
+		ChainId:   chainIDStr,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to ensure user: %v", err)
@@ -97,9 +98,9 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	// Link wallet (call wallet-service)
 	_, err = s.clients.WalletClient.UpsertLink(ctx, &pb.UpsertLinkRequest{
 		UserId:    userID.String(),
-		AccountId: strings.ToLower(address),
+		AccountId: strings.ToLower(req.AccountId),
 		Address:   strings.ToLower(address),
-		ChainId:   chainID,
+		ChainId:   chainIDStr,
 		IsPrimary: true,
 		Type:      "eoa",
 	})
@@ -134,6 +135,8 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		UserId:       userID.String(),
+		Address:      strings.ToLower(address),
+		ChainId:      chainIDStr,
 		ExpiresAt:    tokens.ExpiresAt.Format(time.RFC3339),
 	}, nil
 }
