@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -13,32 +14,61 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/service"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
 type AuthServer struct {
 	pb.UnimplementedAuthServiceServer
-	nonceRepo   repository.NonceRepository
-	sessionRepo repository.SessionRepository
-	siweService *service.SIWEService
-	jwtService  *service.JWTService
-	clients     *client.ServiceClients
+	nonceRepo      repository.NonceRepository
+	sessionRepo    repository.SessionRepository
+	loginEventRepo repository.LoginEventRepository
+	siweService    *service.SIWEService
+	jwtService     *service.JWTService
+	clients        *client.ServiceClients
 }
 
 func NewAuthServer(
 	nonceRepo repository.NonceRepository,
 	sessionRepo repository.SessionRepository,
+	loginEventRepo repository.LoginEventRepository,
 	siweService *service.SIWEService,
 	jwtService *service.JWTService,
 	clients *client.ServiceClients,
 ) *AuthServer {
 	return &AuthServer{
-		nonceRepo:   nonceRepo,
-		sessionRepo: sessionRepo,
-		siweService: siweService,
-		jwtService:  jwtService,
-		clients:     clients,
+		nonceRepo:      nonceRepo,
+		sessionRepo:    sessionRepo,
+		loginEventRepo: loginEventRepo,
+		siweService:    siweService,
+		jwtService:     jwtService,
+		clients:        clients,
 	}
+}
+
+// Helper functions to extract metadata from gRPC context
+func getIPAddress(ctx context.Context) *string {
+	if p, ok := peer.FromContext(ctx); ok {
+		addr := p.Addr.String()
+		// Use net.SplitHostPort to properly handle both IPv4 and IPv6
+		// (e.g., "10.1.2.145:33408" -> "10.1.2.145", "[::1]:33408" -> "::1")
+		if host, _, err := net.SplitHostPort(addr); err == nil {
+			return &host
+		}
+		// If SplitHostPort fails, return as-is (might be IP without port)
+		return &addr
+	}
+	return nil
+}
+
+func getUserAgent(ctx context.Context) *string {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if ua := md.Get("user-agent"); len(ua) > 0 {
+			return &ua[0]
+		}
+	}
+	return nil
 }
 
 func (s *AuthServer) GetNonce(ctx context.Context, req *pb.GetNonceRequest) (*pb.GetNonceResponse, error) {
@@ -58,13 +88,41 @@ func (s *AuthServer) GetNonce(ctx context.Context, req *pb.GetNonceRequest) (*pb
 }
 
 func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) (*pb.VerifySiweResponse, error) {
+	// Extract metadata for audit logging
+	ipAddress := getIPAddress(ctx)
+	userAgent := getUserAgent(ctx)
+	accountID := strings.ToLower(req.AccountId)
+
+	// Helper function to log login events
+	logLoginEvent := func(result models.LoginResult, userID *uuid.UUID, chainID, domain *string, errMsg *string) {
+		event := &models.LoginEvent{
+			UserID:       userID,
+			AccountID:    accountID,
+			IPAddress:    ipAddress,
+			UserAgent:    userAgent,
+			Result:       result,
+			ErrorMessage: errMsg,
+			ChainID:      chainID,
+			Domain:       domain,
+			Timestamp:    time.Now(),
+		}
+		// Fire and forget - don't block on logging errors
+		go func() {
+			_ = s.loginEventRepo.CreateLoginEvent(context.Background(), event)
+		}()
+	}
+
 	if req.AccountId == "" || req.Message == "" || req.Signature == "" {
-		return nil, status.Error(codes.InvalidArgument, "account_id, message and signature are required")
+		errMsg := "account_id, message and signature are required"
+		logLoginEvent(models.LoginResultFailed, nil, nil, nil, &errMsg)
+		return nil, status.Error(codes.InvalidArgument, errMsg)
 	}
 
 	// Parse SIWE message
 	siweMsg, err := s.siweService.ParseMessage(req.Message)
 	if err != nil {
+		errMsg := fmt.Sprintf("invalid SIWE message format: %v", err)
+		logLoginEvent(models.LoginResultInvalidMessage, nil, nil, nil, &errMsg)
 		return nil, status.Error(codes.InvalidArgument, "invalid SIWE message format")
 	}
 
@@ -75,21 +133,39 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 
 	// Verify signature
 	if err := s.siweService.VerifySignature(req.Message, req.Signature, address); err != nil {
+		errMsg := fmt.Sprintf("signature verification failed: %v", err)
+		logLoginEvent(models.LoginResultInvalidSignature, nil, &chainIDStr, &domain, &errMsg)
 		return nil, status.Error(codes.Unauthenticated, "signature verification failed")
 	}
 
 	// Validate and consume nonce using accountId from request
-	if err := s.nonceRepo.ValidateAndConsumeNonce(ctx, nonce, strings.ToLower(req.AccountId), chainIDStr, domain); err != nil {
+	if err := s.nonceRepo.ValidateAndConsumeNonce(ctx, nonce, accountID, chainIDStr, domain); err != nil {
+		var result models.LoginResult
+		errMsg := err.Error()
+
+		// Determine specific error type
+		switch {
+		case strings.Contains(errMsg, "expired"):
+			result = models.LoginResultExpiredNonce
+		case strings.Contains(errMsg, "used"):
+			result = models.LoginResultInvalidNonce
+		default:
+			result = models.LoginResultInvalidNonce
+		}
+
+		logLoginEvent(result, nil, &chainIDStr, &domain, &errMsg)
 		return nil, status.Error(codes.Unauthenticated, "invalid or expired nonce")
 	}
 
 	// Ensure user exists (call user-service)
 	userResp, err := s.clients.UserClient.EnsureUser(ctx, &pb.EnsureUserRequest{
-		AccountId: strings.ToLower(req.AccountId),
+		AccountId: accountID,
 		Address:   strings.ToLower(address),
 		ChainId:   chainIDStr,
 	})
 	if err != nil {
+		errMsg := fmt.Sprintf("failed to ensure user: %v", err)
+		logLoginEvent(models.LoginResultFailed, nil, &chainIDStr, &domain, &errMsg)
 		return nil, status.Errorf(codes.Internal, "failed to ensure user: %v", err)
 	}
 
@@ -98,13 +174,15 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	// Link wallet (call wallet-service)
 	_, err = s.clients.WalletClient.UpsertLink(ctx, &pb.UpsertLinkRequest{
 		UserId:    userID.String(),
-		AccountId: strings.ToLower(req.AccountId),
+		AccountId: accountID,
 		Address:   strings.ToLower(address),
 		ChainId:   chainIDStr,
 		IsPrimary: true,
 		Type:      "eoa",
 	})
 	if err != nil {
+		errMsg := fmt.Sprintf("failed to link wallet: %v", err)
+		logLoginEvent(models.LoginResultFailed, &userID, &chainIDStr, &domain, &errMsg)
 		return nil, status.Errorf(codes.Internal, "failed to link wallet: %v", err)
 	}
 
@@ -121,6 +199,8 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	// Generate token pair
 	tokens, err := s.jwtService.GenerateTokenPair(userID, session.SessionID)
 	if err != nil {
+		errMsg := fmt.Sprintf("failed to generate tokens: %v", err)
+		logLoginEvent(models.LoginResultFailed, &userID, &chainIDStr, &domain, &errMsg)
 		return nil, status.Errorf(codes.Internal, "failed to generate tokens: %v", err)
 	}
 
@@ -128,8 +208,13 @@ func (s *AuthServer) VerifySiwe(ctx context.Context, req *pb.VerifySiweRequest) 
 	session.RefreshHash = repository.HashRefreshToken(tokens.RefreshToken)
 
 	if err := s.sessionRepo.CreateSession(ctx, session); err != nil {
+		errMsg := fmt.Sprintf("failed to create session: %v", err)
+		logLoginEvent(models.LoginResultFailed, &userID, &chainIDStr, &domain, &errMsg)
 		return nil, status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
+
+	// Log successful login
+	logLoginEvent(models.LoginResultSuccess, &userID, &chainIDStr, &domain, nil)
 
 	return &pb.VerifySiweResponse{
 		AccessToken:  tokens.AccessToken,

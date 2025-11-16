@@ -56,6 +56,7 @@ func main() {
 	// Initialize repositories
 	nonceRepo := repository.NewNonceRepository(db)
 	sessionRepo := repository.NewSessionRepository(db)
+	loginEventRepo := repository.NewLoginEventRepository(db)
 
 	// Initialize services
 	siweService := service.NewSIWEService()
@@ -75,7 +76,7 @@ func main() {
 	)
 
 	// Register auth service
-	authServer := server.NewAuthServer(nonceRepo, sessionRepo, siweService, jwtService, clients)
+	authServer := server.NewAuthServer(nonceRepo, sessionRepo, loginEventRepo, siweService, jwtService, clients)
 	pb.RegisterAuthServiceServer(grpcServer, authServer)
 
 	// Register health check

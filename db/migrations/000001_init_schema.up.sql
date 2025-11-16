@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- NONCE MANAGEMENT
 CREATE TABLE IF NOT EXISTS auth_nonces (
     nonce       varchar(64)  PRIMARY KEY,
-    account_id  varchar(42)  NOT NULL,
+    account_id  varchar(100) NOT NULL,
     domain      varchar(255) NOT NULL,
     chain_id    varchar(32)  NOT NULL,
     issued_at   timestamptz  NOT NULL DEFAULT now(),
@@ -27,7 +27,13 @@ ALTER TABLE auth_nonces
 ALTER TABLE auth_nonces
   DROP CONSTRAINT IF EXISTS chk_account_format,
   ADD  CONSTRAINT chk_account_format
-  CHECK (account_id = lower(account_id) AND account_id ~ '^0x[0-9a-f]{40}$');
+  CHECK (
+    -- CAIP-10 format: eip155:chainId:0xaddress
+    account_id ~ '^eip155:[0-9]+:0x[0-9a-f]{40}$'
+    OR
+    -- Legacy Ethereum address format
+    (account_id = lower(account_id) AND account_id ~ '^0x[0-9a-f]{40}$')
+  );
 
 CREATE INDEX IF NOT EXISTS idx_auth_nonces_expires_at  ON auth_nonces(expires_at);
 CREATE INDEX IF NOT EXISTS idx_auth_nonces_account_id  ON auth_nonces(account_id);
@@ -72,7 +78,7 @@ ALTER TABLE sessions
 CREATE TABLE IF NOT EXISTS login_events (
     id           uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id      uuid,
-    account_id   varchar(42)  NOT NULL,
+    account_id   varchar(100) NOT NULL,
     ip_address   inet,
     user_agent   text,
     result       varchar(32)  NOT NULL,
@@ -85,7 +91,13 @@ CREATE TABLE IF NOT EXISTS login_events (
 ALTER TABLE login_events
   DROP CONSTRAINT IF EXISTS chk_login_account_format,
   ADD  CONSTRAINT chk_login_account_format
-  CHECK (account_id = lower(account_id) AND account_id ~ '^0x[0-9a-f]{40}$');
+  CHECK (
+    -- CAIP-10 format: eip155:chainId:0xaddress
+    account_id ~ '^eip155:[0-9]+:0x[0-9a-f]{40}$'
+    OR
+    -- Legacy Ethereum address format
+    (account_id = lower(account_id) AND account_id ~ '^0x[0-9a-f]{40}$')
+  );
 
 ALTER TABLE login_events
   DROP CONSTRAINT IF EXISTS chk_login_result,
@@ -188,6 +200,7 @@ CREATE TABLE IF NOT EXISTS user_stats (
 );
 
 ALTER TABLE user_stats
+  DROP CONSTRAINT IF EXISTS chk_stats_non_negative,
   ADD CONSTRAINT chk_stats_non_negative CHECK (
     collections_count >= 0 AND
     items_count >= 0 AND
@@ -209,6 +222,7 @@ CREATE TABLE IF NOT EXISTS user_follows (
 );
 
 ALTER TABLE user_follows
+  DROP CONSTRAINT IF EXISTS chk_no_self_follow,
   ADD CONSTRAINT chk_no_self_follow CHECK (follower_id != following_id);
 
 CREATE INDEX IF NOT EXISTS idx_user_follows_follower ON user_follows(follower_id);

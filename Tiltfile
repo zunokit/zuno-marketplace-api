@@ -20,6 +20,9 @@ if cfg.get('namespace'):
 # Ensure namespace exists
 local('kubectl create namespace {} --dry-run=client -o yaml | kubectl apply -f -'.format(k8s_namespace))
 
+# Apply secrets (if file exists)
+local('kubectl apply -f infra/development/k8s/secrets.yaml --namespace={} || true'.format(k8s_namespace))
+
 # Set kubectl context
 k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 

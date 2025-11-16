@@ -1,28 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout:*)",
-      "Bash(git cherry-pick:*)",
-      "Bash(git branch:*)",
-      "Bash(gh pr create:*)",
-      "Bash(git merge:*)",
-      "Bash(go:*)",
-      "WebSearch",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(goimports:*)",
-      "Bash(mkdir:*)",
-      "Bash(git mv:*)",
-      "Bash(git filter-branch:*)",
-      "mcp__ide__getDiagnostics",
-      "Bash(golangci-lint run:*)",
-      "Bash(dir /B infra\\development\\k8s\\)",
-      "Bash(dir infradevelopmentk8s)",
-      "Bash(dir infradevelopment)",
-      "Bash(test:*)",
-      "Bash(cp:*)",
-      "Bash(md-tree:*)"
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []
