@@ -34,7 +34,13 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 				// Expected format: "Bearer <token>"
 				parts := strings.Split(authHeader, " ")
 				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-					tokenStr := parts[1]
+					tokenStr := strings.TrimSpace(parts[1])
+
+					// Skip empty tokens
+					if tokenStr == "" {
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
 
 					// Validate the token
 					claims, err := validateAccessToken(tokenStr, jwtSecret)
