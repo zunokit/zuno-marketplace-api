@@ -20,6 +20,9 @@ if cfg.get('namespace'):
 # Ensure namespace exists
 local('kubectl create namespace {} --dry-run=client -o yaml | kubectl apply -f -'.format(k8s_namespace))
 
+# Apply secrets (if file exists)
+local('kubectl apply -f infra/development/k8s/secrets.yaml --namespace={} || true'.format(k8s_namespace))
+
 # Set kubectl context
 k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 
@@ -31,7 +34,7 @@ k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 k8s_yaml('infra/development/k8s/postgres.yaml')
 k8s_resource(
     'postgres',
-    port_forwards=['5432:5432'],
+    port_forwards=['5433:5432'],
     labels=['infrastructure'],
     resource_deps=[]
 )
@@ -65,7 +68,7 @@ k8s_resource(
 def build_service(name, path, port, deps=['postgres', 'redis', 'rabbitmq']):
     # Build Docker image with live update
     docker_build(
-        'nft-{}'.format(name),
+        '{}'.format(name),
         '.',
         dockerfile='infra/development/docker/{}.Dockerfile'.format(name),
         only=[
@@ -103,7 +106,7 @@ build_service(
     'auth-service',
     'auth-service',
     '50051:50051',
-    deps=['postgres', 'redis', 'rabbitmq']
+    deps=['postgres', 'redis', 'rabbitmq', 'user-service', 'wallet-service']
 )
 
 # User Service
@@ -123,11 +126,35 @@ build_service(
 )
 
 # GraphQL Gateway
-build_service(
+docker_build(
     'graphql-gateway',
+    '.',
+    dockerfile='infra/development/docker/graphql-gateway.Dockerfile',
+    only=[
+        './shared',
+        './services/graphql-gateway',
+        './proto',
+        './go.mod',
+        './go.sum',
+    ],
+    live_update=[
+        sync('./shared', '/app/shared'),
+        sync('./services/graphql-gateway', '/app/services/graphql-gateway'),
+        sync('./proto', '/app/proto'),
+        sync('./go.mod', '/app/go.mod'),
+        sync('./go.sum', '/app/go.sum'),
+        run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+    ],
+)
+
+k8s_yaml('infra/development/k8s/graphql-gateway-deployment.yaml')
+k8s_resource(
     'graphql-gateway',
-    '8081:8081',
-    deps=['auth-service', 'user-service', 'wallet-service']
+    port_forwards=['8081:8081'],
+    labels=['services'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service'],
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_AUTO
 )
 
 # ===================================
@@ -168,7 +195,7 @@ local_resource(
 # Group services by type
 update_settings(
     k8s_upsert_timeout_secs=60,
-    suppress_unused_image_warnings=['nft-auth-service', 'nft-user-service', 'nft-wallet-service', 'nft-graphql-gateway']
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'graphql-gateway']
 )
 
 print("""

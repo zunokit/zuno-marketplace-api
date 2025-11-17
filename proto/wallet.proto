@@ -1,6 +1,6 @@
 syntax = "proto3";
-package wallet;
-option go_package = "shared/proto/wallet;wallet";
+package pb;
+option go_package = "shared/proto/pb;pb";
 import "google/protobuf/timestamp.proto";
 
 message WalletLink {
@@ -34,6 +34,18 @@ message UpsertLinkResponse {
   bool       primary_changed = 3;
 }
 
+message GetWalletsRequest {
+  string user_id = 1;
+}
+
+message GetWalletsResponse {
+  repeated WalletLink wallets = 1;
+}
+
 service WalletService {
-  rpc UpsertLink (UpsertLinkRequest) returns (UpsertLinkResponse);
+  // UpsertLink creates or updates a wallet link (idempotent)
+  rpc UpsertLink(UpsertLinkRequest) returns (UpsertLinkResponse);
+
+  // GetWallets retrieves all wallets for a user
+  rpc GetWallets(GetWalletsRequest) returns (GetWalletsResponse);
 }

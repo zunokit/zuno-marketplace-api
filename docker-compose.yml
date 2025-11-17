@@ -2,7 +2,7 @@ services:
   # Infrastructure Services
   postgres:
     image: postgres:15-alpine
-    container_name: nft-postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DATABASE}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -11,23 +11,20 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./services/auth-service/db/up.sql:/docker-entrypoint-initdb.d/01-auth-schema.sql
-      - ./services/user-service/db/up.sql:/docker-entrypoint-initdb.d/02-user-schema.sql
-      - ./services/wallet-service/db/up.sql:/docker-entrypoint-initdb.d/03-wallet-schema.sql
     networks:
-      - nft-network
+      - app-network
 
   redis:
     image: redis:7-alpine
-    container_name: nft-redis
+    container_name: redis
     ports:
       - "${REDIS_PORT}:6379"
     networks:
-      - nft-network
+      - app-network
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: nft-rabbitmq
+    container_name: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
@@ -35,7 +32,7 @@ services:
       - "${RABBITMQ_PORT}:5672"
       - "15672:15672"
     networks:
-      - nft-network
+      - app-network
 
   # Application Services
   auth-service:
@@ -46,7 +43,7 @@ services:
         - CGO_ENABLED=0
         - GOOS=linux
         - GOARCH=amd64
-    container_name: nft-auth-service
+    container_name: auth-service
     env_file:
       - .env
     environment:
@@ -73,30 +70,22 @@ services:
       - postgres
       - redis
       - rabbitmq
+      - user-service
+      - wallet-service
     networks:
-      - nft-network
-    develop:
-      watch:
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./services/auth-service
-          target: /app/services/auth-service
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
+      - app-network
 
   user-service:
     build:
       context: .
       dockerfile: infra/development/docker/user-service.Dockerfile
-    container_name: nft-user-service
+      args:
+        - CGO_ENABLED=0
+        - GOOS=linux
+        - GOARCH=amd64
+    container_name: user-service
+    env_file:
+      - .env
     environment:
       - USER_GRPC_PORT=:${USER_GRPC_PORT}
       - POSTGRES_HOST=postgres
@@ -104,43 +93,24 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE}
     ports:
       - "${USER_GRPC_PORT}:${USER_GRPC_PORT}"
     depends_on:
       - postgres
-      - redis
-      - rabbitmq
     networks:
-      - nft-network
-    develop:
-      watch:
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./services/user-service
-          target: /app/services/user-service
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
+      - app-network
 
   wallet-service:
     build:
       context: .
       dockerfile: infra/development/docker/wallet-service.Dockerfile
-    container_name: nft-wallet-service
+      args:
+        - CGO_ENABLED=0
+        - GOOS=linux
+        - GOARCH=amd64
+    container_name: wallet-service
+    env_file:
+      - .env
     environment:
       - WALLET_GRPC_PORT=:${WALLET_GRPC_PORT}
       - POSTGRES_HOST=postgres
@@ -148,48 +118,24 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE}
     ports:
       - "${WALLET_GRPC_PORT}:${WALLET_GRPC_PORT}"
     depends_on:
       - postgres
-      - redis
-      - rabbitmq
     networks:
-      - nft-network
-    develop:
-      watch:
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./services/wallet-service
-          target: /app/services/wallet-service
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
+      - app-network
 
   graphql-gateway:
     build:
       context: .
-      dockerfile: infra/development/docker/graph-gateway.Dockerfile
-    container_name: nft-graphql-gateway
+      dockerfile: infra/development/docker/graphql-gateway.Dockerfile
+    container_name: graphql-gateway
     environment:
       - GATEWAY_HTTP_ADDR=:${GATEWAY_HTTP_ADDR}
       - AUTH_SERVICE_URL=auth-service:${AUTH_GRPC_PORT}
       - USER_SERVICE_URL=user-service:${USER_GRPC_PORT}
       - WALLET_SERVICE_URL=wallet-service:${WALLET_GRPC_PORT}
+      - JWT_ACCESS_SECRET=${JWT_SECRET}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=${RABBITMQ_USER}
@@ -202,27 +148,11 @@ services:
       - user-service
       - wallet-service
     networks:
-      - nft-network
-    develop:
-      watch:
-        - path: ./shared
-          target: /app/shared
-          action: sync
-        - path: ./services/graphql-gateway
-          target: /app/services/graphql-gateway
-          action: sync
-        - path: ./go.mod
-          target: /app/go.mod
-          action: sync
-        - path: ./go.sum
-          target: /app/go.sum
-          action: sync
-        - path: .
-          action: rebuild
+      - app-network
 
 volumes:
   postgres_data:
 
 networks:
-  nft-network:
+  app-network:
     driver: bridge

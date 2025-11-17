@@ -1,10 +1,10 @@
 syntax = "proto3";
-package auth;
-option go_package = "shared/proto/auth;auth";
+package pb;
+option go_package = "shared/proto/pb;pb";
 
 
 message GetNonceRequest { string account_id = 1; string chain_id = 2; string domain = 3; }
-message GetNonceResponse { string nonce = 1; }
+message GetNonceResponse { string nonce = 1; string expires_at = 2; }
 
 message VerifySiweRequest { string account_id = 1; string message = 2; string signature = 3; }
 message VerifySiweResponse {

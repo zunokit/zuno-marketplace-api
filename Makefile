@@ -1,93 +1,142 @@
-.PHONY: help dev test build clean proto docker-up docker-down tilt-up tilt-down migrate lint format check
+.PHONY: help dev migrate test build
 
-# Default target
+# ============================================================
+# Configuration
+# ============================================================
+
+SHELL := /bin/bash
+GOPATH := $(shell go env GOPATH)
+
+# Migrate tool path (Windows/Unix compatible)
+ifeq ($(OS),Windows_NT)
+	MIGRATE := "$(GOPATH)\bin\migrate.exe"
+else
+	MIGRATE := $(GOPATH)/bin/migrate
+endif
+
+# Database configuration
+DB_HOST ?= localhost
+DB_PORT ?= 5433
+DB_USER ?= postgres
+DB_PASSWORD ?= postgres
+DB_NAME ?= nft_marketplace
+DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
 .DEFAULT_GOAL := help
 
-# Colors for output (Windows compatible)
-BLUE :=
-GREEN :=
-YELLOW :=
-RED :=
-NC :=
+# ============================================================
+# Help
+# ============================================================
 
-##@ General
-
-help: ## Display this help message
-	@echo ==============================================================
-	@echo   Zuno NFT Marketplace API - Development Commands
-	@echo ==============================================================
-	@echo Usage: make [target]
+help: ## Show help
+	@echo ============================================================
+	@echo   Zuno NFT Marketplace - Quick Start
+	@echo ============================================================
 	@echo
-	@echo Development:
-	@echo   make dev         - Start development environment
-	@echo   make dev-stop    - Stop development environment
-	@echo   make tilt-up     - Start Tilt with hot reload
-	@echo Testing:
-	@echo   make test        - Run all tests
-	@echo   make test-coverage - Tests with coverage report
-	@echo Building:
-	@echo   make build       - Build all services
-	@echo   make proto       - Generate protobuf code
-	@echo Quality:
-	@echo   make lint        - Run golangci-lint
-	@echo   make format      - Format code
-	@echo   make ci          - Run CI pipeline locally
-	@echo Docker:
-	@echo   make docker-up   - Start all Docker services
-	@echo   make docker-down - Stop all Docker services
-	@echo For complete guide: See DEVELOPMENT.md
+	@echo OPTION 1 - Docker Compose - Recommended:
+	@echo   make dev           - Start all services
+	@echo   make dev-stop      - Stop all services
+	@echo   make dev-logs      - View logs
+	@echo
+	@echo OPTION 2 - Tilt/Kubernetes - Advanced:
+	@echo   See TILT.md for instructions
+	@echo
+	@echo Common Commands:
+	@echo   make test          - Run tests
+	@echo   make build         - Build services
+	@echo   make migrate       - Run migrations
+	@echo   make proto         - Generate protobuf
+	@echo   make lint          - Run linter
+	@echo   make format        - Format code
+	@echo
+	@echo Tools:
+	@echo   make install-tools - Install dev tools
+	@echo ============================================================
 
-##@ Development
+# ============================================================
+# Docker Compose (Primary Development Method)
+# ============================================================
 
-dev: ## Start development environment
-	@echo Starting development environment...
+dev: ## Start Docker Compose (one command does everything)
+	@echo ============================================================
+	@echo   Starting Docker Compose environment...
+	@echo ============================================================
+	@docker compose down -v 2>nul >nul || true
+	@echo [1/3] Starting services...
 	docker compose up -d
-	@echo Services started!
-	@echo PostgreSQL: localhost:5432
-	@echo Redis: localhost:6379
-	@echo RabbitMQ: localhost:5672 (UI: http://localhost:15672)
+	@echo [2/3] Waiting for PostgreSQL to be ready...
+	@timeout /t 8 /nobreak > nul 2>&1
+	@echo [3/3] Running database migrations...
+	@$(MAKE) migrate
+	@echo ============================================================
+	@echo   Ready!
+	@echo ============================================================
+	@echo GraphQL Playground: http://localhost:8081/graphql
+	@echo PostgreSQL:         localhost:5433
+	@echo RabbitMQ UI:        http://localhost:15672 (guest/guest)
+	@echo
+	@echo View logs:  make dev-logs
+	@echo Stop:       make dev-stop
+	@echo ============================================================
 
-dev-stop: ## Stop development environment
-	@echo Stopping development environment...
+dev-stop: ## Stop Docker Compose
+	@echo Stopping Docker Compose...
 	docker compose down
+	@echo Stopped!
 
-dev-logs: ## Follow logs
+dev-logs: ## View Docker Compose logs
 	docker compose logs -f
 
-dev-clean: ## Clean environment (remove volumes)
-	@echo Cleaning development environment...
+dev-clean: ## Stop and remove all data
+	@echo Cleaning up...
 	docker compose down -v
+	@echo Done!
 
-##@ Tilt (Kubernetes)
+# ============================================================
+# Database Migrations
+# ============================================================
 
-tilt-up: ## Start Tilt
-	@echo Starting Tilt...
-	@echo Tilt UI: http://localhost:10350
-	tilt up
+migrate: ## Run database migrations
+	@echo Running migrations...
+	$(MIGRATE) -path db/migrations -database "$(DB_URL)" up
+	@echo Migrations complete!
 
-tilt-down: ## Stop Tilt
-	tilt down
+migrate-status: ## Show migration status
+	@echo Migration status:
+	-@$(MIGRATE) -path db/migrations -database "$(DB_URL)" version
+	@echo
+	@echo Available migrations:
+	@dir /b db\migrations\*.up.sql 2>nul || ls -1 db/migrations/*.up.sql 2>/dev/null
 
-##@ Testing
+migrate-create: ## Create new migration (make migrate-create NAME=add_feature)
+	@echo Creating migration: $(NAME)
+	$(MIGRATE) create -ext sql -dir db/migrations -seq $(NAME)
+
+migrate-down: ## Rollback last migration
+	@echo Rolling back last migration...
+	$(MIGRATE) -path db/migrations -database "$(DB_URL)" down 1
+	@echo Rollback complete!
+
+# ============================================================
+# Testing
+# ============================================================
 
 test: ## Run all tests
 	@echo Running tests...
 	go test ./...
 
-test-coverage: ## Run tests with coverage
+test-coverage: ## Run tests with coverage report
 	@echo Running tests with coverage...
 	go test -cover -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo Coverage report: coverage.html
 
-test-verbose: ## Run tests verbose
+test-verbose: ## Run tests with verbose output
 	go test -v ./...
 
-test-service: ## Run tests for specific service (make test-service SERVICE=auth)
-	@echo Running tests for $(SERVICE)-service...
-	cd services/$(SERVICE)-service && go test -v ./...
-
-##@ Building
+# ============================================================
+# Building
+# ============================================================
 
 build: ## Build all services
 	@echo Building all services...
@@ -98,26 +147,25 @@ build: ## Build all services
 	cd services/graphql-gateway && go build -o ../build/graphql-gateway.exe .
 	@echo Build complete! Binaries in ./build/
 
-build-service: ## Build specific service (make build-service SERVICE=auth)
-	@echo Building $(SERVICE)-service...
-	cd services/$(SERVICE)-service/cmd && go build -o ../../../build/$(SERVICE)-service.exe .
-
 clean: ## Clean build artifacts
 	@echo Cleaning build artifacts...
 	@if exist "build" rmdir /s /q build
 	@if not exist "build" mkdir build
 
-##@ Code Generation
+# ============================================================
+# Code Generation
+# ============================================================
 
-proto: generate-proto ## Generate protobuf code
-
-generate-proto: ## Generate protobuf code
+proto: ## Generate protobuf code
 	@echo Generating protobuf code...
-	@if not exist "shared\proto" mkdir shared\proto
-	protoc --go_out=shared/proto --go_opt=paths=source_relative --go-grpc_out=shared/proto --go-grpc_opt=paths=source_relative proto/*.proto
+	@mkdir -p shared/proto/pb
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/*.proto
+	@if exist proto\*.pb.go move /Y proto\*.pb.go shared\proto\pb\
 	@echo Protobuf generation complete!
 
-##@ Code Quality
+# ============================================================
+# Code Quality
+# ============================================================
 
 lint: ## Run linter
 	@echo Running linter...
@@ -128,84 +176,15 @@ format: ## Format code
 	gofmt -w -s .
 	goimports -w .
 
-check: lint test ## Run linter and tests
+# ============================================================
+# Tools
+# ============================================================
 
-vet: ## Run go vet
-	@echo Running go vet...
-	go vet ./...
-
-##@ Database
-
-db-reset: ## Reset database
-	@echo Resetting database...
-	docker compose down postgres
-	docker volume rm zuno-marketplace-api_postgres_data
-	docker compose up -d postgres
-
-##@ Docker
-
-docker-build: ## Build Docker images
-	@echo Building Docker images...
-	docker build -f infra/development/docker/auth-service.Dockerfile -t nft-auth-service .
-	docker build -f infra/development/docker/user-service.Dockerfile -t nft-user-service .
-	docker build -f infra/development/docker/wallet-service.Dockerfile -t nft-wallet-service .
-	docker build -f infra/development/docker/graph-gateway.Dockerfile -t nft-graphql-gateway .
-
-docker-up: ## Start Docker services
-	docker compose up -d
-
-docker-down: ## Stop Docker services
-	docker compose down
-
-docker-logs: ## Follow Docker logs
-	docker compose logs -f
-
-docker-ps: ## Show containers
-	docker compose ps
-
-##@ Dependencies
-
-deps: ## Download dependencies
-	@echo Downloading dependencies...
-	go mod download
-
-deps-tidy: ## Tidy dependencies
-	@echo Tidying dependencies...
-	go mod tidy
-
-deps-update: ## Update dependencies
-	@echo Updating dependencies...
-	go get -u ./...
-	go mod tidy
-
-##@ Tools
-
-install-tools: ## Install dev tools
+install-tools: ## Install development tools
 	@echo Installing development tools...
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
-
-##@ CI/CD
-
-ci: lint test build ## Run CI pipeline
-	@echo CI pipeline complete!
-
-##@ Information
-
-info: ## Show project info
-	@echo ============================================================
-	@echo   Zuno NFT Marketplace API - Project Info
-	@echo ============================================================
-	@echo Version: 0.1.0
-	@go version
-	@echo Services:
-	@echo   - auth-service [gRPC: 50051]
-	@echo   - user-service [gRPC: 50052]
-	@echo   - wallet-service [gRPC: 50053]
-	@echo   - graphql-gateway [HTTP: 8081]
-	@echo Infrastructure:
-	@echo   - PostgreSQL: 5432
-	@echo   - Redis: 6379
-	@echo   - RabbitMQ: 5672 and 15672
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@echo Tools installed!

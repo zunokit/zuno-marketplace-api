@@ -27,24 +27,24 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: nft-postgres:latest
+          image: postgres:15-alpine
           ports:
             - containerPort: 5432
           env:
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_DATABASE
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: nft-config
+                  name: app-config
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: nft-secrets
+                  name: app-secrets
                   key: POSTGRES_PASSWORD
           volumeMounts:
             - name: postgres-data
