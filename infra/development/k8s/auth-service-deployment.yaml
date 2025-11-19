@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: auth-service
+          image: zuno-marketplace-api-auth-service:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 50051

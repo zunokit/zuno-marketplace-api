@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: user-service
+          image: zuno-marketplace-api-user-service:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 50052

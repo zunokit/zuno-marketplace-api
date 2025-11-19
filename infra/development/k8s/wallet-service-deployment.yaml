@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: wallet-service
-          image: wallet-service
+          image: zuno-marketplace-api-wallet-service:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 50053
