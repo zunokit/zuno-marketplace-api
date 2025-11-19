@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: graphql-gateway
-          image: graphql-gateway
+          image: zuno-marketplace-api-graphql-gateway:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8081
