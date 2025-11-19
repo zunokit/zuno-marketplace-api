@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/config"
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
+	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/health"
 	authmiddleware "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc"
@@ -79,10 +81,23 @@ func main() {
 	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.AccessSecret))
 
 	// Health check endpoint
+	healthRegistry := health.NewRegistry()
+	healthRegistry.Register("auth_service", health.NewServiceHealthChecker(authConn))
+	healthRegistry.Register("user_service", health.NewServiceHealthChecker(userConn))
+	healthRegistry.Register("wallet_service", health.NewServiceHealthChecker(walletConn))
+
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		healthStatus := healthRegistry.CheckAll(r.Context())
+		overallStatus := healthStatus["status"]
+
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy"}`))
+		if overallStatus == "healthy" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+
+		json.NewEncoder(w).Encode(healthStatus)
 	})
 
 	// GraphQL endpoint with context middleware
