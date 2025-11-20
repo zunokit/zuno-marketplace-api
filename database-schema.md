@@ -201,32 +201,95 @@ erDiagram
   %% ======================= CATALOG (Postgres) =======================
   COLLECTIONS {
     uuid     id PK
+    uuid     user_id FK
     string   slug
     string   name
+    string   symbol
     string   description
     string   category
+    string   contract_address
+    string   chain_id
+    string   token_standard
+    string   deployer_address
+    string   status
+    datetime deployed_at
+    string   index_status
+    int      deployed_block
+    string   base_uri
+    bigint   max_supply
+    numeric  mint_price_allowlist
+    numeric  mint_price_public
+    datetime mint_start_time
+    datetime allowlist_stage_end
+    int      mint_limit_per_wallet
+    int      royalty_fee_bps
+    string   royalty_recipient
+    int      total_supply
+    int      total_minted
     string   image_url
     string   banner_url
+    string   featured_image_url
     string   website_url
     json     social_links_json
     boolean  is_verified
     boolean  is_hidden
     string   source
-    int      total_supply
-    int      royalty_bps
-    string   royalty_receiver
     string   metadata_standard
-    string   status
-    datetime mint_start_date
-    datetime mint_end_date
-    int      total_minted
-    int      max_supply
-    string   mint_price_text
-    int      deployed_block
-    string   index_status
     json     tags_json
     json     settings_json
     datetime created_at
+    datetime updated_at
+  }
+
+  COLLECTION_METADATA {
+    uuid     id PK
+    uuid     collection_id FK
+    string   metadata_uri
+    string   ipfs_hash
+    string   ipfs_url
+    string   discord_url
+    string   twitter_url
+    string   instagram_url
+    string   medium_url
+    string   telegram_url
+    string   background_color
+    datetime created_at
+    datetime updated_at
+  }
+
+  COLLECTION_ACTIVITY {
+    uuid     id PK
+    uuid     collection_id FK
+    uuid     user_id FK
+    string   activity_type
+    json     details
+    inet     ip_address
+    string   user_agent
+    datetime created_at
+  }
+
+  COLLECTION_ALLOWLIST {
+    uuid     id PK
+    uuid     collection_id FK
+    string   wallet_address
+    int      max_mint_amount
+    uuid     added_by_user_id FK
+    datetime added_at
+    datetime created_at
+  }
+
+  COLLECTION_STATS {
+    uuid     collection_id PK
+    int      total_items
+    int      total_owners
+    int      total_sales
+    numeric  floor_price_wei
+    numeric  total_volume_wei
+    numeric  average_price_wei
+    numeric  volume_24h_wei
+    int      sales_24h
+    datetime last_sale_at
+    datetime last_mint_at
     datetime updated_at
   }
 
@@ -501,6 +564,10 @@ erDiagram
   CHAINS ||--|| CHAIN_GAS_POLICY : "has gas policy"
 
   %% Catalog Domain
+  USERS ||--o{ COLLECTIONS : "owns collections"
+  COLLECTIONS ||--|| COLLECTION_METADATA : "has metadata"
+  COLLECTIONS ||--o{ COLLECTION_ACTIVITY : "activity log"
+  COLLECTIONS ||--o{ COLLECTION_ALLOWLIST : "allowlist"
   COLLECTIONS ||--o{ COLLECTION_ROLES : "roles"
   COLLECTIONS ||--o{ COLLECTION_BINDINGS : "bindings"
   COLLECTIONS ||--o{ COLLECTION_MINT_CONFIG : "mint config"
@@ -508,6 +575,8 @@ erDiagram
   COLLECTIONS ||--o{ TRAITS : "has traits"
   COLLECTIONS ||--|| COLLECTION_STATS : "has stats"
   COLLECTIONS ||--o{ SYNC_STATE : "sync state"
+  USERS ||--o{ COLLECTION_ACTIVITY : "collection actions"
+  USERS ||--o{ COLLECTION_ALLOWLIST : "added to allowlist"
 
   TRAITS ||--o{ TRAIT_VALUES : "has values"
   TOKENS ||--o{ TOKEN_TRAIT_LINKS : "has traits"
@@ -542,7 +611,7 @@ erDiagram
 ### PostgreSQL Database (Single DB)
 All tables are stored in a single PostgreSQL database:
 
-#### ✅ Currently Implemented (11 tables)
+#### ✅ Currently Implemented (16 tables)
 
 **Auth Service Tables (3):**
 - `auth_nonces`: One-time nonces for SIWE authentication (10-minute expiration)
@@ -553,13 +622,20 @@ All tables are stored in a single PostgreSQL database:
 - `users`: Core user accounts (UUID-based, status tracking)
 - `profiles`: User profiles (username, bio, avatar, social links)
 - `user_preferences`: User settings (theme, notifications, privacy)
-- `user_stats`: Aggregated user statistics (followers, items, volume)
+- `user_stats`: Aggregated user statistics (followers, items, volume, **collections**)
 - `user_follows`: Social graph relationships
 
 **Wallet Service Tables (3):**
 - `wallet_links`: User-wallet associations (CAIP-10 format, multi-chain support)
 - `wallet_activity`: Audit log of wallet operations
 - `wallet_verifications`: Wallet ownership verification records
+
+**Collection Service Tables (5):** ✨ NEW
+- `collections`: NFT collection records with lifecycle tracking (PENDING → DEPLOYED)
+- `collection_metadata`: IPFS links, social media, external URLs
+- `collection_stats`: Aggregated statistics (floor price, volume, owners)
+- `collection_activity`: Audit log of collection activities
+- `collection_allowlist`: Whitelist addresses for allowlist minting stage
 
 #### 🚧 Future Features (Planned but not yet implemented)
 
@@ -572,12 +648,11 @@ All tables are stored in a single PostgreSQL database:
 **Orchestrator Tables (1):**
 - `tx_intents`: Transaction intent management and execution tracking
 
-**Catalog/NFT Domain Tables (30+):**
-- `collections`: NFT collection metadata and configuration
+**Catalog/NFT Domain Tables (25+):**
 - `collection_roles`: Role-based access control for collections
 - `collection_bindings`: Multi-chain contract bindings
-- `collection_mint_config`: Mint campaign configuration
-- `tokens`: NFT token metadata and ownership
+- `collection_mint_config`: Advanced mint campaign configuration
+- `tokens`: NFT token metadata and ownership (ERC721/ERC1155)
 - `traits`: Collection trait definitions
 - `trait_values`: Trait value enumeration with rarity
 - `token_trait_links`: Token-to-trait associations
@@ -590,7 +665,6 @@ All tables are stored in a single PostgreSQL database:
 - `sales`: Historical sales data
 - `orders`: Off-chain order book
 - `order_fills`: Order execution history
-- `collection_stats`: Collection-level statistics (floor, volume)
 - `token_rarity`: Token rarity scores
 - `rarity_scores`: Multi-source rarity rankings
 - `trait_value_floor`: Floor price by trait value
@@ -605,12 +679,18 @@ All tables are stored in a single PostgreSQL database:
 - `ensure_single_primary`: Ensures only one primary wallet per user
 - `update_follow_stats`: Updates follower/following counts automatically
 - `log_wallet_changes`: Auto-logs wallet link/unlink/update activities
+- `create_collection_defaults`: Auto-creates collection_stats record on collection creation ✨ NEW
+- `increment_user_collections_count`: Updates user_stats.collections_count on insert ✨ NEW
+- `decrement_user_collections_count`: Updates user_stats.collections_count on delete ✨ NEW
+- `log_collection_activity`: Auto-logs collection CREATED and STATUS_CHANGED activities ✨ NEW
+- `update_collection_updated_at`: Auto-updates collections.updated_at timestamp ✨ NEW
 
 **Functions:**
 - `cleanup_expired_nonces()`: Removes expired nonces (1 hour retention)
 - `cleanup_old_login_events(retention_days)`: Cleans old login events (90 days default)
 - `cleanup_expired_sessions()`: Revokes expired sessions
 - `try_use_nonce(nonce, account, chain, domain)`: Atomically marks nonce as used
+- `cleanup_pending_collections()`: Removes collections stuck in PENDING > 24h ✨ NEW
 
 **Constraints:**
 - CAIP-10 account ID format validation (`eip155:chainId:0xaddress`)
