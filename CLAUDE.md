@@ -39,47 +39,6 @@ When adding a new function `CalculateTotal(items []Item) int`:
    }
    ```
 3. **🔵 REFACTOR**: Optimize code if needed, ensuring tests still pass.
-
-## Development Commands
-
-### Essential Commands
-
-```bash
-# First-time setup
-make db-reset                    # Setup fresh database with all migrations
-make dev                         # Start all infrastructure services
-
-# Daily development
-make dev                         # Start services (preserves data)
-make dev-stop                    # Stop services
-make dev-logs                    # View logs
-make dev-clean                   # Stop + remove volumes (nuclear option)
-
-# Testing
-make test                        # Run all tests
-make test-service SERVICE=auth   # Test specific service (auth, user, wallet)
-make test-coverage               # Generate coverage report (coverage.html)
-make test-verbose                # Run tests with verbose output
-
-# Building
-make build                       # Build all services to ./build/
-make build-service SERVICE=auth  # Build specific service
-
-# Code quality
-make lint                        # Run golangci-lint
-make format                      # Format code with gofmt + goimports
-make ci                          # Full CI pipeline (lint + test + build)
-
-# Database migrations
-make migrate-up                  # Apply pending migrations
-make migrate-down                # Rollback last migration
-make migrate-status              # Show current migration version
-make migrate-create NAME=add_feature  # Create new migration files
-
-# Protobuf
-make proto                       # Generate Go code from .proto files
-```
-
 ### Service Ports
 
 - **GraphQL Gateway**: http://localhost:8081/graphql (playground at /playground)
@@ -208,8 +167,6 @@ The codebase follows TDD:
 2. **Integration Tests**: Test with real database using testcontainers
    - Example: `tests/e2e/auth/auth_flow_test.go`
 
-3. **Test Database Setup**: Use `make db-reset` to get clean state
-
 When writing tests:
 - Use table-driven tests for multiple scenarios
 - Mock gRPC clients for unit tests
@@ -300,11 +257,10 @@ make install-tools  # Installs protoc-gen-go, golangci-lint, goimports, migrate
 
 **Port conflicts**: Check with `make docker-ps`, stop with `make dev-stop`
 
-**Migration errors**: Use `make db-reset` for fresh start, or `make migrate-force VERSION=N` to fix broken state
+**Migration errors**: Use `make migrate-force VERSION=N` to fix broken state
 
 **gRPC connection issues**: Ensure services started in correct order (user/wallet before auth). Check `make dev-logs`
 
-**Test failures**: Ensure clean database with `make db-reset` before running integration tests
 
 **Build errors**: Run `go mod tidy` and ensure Go 1.21+ installed
 
