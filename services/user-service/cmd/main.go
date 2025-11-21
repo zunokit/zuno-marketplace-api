@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -10,33 +9,40 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/config"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/repository"
 	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/server"
+	"github.com/quangdang46/NFT-Marketplace/shared/database"
+	"github.com/quangdang46/NFT-Marketplace/shared/logger"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 func main() {
-	log.Println("Starting User Service...")
+	// Initialize logger
+	log := logger.New(&logger.Config{
+		Level:       logger.LevelInfo,
+		ServiceName: "user-service",
+		Pretty:      false,
+	})
+
+	log.Info("Starting User Service...")
 
 	// Load configuration
 	cfg := config.Load()
 
-	// Initialize database connection
-	dsn := cfg.Database.GetDSN()
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	// Initialize database using shared package
+	dbConfig := &database.Config{
+		Host:     cfg.Database.Host,
+		Port:     cfg.Database.Port,
+		User:     cfg.Database.User,
+		Password: cfg.Database.Password,
+		DBName:   cfg.Database.Database,
+		SSLMode:  cfg.Database.SSLMode,
+		LogLevel: gormlogger.Info,
 	}
-
-	log.Println("Database connected successfully")
+	db := database.MustConnect(dbConfig)
 
 	// Initialize repository
 	userRepo := repository.NewUserRepository(db)
@@ -62,10 +68,10 @@ func main() {
 	// Start gRPC server
 	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
+		log.FatalWithErr(err, "Failed to listen on "+cfg.Server.GRPCPort)
 	}
 
-	log.Printf("User Service listening on %s", cfg.Server.GRPCPort)
+	log.Infof("User Service listening on %s", cfg.Server.GRPCPort)
 
 	// Graceful shutdown
 	go func() {
@@ -73,13 +79,13 @@ func main() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 
-		log.Println("Shutting down User Service...")
+		log.Info("Shutting down User Service...")
 		grpcServer.GracefulStop()
-		log.Println("User Service stopped")
+		log.Info("User Service stopped")
 	}()
 
 	// Start serving
 	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		log.FatalWithErr(err, "Failed to serve")
 	}
 }

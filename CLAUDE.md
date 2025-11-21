@@ -8,6 +8,38 @@ This is a clean, production-ready NFT Marketplace backend built with Go microser
 
 **Current Status**: Clean skeleton (v0.1.0) ready for TDD feature development. All database schemas tested and working. Infrastructure services operational.
 
+
+## Development Rules
+
+1. **Mandatory Testing**: Always create a test file whenever creating an important file (logic, services, repositories). For a file named `<name>.go`, the test file MUST be named `<name>_test.go`.
+2. **TDD Pattern**: Always follow Test-Driven Development patterns (Red -> Green -> Refactor).
+
+### Example: TDD Workflow
+
+When adding a new function `CalculateTotal(items []Item) int`:
+
+1. **🔴 RED**: Create `calculate_test.go` and write a test case that fails (because the function doesn't exist or is empty).
+   ```go
+   func TestCalculateTotal(t *testing.T) {
+       items := []Item{{Price: 10}, {Price: 20}}
+       total := CalculateTotal(items)
+       if total != 30 {
+           t.Errorf("Expected 30, got %d", total)
+       }
+   }
+   ```
+2. **🟢 GREEN**: Implement the minimal code in `calculate.go` to make the test pass.
+   ```go
+   func CalculateTotal(items []Item) int {
+       sum := 0
+       for _, item := range items {
+           sum += item.Price
+       }
+       return sum
+   }
+   ```
+3. **🔵 REFACTOR**: Optimize code if needed, ensuring tests still pass.
+
 ## Development Commands
 
 ### Essential Commands
