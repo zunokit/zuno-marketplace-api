@@ -125,6 +125,14 @@ build_service(
     deps=['postgres', 'redis', 'rabbitmq']
 )
 
+# Collection Service
+build_service(
+    'collection-service',
+    'collection-service',
+    '50054:50054',
+    deps=['postgres', 'redis', 'rabbitmq']
+)
+
 # GraphQL Gateway
 docker_build(
     'graphql-gateway',

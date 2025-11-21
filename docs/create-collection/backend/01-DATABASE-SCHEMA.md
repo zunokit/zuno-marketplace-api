@@ -1,3 +1,90 @@
+# PHASE 1: DATABASE SCHEMA DESIGN
+
+**Phase**: 1 of 6
+**Dependencies**: None (foundation phase)
+**Estimated Effort**: ~500 lines SQL
+**Output**: Migration files ready, schema tested
+
+---
+
+## 🎯 Overview
+
+Create database schema cho Collection feature. Schema đã được định nghĩa trong **main schema file** (`database-schema.md`) và phase này implement migration để apply schema vào database.
+
+**Schema Reference**: See [`E:\zuno-marketplace-api\database-schema.md`](../../database-schema.md)
+
+---
+
+## 📊 Schema Summary
+
+### Collections Tables (5 tables - ✨ NEW)
+
+1. **collections** - Main collection records
+   - Lifecycle tracking (PENDING → DEPLOYED → FAILED → ARCHIVED)
+   - User ownership (user_id FK)
+   - Blockchain binding (contract_address, chain_id, token_standard)
+   - Minting configuration (prices, allowlist timing, limits)
+   - Catalog features (slug, is_verified, is_hidden, source)
+   - Royalty (EIP-2981 compatible)
+
+2. **collection_metadata** - Extended metadata
+   - IPFS links (metadata_uri, ipfs_hash, ipfs_url)
+   - Social media URLs (twitter, discord, instagram, etc.)
+   - Styling (background_color)
+
+3. **collection_stats** - Aggregated statistics
+   - Counts (total_items, total_owners, total_sales)
+   - Pricing (floor_price_wei, total_volume_wei, average_price_wei)
+   - 24h metrics (volume_24h_wei, sales_24h)
+   - Last activity timestamps
+
+4. **collection_activity** - Audit log
+   - Activity types (CREATED, DEPLOYED, STATUS_CHANGED, METADATA_UPDATED, etc.)
+   - User attribution (user_id FK)
+   - Request context (ip_address, user_agent)
+   - Details (JSONB flexible storage)
+
+5. **collection_allowlist** - Whitelist management
+   - Wallet addresses for ALLOWLIST mint stage
+   - Per-address mint limits (max_mint_amount)
+   - Audit trail (added_by_user_id, added_at)
+
+---
+
+## 📋 Prerequisites
+
+- [ ] PostgreSQL 15+ running
+- [ ] Database migrations tool (golang-migrate) installed
+- [ ] Database connection configured in `.env`
+- [ ] Existing tables: `users`, `user_stats` (required for FK)
+- [ ] Main schema file reviewed: [`database-schema.md`](../../database-schema.md)
+
+---
+
+## 🗂️ Step 1: Create Migration Files
+
+### Command
+
+```bash
+cd E:\zuno-marketplace-api
+make migrate-create NAME=add_collections_tables
+```
+
+**Output**:
+```
+Created: db/migrations/000003_add_collections_tables.up.sql
+Created: db/migrations/000003_add_collections_tables.down.sql
+```
+
+---
+
+## 📝 Step 2: Implement UP Migration
+
+**File**: `E:\zuno-marketplace-api\db\migrations\000003_add_collections_tables.up.sql`
+
+**Source**: Derived from [`database-schema.md`](../../database-schema.md)
+
+```sql
 -- ============================================================================
 -- COLLECTIONS SCHEMA
 -- Based on: database-schema.md (COLLECTIONS, COLLECTION_METADATA, etc.)
@@ -10,7 +97,7 @@ CREATE TABLE collections (
     slug VARCHAR(100) UNIQUE,
 
     -- Ownership
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
     -- Basic Info
     name VARCHAR(100) NOT NULL,
@@ -165,7 +252,7 @@ CREATE INDEX idx_collection_stats_volume_24h ON collection_stats(volume_24h_wei 
 CREATE TABLE collection_activity (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
 
     -- Activity Info
     activity_type VARCHAR(50) NOT NULL,
@@ -197,7 +284,7 @@ CREATE TABLE collection_allowlist (
     max_mint_amount INT DEFAULT 1,
 
     -- Audit
-    added_by_user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    added_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     -- Timestamp
@@ -323,3 +410,71 @@ BEGIN
     RETURN deleted_count;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================================
+```
+
+---
+
+## 📝 Step 3: Implement DOWN Migration
+
+**File**: `E:\zuno-marketplace-api\db\migrations\000003_add_collections_tables.down.sql`
+
+```sql
+-- Drop triggers
+DROP TRIGGER IF EXISTS trigger_update_collection_updated_at ON collections;
+DROP TRIGGER IF EXISTS trigger_update_collection_metadata_updated_at ON collection_metadata;
+DROP TRIGGER IF EXISTS trigger_increment_user_collections_count ON collections;
+DROP TRIGGER IF EXISTS trigger_decrement_user_collections_count ON collections;
+DROP TRIGGER IF EXISTS trigger_create_collection_defaults ON collections;
+DROP TRIGGER IF EXISTS trigger_log_collection_activity ON collections;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS update_collection_updated_at();
+DROP FUNCTION IF EXISTS increment_user_collections_count();
+DROP FUNCTION IF EXISTS decrement_user_collections_count();
+DROP FUNCTION IF EXISTS create_collection_defaults();
+DROP FUNCTION IF EXISTS log_collection_activity();
+DROP FUNCTION IF EXISTS cleanup_pending_collections();
+
+-- Drop tables (order matters)
+DROP TABLE IF EXISTS collection_allowlist;
+DROP TABLE IF EXISTS collection_activity;
+DROP TABLE IF EXISTS collection_stats;
+DROP TABLE IF EXISTS collection_metadata;
+DROP TABLE IF EXISTS collections;
+```
+
+---
+
+## ✅ Step 4-6: Apply, Test, Seed
+
+See original implementation guide for:
+- Migration application commands
+- Test queries
+- Seed data examples
+
+---
+
+## ✅ Completion Checklist
+
+- [ ] Migration files created
+- [ ] Schema matches `database-schema.md`
+- [ ] All 5 tables created
+- [ ] All indexes created
+- [ ] All triggers working
+- [ ] User stats integration working
+- [ ] Test data loaded
+- [ ] Rollback tested
+
+---
+
+## 🔗 Related Documentation
+
+- **Main Schema**: [`database-schema.md`](../../database-schema.md) - Source of truth
+- **Next Phase**: [02-COLLECTION-SERVICE.md](./02-COLLECTION-SERVICE.md)
+
+---
+
+**Last Updated**: 2025-11-20
+**Status**: Ready for implementation (based on database-schema.md)

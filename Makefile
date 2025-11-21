@@ -144,6 +144,7 @@ build: ## Build all services
 	cd services/auth-service/cmd && go build -o ../../../build/auth-service.exe .
 	cd services/user-service/cmd && go build -o ../../../build/user-service.exe .
 	cd services/wallet-service/cmd && go build -o ../../../build/wallet-service.exe .
+	cd services/collection-service/cmd && go build -o ../../../build/collection-service.exe .
 	cd services/graphql-gateway && go build -o ../build/graphql-gateway.exe .
 	@echo Build complete! Binaries in ./build/
 
