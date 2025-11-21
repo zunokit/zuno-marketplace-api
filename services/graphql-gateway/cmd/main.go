@@ -51,11 +51,18 @@ func main() {
 	}
 	defer walletConn.Close()
 
+	collectionConn, err := grpc.Dial(cfg.Services.CollectionServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to collection service: %v", err)
+	}
+	defer collectionConn.Close()
+
 	// Create GraphQL resolver with gRPC clients
 	resolver := &graph.Resolver{
-		AuthClient:   pb.NewAuthServiceClient(authConn),
-		UserClient:   pb.NewUserServiceClient(userConn),
-		WalletClient: pb.NewWalletServiceClient(walletConn),
+		AuthClient:       pb.NewAuthServiceClient(authConn),
+		UserClient:       pb.NewUserServiceClient(userConn),
+		WalletClient:     pb.NewWalletServiceClient(walletConn),
+		CollectionClient: pb.NewCollectionServiceClient(collectionConn),
 	}
 
 	// Create GraphQL server
@@ -85,6 +92,7 @@ func main() {
 	healthRegistry.Register("auth_service", health.NewServiceHealthChecker(authConn))
 	healthRegistry.Register("user_service", health.NewServiceHealthChecker(userConn))
 	healthRegistry.Register("wallet_service", health.NewServiceHealthChecker(walletConn))
+	healthRegistry.Register("collection_service", health.NewServiceHealthChecker(collectionConn))
 
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		healthStatus := healthRegistry.CheckAll(r.Context())

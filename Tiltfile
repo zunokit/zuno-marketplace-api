@@ -160,7 +160,7 @@ k8s_resource(
     'graphql-gateway',
     port_forwards=['8081:8081'],
     labels=['services'],
-    resource_deps=['auth-service', 'user-service', 'wallet-service'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service', 'collection-service'],
     auto_init=True,
     trigger_mode=TRIGGER_MODE_AUTO
 )
@@ -203,7 +203,7 @@ local_resource(
 # Group services by type
 update_settings(
     k8s_upsert_timeout_secs=60,
-    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'graphql-gateway']
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'collection-service', 'graphql-gateway']
 )
 
 print("""
@@ -223,6 +223,7 @@ print("""
    - Auth Service:       localhost:50051 (gRPC)
    - User Service:       localhost:50052 (gRPC)
    - Wallet Service:     localhost:50053 (gRPC)
+   - Collection Service: localhost:50054 (gRPC)
    - GraphQL Gateway:    http://localhost:8081 (HTTP/WS)
 
 🛠️  Helper Commands:

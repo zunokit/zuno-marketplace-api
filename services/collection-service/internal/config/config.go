@@ -1,15 +1,21 @@
 package config
 
 import (
-	"fmt"
-	"os"
+	"github.com/quangdang46/NFT-Marketplace/shared/env"
 )
 
+// Config holds all configuration for the collection service
 type Config struct {
-	Database DatabaseConfig
 	Server   ServerConfig
+	Database DatabaseConfig
 }
 
+// ServerConfig holds gRPC server configuration
+type ServerConfig struct {
+	GRPCPort string
+}
+
+// DatabaseConfig holds database connection configuration
 type DatabaseConfig struct {
 	Host     string
 	Port     string
@@ -19,34 +25,25 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
-type ServerConfig struct {
-	GRPCPort string
-}
-
+// Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
-		Database: DatabaseConfig{
-			Host:     getEnv("POSTGRES_HOST", "localhost"),
-			Port:     getEnv("POSTGRES_PORT", "5433"),
-			User:     getEnv("POSTGRES_USER", "postgres"),
-			Password: getEnv("POSTGRES_PASSWORD", "postgres"),
-			Database: getEnv("POSTGRES_DATABASE", "nft_marketplace"),
-			SSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
-		},
 		Server: ServerConfig{
-			GRPCPort: getEnv("COLLECTION_GRPC_PORT", ":50054"),
+			GRPCPort: env.GetString("COLLECTION_GRPC_PORT", ":50054"),
+		},
+		Database: DatabaseConfig{
+			Host:     env.GetString("POSTGRES_HOST", "localhost"),
+			Port:     env.GetString("POSTGRES_PORT", "5432"),
+			User:     env.GetString("POSTGRES_USER", "postgres"),
+			Password: env.GetString("POSTGRES_PASSWORD", "postgres"),
+			Database: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
+			SSLMode:  env.GetString("POSTGRES_SSL_MODE", "disable"),
 		},
 	}
 }
 
-func (c DatabaseConfig) GetDSN() string {
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		c.Host, c.Port, c.User, c.Password, c.Database, c.SSLMode)
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
+// GetDSN returns the database connection string
+func (c *DatabaseConfig) GetDSN() string {
+	return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
+		" password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
 }

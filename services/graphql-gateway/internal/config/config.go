@@ -24,9 +24,10 @@ type JWTConfig struct {
 
 // ServicesConfig holds URLs for backend gRPC services
 type ServicesConfig struct {
-	AuthServiceURL   string
-	UserServiceURL   string
-	WalletServiceURL string
+	AuthServiceURL       string
+	UserServiceURL       string
+	WalletServiceURL     string
+	CollectionServiceURL string
 }
 
 // FeatureConfig holds feature flags
@@ -44,9 +45,10 @@ func Load() *Config {
 			AccessSecret: env.GetString("JWT_ACCESS_SECRET", ""),
 		},
 		Services: ServicesConfig{
-			AuthServiceURL:   env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
-			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
-			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+			AuthServiceURL:       env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
+			UserServiceURL:       env.GetString("USER_SERVICE_URL", "localhost:50052"),
+			WalletServiceURL:     env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+			CollectionServiceURL: env.GetString("COLLECTION_SERVICE_URL", "localhost:50054"),
 		},
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
