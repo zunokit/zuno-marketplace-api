@@ -24,18 +24,19 @@ This document outlines the integration points between all services and provides 
 
 ---
 
-### Frontend ↔ Metadata Service
+### Frontend ↔ Backend Upload Proxy ↔ Metadata Service
 
-| Integration Point | Frontend Sends | Metadata Service Returns | Status |
-|-------------------|----------------|--------------------------|--------|
-| **Media Upload** | FormData with file | `{ url, ipfsHash, ipfsUrl }` | ✅ Ready |
-| **Create Metadata** | JSON payload | `{ id, isPinned, ipfsUrl }` | ✅ Ready |
-| **Poll Pinning** | GET /metadata/:id | Updated pinning status | ✅ Ready |
+| Integration Point | Frontend Sends | Backend Proxy Forwards | Metadata Service Returns | Status |
+|-------------------|----------------|------------------------|--------------------------|--------|
+| **Media Upload** | FormData + JWT | FormData + API key | `{ url, ipfsHash, ipfsUrl }` | ⏳ Phase 4 |
+| **Create Metadata** | JSON + JWT | JSON + API key | `{ id, isPinned, ipfsUrl }` | ⏳ Phase 4 |
+| **Poll Pinning** | GET + JWT | GET + API key | Updated pinning status | ⏳ Phase 4 |
 
 **Setup Checklist**:
+- [ ] Backend upload proxy running at `http://localhost:8081/api/upload/*`
 - [ ] Metadata service running on `http://localhost:3001`
-- [ ] API key obtained from admin dashboard
-- [ ] Environment variable `NEXT_PUBLIC_METADATA_SERVICE_API_KEY` set
+- [ ] Backend API key configured in `.env` (NOT frontend!)
+- [ ] JWT authentication working
 - [ ] CORS enabled for frontend origin
 - [ ] Rate limits configured appropriately
 - [ ] Pinata JWT configured on metadata service
@@ -44,9 +45,17 @@ This document outlines the integration points between all services and provides 
 **Environment Variables**:
 ```env
 # Frontend .env.local
-NEXT_PUBLIC_METADATA_SERVICE_URL=http://localhost:3001/api
-NEXT_PUBLIC_METADATA_SERVICE_API_KEY=your-api-key
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8081  # Backend GraphQL + Upload Proxy
+
+# Backend .env (API key kept secret!)
+METADATA_SERVICE_URL=http://localhost:3001/api
+METADATA_SERVICE_API_KEY=your-backend-api-key-secret
 ```
+
+**Security Note**:
+- ✅ API key KHÔNG BAO GIỜ expose ở frontend
+- ✅ Frontend gọi `/api/upload/*` với JWT token
+- ✅ Backend verify JWT → forward với API key
 
 ---
 
@@ -198,15 +207,22 @@ func validateWebhookSignature(payload []byte, signature string, secret string) b
    Token Standard: ERC-721 (selected)
    ```
 
-3. **Upload Images**
+3. **Upload Images via Backend Proxy**
    ```
    Logo: genesis-logo.png (500x500)
    Banner: genesis-banner.png (1400x400)
 
-   → Frontend calls: metadataClient.uploadMedia(logoFile)
+   → Frontend calls: POST /api/upload/media (Backend proxy)
+      Authorization: Bearer <JWT_TOKEN>
+      Content-Type: multipart/form-data
+
+   → Backend verifies JWT ✅
+   → Backend forwards: POST http://localhost:3001/api/media
+      x-api-key: <BACKEND_API_KEY> 🔒
+
    ← Returns: { url: "https://ik.imagekit.io/zuno/genesis-logo.png" }
 
-   → Frontend calls: metadataClient.uploadMedia(bannerFile)
+   [Same for banner image]
    ← Returns: { url: "https://ik.imagekit.io/zuno/genesis-banner.png" }
    ```
 
@@ -225,20 +241,25 @@ func validateWebhookSignature(payload []byte, signature string, secret string) b
    Recipient: 0x123... (creator address)
    ```
 
-6. **Review & Create Metadata**
+6. **Review & Create Metadata via Backend Proxy**
    ```
-   → Frontend calls: metadataClient.createMetadata({
-       name: "Genesis Apes",
-       image: "https://ik.imagekit.io/zuno/genesis-logo.png",
-       bannerImage: "https://ik.imagekit.io/zuno/genesis-banner.png",
-       symbol: "GAPE",
-       description: "A collection of 1000 unique apes"
-     }, {
-       headers: {
-         'x-api-key': API_KEY,
-         'x-api-version': 'v1'  // REQUIRED!
-       }
-     })
+   → Frontend calls: POST /api/upload/metadata (Backend proxy)
+      Authorization: Bearer <JWT_TOKEN>
+      Content-Type: application/json
+      {
+        name: "Genesis Apes",
+        image: "https://ik.imagekit.io/zuno/genesis-logo.png",
+        bannerImage: "https://ik.imagekit.io/zuno/genesis-banner.png",
+        symbol: "GAPE",
+        description: "A collection of 1000 unique apes"
+      }
+
+   → Backend verifies JWT ✅
+   → Backend forwards: POST http://localhost:3001/api/metadata
+      x-api-key: <BACKEND_API_KEY> 🔒
+      x-api-version: v1
+      { ...same payload }
+
    ← Returns: {
        success: true,
        data: {
@@ -254,12 +275,16 @@ func validateWebhookSignature(payload []byte, signature string, secret string) b
      }
    ```
 
-7. **Poll IPFS Pinning** ⏱️ **ASYNC** (~10-30 seconds)
+7. **Poll IPFS Pinning via Backend Proxy** ⏱️ **ASYNC** (~10-30 seconds)
    ```
    ⚠️ IMPORTANT: IPFS pinning happens in background via cron job!
 
-   → Frontend polls: GET /metadata/metadata_abc123
+   → Frontend polls: GET /api/upload/metadata/metadata_abc123 (Backend proxy)
+      Authorization: Bearer <JWT_TOKEN>
    [Check every 2s...]
+
+   → Backend forwards: GET http://localhost:3001/api/metadata/metadata_abc123
+      x-api-key: <BACKEND_API_KEY> 🔒
 
    ← Returns (initially): {
        isPinned: false,

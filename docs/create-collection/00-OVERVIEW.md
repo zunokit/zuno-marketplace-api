@@ -68,19 +68,21 @@ docs/create-collection/
   - Royalty: percentage, recipient address
   - Allowlist: wallet addresses (optional)
 
-### 2. Upload Media to Metadata Service (FE → Metadata Service)
+### 2. Upload Media via Backend Proxy (FE → Backend → Metadata Service)
 ```
-POST /api/media
-Authorization: Bearer API_KEY
+POST /api/upload/media (Backend Upload Proxy)
+Authorization: Bearer JWT_TOKEN
 Content-Type: multipart/form-data
 
+→ Backend verifies JWT ✅
+→ Backend forwards to Metadata Service with API key 🔒
 → Returns: { url: "https://ik.imagekit.io/zuno/logo.png" }
 ```
 
-### 3. Create Metadata Record (FE → Metadata Service)
+### 3. Create Metadata Record via Backend Proxy (FE → Backend → Metadata Service)
 ```
-POST /api/metadata
-Authorization: Bearer API_KEY
+POST /api/upload/metadata (Backend Upload Proxy)
+Authorization: Bearer JWT_TOKEN
 Content-Type: application/json
 {
   "name": "My Collection",
@@ -89,16 +91,25 @@ Content-Type: application/json
   ...
 }
 
+→ Backend verifies JWT ✅
+→ Backend forwards to Metadata Service with API key 🔒
 → Returns: { id: "metadata_123", isPinned: false }
 ```
 
-### 4. Poll for IPFS Pinning (FE → Metadata Service)
+### 4. Poll for IPFS Pinning via Backend Proxy (FE → Backend → Metadata Service)
 ```
-GET /api/metadata/metadata_123
-Authorization: Bearer API_KEY
+GET /api/upload/metadata/metadata_123 (Backend Upload Proxy)
+Authorization: Bearer JWT_TOKEN
 
+→ Backend verifies JWT ✅
+→ Backend forwards to Metadata Service with API key 🔒
 → Poll until: { isPinned: true, ipfsUrl: "https://gateway.pinata.cloud/ipfs/Qm..." }
 ```
+
+**Security Note**:
+- ✅ API key KHÔNG expose ở frontend
+- ✅ Backend giữ API key bí mật
+- ✅ Frontend chỉ cần JWT token
 
 ### 5. Create Collection Record in Backend (FE → Backend API)
 ```graphql
@@ -277,6 +288,7 @@ Backend verifies and confirms deployment
 
 ---
 
-**Last Updated**: 2025-11-20
-**Status**: Planning Phase
-**Next Steps**: Begin Backend Phase 1 (Database Schema Design)
+**Last Updated**: 2025-11-22
+**Status**: Phase 2 Complete, Phase 3 Ready
+**Recent Update**: Fixed documentation - Frontend calls Backend Upload Proxy (Phase 4), NOT direct Metadata Service
+**Next Steps**: Begin Phase 3 (GraphQL Gateway Integration)

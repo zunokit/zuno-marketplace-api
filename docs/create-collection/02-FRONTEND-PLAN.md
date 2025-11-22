@@ -346,29 +346,37 @@ interface CreateMetadataInput {
   backgroundColor?: string;
 }
 
-export class MetadataServiceClient {
+export class UploadProxyClient {
   private client: AxiosInstance;
 
   constructor(
-    baseURL: string = process.env.NEXT_PUBLIC_METADATA_SERVICE_URL!,
-    apiKey: string = process.env.NEXT_PUBLIC_METADATA_SERVICE_API_KEY!
+    baseURL: string = process.env.NEXT_PUBLIC_BACKEND_URL + '/api/upload',
+    getAccessToken: () => string | null
   ) {
     this.client = axios.create({
       baseURL,
-      headers: {
-        // Auth Options (3 methods work):
-        // Option 1: 'x-api-key': apiKey,  // Preferred
-        'Authorization': `Bearer ${apiKey}`,  // Option 2
-        // Option 3: Session cookies (automatic)
-        'x-api-version': 'v1',  // REQUIRED for metadata endpoints!
-      },
       timeout: 30000,
     });
+
+    // Request interceptor to add JWT token
+    this.client.interceptors.request.use(
+      (config) => {
+        const token = getAccessToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized. Please login again.');
+        }
         if (error.response?.status === 429) {
           throw new Error('Rate limit exceeded. Please try again later.');
         }
@@ -387,6 +395,8 @@ export class MetadataServiceClient {
       options.tags.forEach(tag => formData.append('tags', tag));
     }
 
+    // Calls: POST /api/upload/media (Backend proxy)
+    // Backend forwards to Metadata Service with API key
     const response = await this.client.post<{ success: boolean; data: MediaResponse }>('/media', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -405,7 +415,8 @@ export class MetadataServiceClient {
       formData.append('folder', options.folder);
     }
 
-    const response = await this.client.post<{ success: boolean; data: MediaResponse[] }>('/media/batch', formData, {
+    // Calls: POST /api/upload/batch (Backend proxy)
+    const response = await this.client.post<{ success: boolean; data: MediaResponse[] }>('/batch', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
@@ -413,11 +424,13 @@ export class MetadataServiceClient {
   }
 
   async createMetadata(input: CreateMetadataInput): Promise<MetadataResponse> {
+    // Calls: POST /api/upload/metadata (Backend proxy)
     const response = await this.client.post<{ success: boolean; data: MetadataResponse }>('/metadata', input);
     return response.data.data;
   }
 
   async getMetadata(id: string): Promise<MetadataResponse> {
+    // Calls: GET /api/upload/metadata/:id (Backend proxy)
     const response = await this.client.get<{ success: boolean; data: MetadataResponse }>(`/metadata/${id}`);
     return response.data.data;
   }
@@ -442,7 +455,13 @@ export class MetadataServiceClient {
   }
 }
 
-export const metadataClient = new MetadataServiceClient();
+// Factory function that uses auth context
+export const createUploadProxyClient = (getAccessToken: () => string | null) => {
+  return new UploadProxyClient(
+    process.env.NEXT_PUBLIC_BACKEND_URL + '/api/upload',
+    getAccessToken
+  );
+};
 ```
 
 ### Task 2.2: Media Upload Hook
@@ -451,7 +470,8 @@ export const metadataClient = new MetadataServiceClient();
 
 ```typescript
 import { useState, useCallback } from 'react';
-import { metadataClient } from '@/shared/api/metadata-client';
+import { createUploadProxyClient } from '@/shared/api/upload-proxy-client';
+import { useAuth } from '@/shared/hooks/useAuth';  // Your auth context
 import { toast } from 'sonner';
 
 interface UseMediaUploadReturn {
@@ -466,6 +486,7 @@ export function useMediaUpload(): UseMediaUploadReturn {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<Error | null>(null);
+  const { getAccessToken } = useAuth();  // Get JWT token from auth context
 
   const uploadFile = useCallback(async (file: File): Promise<string> => {
     if (!file) {
@@ -489,7 +510,13 @@ export function useMediaUpload(): UseMediaUploadReturn {
 
     try {
       setProgress(30);
-      const response = await metadataClient.uploadMedia(file, {
+
+      // Create client with JWT token
+      const uploadClient = createUploadProxyClient(getAccessToken);
+
+      // Calls Backend Upload Proxy: POST /api/upload/media
+      // Backend verifies JWT and forwards to Metadata Service with API key
+      const response = await uploadClient.uploadMedia(file, {
         folder: 'collections',
         tags: ['collection-media'],
       });
@@ -504,7 +531,7 @@ export function useMediaUpload(): UseMediaUploadReturn {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [getAccessToken]);
 
   const uploadMultiple = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) {
@@ -521,7 +548,11 @@ export function useMediaUpload(): UseMediaUploadReturn {
 
     try {
       setProgress(30);
-      const responses = await metadataClient.batchUploadMedia(files, {
+
+      const uploadClient = createUploadProxyClient(getAccessToken);
+
+      // Calls Backend Upload Proxy: POST /api/upload/batch
+      const responses = await uploadClient.batchUploadMedia(files, {
         folder: 'collections',
       });
       setProgress(100);
@@ -535,7 +566,7 @@ export function useMediaUpload(): UseMediaUploadReturn {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [getAccessToken]);
 
   return {
     uploadFile,
@@ -552,14 +583,19 @@ export function useMediaUpload(): UseMediaUploadReturn {
 **File**: `.env.local`
 
 ```env
-# Metadata Service
-NEXT_PUBLIC_METADATA_SERVICE_URL=http://localhost:3001/api
-NEXT_PUBLIC_METADATA_SERVICE_API_KEY=your-api-key-here
+# Backend API (includes GraphQL + Upload Proxy)
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8081
 
 # Zuno SDK
 NEXT_PUBLIC_ZUNO_API_KEY=your-zuno-api-key
 NEXT_PUBLIC_ZUNO_ABI_URL=https://abis.zuno.com/api
 ```
+
+**Note**:
+- ❌ **KHÔNG CẦN** `NEXT_PUBLIC_METADATA_SERVICE_API_KEY` ở frontend
+- ✅ API key được giữ bí mật ở backend
+- ✅ Frontend gọi `/api/upload/*` với JWT token
+- ✅ Backend proxy forward đến Metadata Service
 
 ---
 
