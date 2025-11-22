@@ -277,6 +277,44 @@ func TestGetUserClaims_WithoutClaims(t *testing.T) {
 	}
 }
 
+func TestGetUserIDFromContext_WithValidClaims(t *testing.T) {
+	userID := uuid.New().String()
+	claims := &UserClaims{
+		UserID:    userID,
+		SessionID: uuid.New().String(),
+	}
+
+	ctx := context.WithValue(context.Background(), UserClaimsKey, claims)
+
+	result := GetUserIDFromContext(ctx)
+	if result != userID {
+		t.Errorf("Expected UserID %s, got %s", userID, result)
+	}
+}
+
+func TestGetUserIDFromContext_WithoutClaims(t *testing.T) {
+	ctx := context.Background()
+
+	result := GetUserIDFromContext(ctx)
+	if result != "" {
+		t.Errorf("Expected empty string, got %s", result)
+	}
+}
+
+func TestGetUserIDFromContext_WithEmptyUserID(t *testing.T) {
+	claims := &UserClaims{
+		UserID:    "",
+		SessionID: uuid.New().String(),
+	}
+
+	ctx := context.WithValue(context.Background(), UserClaimsKey, claims)
+
+	result := GetUserIDFromContext(ctx)
+	if result != "" {
+		t.Errorf("Expected empty string, got %s", result)
+	}
+}
+
 func TestAuthMiddleware_CaseInsensitiveBearer(t *testing.T) {
 	userID := uuid.New().String()
 	sessionID := uuid.New().String()
