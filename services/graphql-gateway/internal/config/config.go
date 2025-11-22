@@ -37,6 +37,7 @@ func Load() *Config {
 			UserServiceURL:       env.GetString("USER_SERVICE_URL", "localhost:50052"),
 			WalletServiceURL:     env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
 			CollectionServiceURL: env.GetString("COLLECTION_SERVICE_URL", "localhost:50054"),
+			MediaServiceURL:      env.GetString("MEDIA_SERVICE_URL", "localhost:50055"),
 		},
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),

@@ -150,6 +150,26 @@ services:
     networks:
       - app-network
 
+  media-service:
+    build:
+      context: .
+      dockerfile: infra/development/docker/media-service.Dockerfile
+      args:
+        - CGO_ENABLED=0
+        - GOOS=linux
+        - GOARCH=amd64
+    container_name: media-service
+    env_file:
+      - .env
+    environment:
+      - MEDIA_GRPC_PORT=:50055
+      - METADATA_SERVICE_URL=${METADATA_SERVICE_URL}
+      - METADATA_SERVICE_API_KEY=${METADATA_SERVICE_API_KEY}
+    ports:
+      - "50055:50055"
+    networks:
+      - app-network
+
   graphql-gateway:
     build:
       context: .
@@ -161,14 +181,13 @@ services:
       - USER_SERVICE_URL=user-service:${USER_GRPC_PORT}
       - WALLET_SERVICE_URL=wallet-service:${WALLET_GRPC_PORT}
       - COLLECTION_SERVICE_URL=collection-service:50054
+      - MEDIA_SERVICE_URL=media-service:50055
       - JWT_ACCESS_SECRET=${JWT_SECRET}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE}
-      - METADATA_SERVICE_URL=${METADATA_SERVICE_URL}
-      - METADATA_SERVICE_API_KEY=${METADATA_SERVICE_API_KEY}
     ports:
       - "${GATEWAY_HTTP_ADDR}:${GATEWAY_HTTP_ADDR}"
     depends_on:
@@ -176,6 +195,7 @@ services:
       - user-service
       - wallet-service
       - collection-service
+      - media-service
     networks:
       - app-network
 

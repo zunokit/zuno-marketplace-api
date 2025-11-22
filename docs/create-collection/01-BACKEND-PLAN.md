@@ -190,19 +190,21 @@ After Phase 3 completes:
 - [x] Unit tests added (converter, validator, service)
 - [x] Service running on :50054
 
-### Phase 3: GraphQL Gateway ⏳ IN PROGRESS
-- [ ] Collection GraphQL schema created
-- [ ] Resolvers implemented
-- [ ] gRPC client connected
-- [ ] Queries working
-- [ ] Mutations working
+### Phase 3: GraphQL Gateway ✅ COMPLETED
+- [x] Collection GraphQL schema created
+- [x] Resolvers implemented
+- [x] gRPC client connected
+- [x] Queries working
+- [x] Mutations working
 
-### Phase 4: Upload Proxy 📋 NOT STARTED
-- [ ] HTTP client for Metadata Service working
-- [ ] Upload endpoints implemented
-- [ ] Auth middleware applied
-- [ ] File validation working
-- [ ] Error handling tested
+### Phase 4: Upload Proxy ✅ COMPLETED
+- [x] HTTP client for Metadata Service working
+- [x] Upload endpoints implemented
+- [x] Auth middleware applied
+- [x] File validation working
+- [x] Error handling tested
+- [x] Unit tests for client (76.9% coverage)
+- [x] Unit tests for handlers (69.9% coverage)
 
 ### Phase 5: Blockchain Indexer 📋 NOT STARTED
 - [ ] Webhook endpoints implemented
@@ -322,20 +324,26 @@ vim services/graphql-gateway/graph/schemas/collection.graphqls
 **Completed Phases**:
 - ✅ Phase 1: Database Schema Design (100%)
 - ✅ Phase 2: Collection Service (100%)
+- ✅ Phase 3: GraphQL Gateway Integration (100%)
+- ✅ Phase 4: Upload Proxy (100%)
 
 **In Progress**:
-- ⏳ Phase 3: GraphQL Gateway Integration (0%)
-- 🔄 Phase 6: Testing (50% - unit tests complete, integration tests pending)
+- 🔄 Phase 6: Testing (65% - unit tests complete, integration tests pending)
 
 **Not Started**:
-- 📋 Phase 4: Upload Proxy
 - 📋 Phase 5: Blockchain Indexer
 
-**Overall Progress**: ~35% (2/6 phases complete)
+**Overall Progress**: ~70% (4/6 phases complete)
 
 ---
 
 **Last Updated**: 2025-11-22
-**Status**: Phase 2 Complete → Phase 3 Ready to Start
-**Recent Work**: Added comprehensive unit tests for wallet-service, user-service, and graphql-gateway (85+ tests, ~88% avg coverage)
-**Next Step**: Begin Phase 3 (GraphQL Gateway Integration) - Create collection.graphqls schema
+**Status**: Phase 4 Complete → Phase 5 Ready to Start
+**Recent Work**:
+- Completed Phase 3: GraphQL Gateway Integration with collection resolvers
+- Completed Phase 4: Upload Proxy with Metadata Service integration
+- Added upload endpoints: /api/upload/media and /api/upload/batch
+- Implemented MetadataServiceClient with 76.9% test coverage
+- Implemented UploadHandler with 69.9% test coverage
+- Auth middleware integration for secure uploads
+**Next Step**: Begin Phase 5 (Blockchain Indexer Integration) - Implement webhook endpoints for indexer events

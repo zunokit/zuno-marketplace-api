@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-service
+  namespace: dev
+spec:
+  ports:
+    - port: 50055
+      targetPort: 50055
+  selector:
+    app: media-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-service
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: media-service
+  template:
+    metadata:
+      labels:
+        app: media-service
+    spec:
+      containers:
+        - name: media-service
+          image: media-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 50055
+          env:
+            - name: MEDIA_GRPC_PORT
+              value: ":50055"
+            - name: METADATA_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: METADATA_SERVICE_URL
+            - name: METADATA_SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: METADATA_SERVICE_API_KEY

@@ -133,6 +133,14 @@ build_service(
     deps=['postgres', 'redis', 'rabbitmq']
 )
 
+# Media Service
+build_service(
+    'media-service',
+    'media-service',
+    '50055:50055',
+    deps=[]  # No dependencies, only connects to external Metadata Service
+)
+
 # GraphQL Gateway
 docker_build(
     'graphql-gateway',
@@ -160,7 +168,7 @@ k8s_resource(
     'graphql-gateway',
     port_forwards=['8081:8081'],
     labels=['services'],
-    resource_deps=['auth-service', 'user-service', 'wallet-service', 'collection-service'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service', 'collection-service', 'media-service'],
     auto_init=True,
     trigger_mode=TRIGGER_MODE_AUTO
 )
@@ -203,7 +211,7 @@ local_resource(
 # Group services by type
 update_settings(
     k8s_upsert_timeout_secs=60,
-    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'collection-service', 'graphql-gateway']
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'collection-service', 'media-service', 'graphql-gateway']
 )
 
 print("""
@@ -224,6 +232,7 @@ print("""
    - User Service:       localhost:50052 (gRPC)
    - Wallet Service:     localhost:50053 (gRPC)
    - Collection Service: localhost:50054 (gRPC)
+   - Media Service:      localhost:50055 (gRPC)
    - GraphQL Gateway:    http://localhost:8081 (HTTP/WS)
 
 🛠️  Helper Commands:

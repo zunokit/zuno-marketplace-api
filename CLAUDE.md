@@ -45,6 +45,8 @@ When adding a new function `CalculateTotal(items []Item) int`:
 - **Auth Service**: gRPC :50051
 - **User Service**: gRPC :50052
 - **Wallet Service**: gRPC :50053
+- **Collection Service**: gRPC :50054
+- **Media Service**: gRPC :50055
 - **PostgreSQL**: 5432
 - **Redis**: 6379
 - **RabbitMQ**: 5672 (management UI: http://localhost:15672)

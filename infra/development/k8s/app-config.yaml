@@ -40,5 +40,8 @@ data:
   # GraphQL Gateway
   GATEWAY_HTTP_ADDR: "8081"
 
+  # Metadata Service
+  METADATA_SERVICE_URL: "https://zuno-marketplace-metadata.vercel.app/api"
+
   # Monitoring
   SENTRY_ENVIRONMENT: "development"

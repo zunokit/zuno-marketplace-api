@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -13,6 +14,7 @@ import (
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/config"
 	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
+	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/handlers"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/health"
 	authmiddleware "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
 	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
@@ -57,6 +59,12 @@ func main() {
 	}
 	defer collectionConn.Close()
 
+	mediaConn, err := grpc.Dial(cfg.Services.MediaServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to media service: %v", err)
+	}
+	defer mediaConn.Close()
+
 	// Create GraphQL resolver with gRPC clients
 	resolver := &graph.Resolver{
 		AuthClient:       pb.NewAuthServiceClient(authConn),
@@ -67,6 +75,11 @@ func main() {
 
 	// Create GraphQL server
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+
+	// Initialize upload handler with Media Service client
+	logger := log.New(os.Stdout, "[GraphQL-Gateway] ", log.LstdFlags)
+	mediaClient := pb.NewMediaServiceClient(mediaConn)
+	uploadHandler := handlers.NewUploadHandler(mediaClient, logger)
 
 	// Setup HTTP router
 	router := chi.NewRouter()
@@ -93,6 +106,7 @@ func main() {
 	healthRegistry.Register("user_service", health.NewServiceHealthChecker(userConn))
 	healthRegistry.Register("wallet_service", health.NewServiceHealthChecker(walletConn))
 	healthRegistry.Register("collection_service", health.NewServiceHealthChecker(collectionConn))
+	healthRegistry.Register("media_service", health.NewServiceHealthChecker(mediaConn))
 
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		healthStatus := healthRegistry.CheckAll(r.Context())
@@ -117,9 +131,15 @@ func main() {
 		log.Println("GraphQL Playground enabled at http://localhost" + cfg.Server.HTTPAddr + "/playground")
 	}
 
+	// Upload endpoints (NEW)
+	router.Post("/api/upload/media", uploadHandler.UploadMedia)
+	router.Post("/api/upload/batch", uploadHandler.BatchUploadMedia)
+
 	// Start server
 	log.Printf("GraphQL Gateway listening on %s", cfg.Server.HTTPAddr)
 	log.Printf("GraphQL endpoint: http://localhost%s/graphql", cfg.Server.HTTPAddr)
+	log.Printf("Upload Media endpoint: http://localhost%s/api/upload/media", cfg.Server.HTTPAddr)
+	log.Printf("Batch Upload endpoint: http://localhost%s/api/upload/batch", cfg.Server.HTTPAddr)
 
 	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
 		log.Fatal(err)

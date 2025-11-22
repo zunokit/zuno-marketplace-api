@@ -37,4 +37,5 @@ type ServicesConfig struct {
 	UserServiceURL       string
 	WalletServiceURL     string
 	CollectionServiceURL string
+	MediaServiceURL      string
 }
