@@ -85,7 +85,7 @@ func main() {
 	}))
 
 	// JWT authentication middleware
-	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.AccessSecret))
+	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// Health check endpoint
 	healthRegistry := health.NewRegistry()

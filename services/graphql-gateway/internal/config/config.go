@@ -1,33 +1,21 @@
 package config
 
 import (
+	sharedConfig "github.com/quangdang46/NFT-Marketplace/shared/config"
 	"github.com/quangdang46/NFT-Marketplace/shared/env"
 )
 
 // Config holds all configuration for the GraphQL gateway
 type Config struct {
 	Server   ServerConfig
-	JWT      JWTConfig
-	Services ServicesConfig
+	JWT      sharedConfig.JWTConfig
+	Services sharedConfig.ServicesConfig
 	Features FeatureConfig
 }
 
 // ServerConfig holds HTTP server configuration
 type ServerConfig struct {
 	HTTPAddr string
-}
-
-// JWTConfig holds JWT authentication configuration
-type JWTConfig struct {
-	AccessSecret string
-}
-
-// ServicesConfig holds URLs for backend gRPC services
-type ServicesConfig struct {
-	AuthServiceURL       string
-	UserServiceURL       string
-	WalletServiceURL     string
-	CollectionServiceURL string
 }
 
 // FeatureConfig holds feature flags
@@ -41,10 +29,10 @@ func Load() *Config {
 		Server: ServerConfig{
 			HTTPAddr: env.GetString("GATEWAY_HTTP_ADDR", ":8081"),
 		},
-		JWT: JWTConfig{
-			AccessSecret: env.GetString("JWT_ACCESS_SECRET", ""),
+		JWT: sharedConfig.JWTConfig{
+			Secret: env.GetString("JWT_ACCESS_SECRET", ""),
 		},
-		Services: ServicesConfig{
+		Services: sharedConfig.ServicesConfig{
 			AuthServiceURL:       env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
 			UserServiceURL:       env.GetString("USER_SERVICE_URL", "localhost:50052"),
 			WalletServiceURL:     env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
@@ -58,7 +46,7 @@ func Load() *Config {
 
 // Validate checks if required configuration is present
 func (c *Config) Validate() error {
-	if c.JWT.AccessSecret == "" {
+	if c.JWT.Secret == "" {
 		return ErrMissingJWTSecret
 	}
 	return nil
