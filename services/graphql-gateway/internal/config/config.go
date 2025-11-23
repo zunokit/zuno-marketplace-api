@@ -7,10 +7,11 @@ import (
 
 // Config holds all configuration for the GraphQL gateway
 type Config struct {
-	Server   ServerConfig
-	JWT      sharedConfig.JWTConfig
-	Services sharedConfig.ServicesConfig
-	Features FeatureConfig
+	Server        ServerConfig
+	JWT           sharedConfig.JWTConfig
+	Services      sharedConfig.ServicesConfig
+	Features      FeatureConfig
+	WebhookSecret string
 }
 
 // ServerConfig holds HTTP server configuration
@@ -42,6 +43,7 @@ func Load() *Config {
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
 		},
+		WebhookSecret: env.GetString("WEBHOOK_SECRET", ""),
 	}
 }
 

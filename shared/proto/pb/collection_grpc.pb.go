@@ -26,6 +26,7 @@ const (
 	CollectionService_ListCollections_FullMethodName       = "/pb.CollectionService/ListCollections"
 	CollectionService_AddToAllowlist_FullMethodName        = "/pb.CollectionService/AddToAllowlist"
 	CollectionService_DeleteCollection_FullMethodName      = "/pb.CollectionService/DeleteCollection"
+	CollectionService_ProcessIndexerWebhook_FullMethodName = "/pb.CollectionService/ProcessIndexerWebhook"
 )
 
 // CollectionServiceClient is the client API for CollectionService service.
@@ -39,6 +40,7 @@ type CollectionServiceClient interface {
 	ListCollections(ctx context.Context, in *ListCollectionsRequest, opts ...grpc.CallOption) (*ListCollectionsResponse, error)
 	AddToAllowlist(ctx context.Context, in *AddToAllowlistRequest, opts ...grpc.CallOption) (*AddToAllowlistResponse, error)
 	DeleteCollection(ctx context.Context, in *DeleteCollectionRequest, opts ...grpc.CallOption) (*DeleteCollectionResponse, error)
+	ProcessIndexerWebhook(ctx context.Context, in *ProcessIndexerWebhookRequest, opts ...grpc.CallOption) (*ProcessIndexerWebhookResponse, error)
 }
 
 type collectionServiceClient struct {
@@ -119,6 +121,16 @@ func (c *collectionServiceClient) DeleteCollection(ctx context.Context, in *Dele
 	return out, nil
 }
 
+func (c *collectionServiceClient) ProcessIndexerWebhook(ctx context.Context, in *ProcessIndexerWebhookRequest, opts ...grpc.CallOption) (*ProcessIndexerWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProcessIndexerWebhookResponse)
+	err := c.cc.Invoke(ctx, CollectionService_ProcessIndexerWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CollectionServiceServer is the server API for CollectionService service.
 // All implementations must embed UnimplementedCollectionServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type CollectionServiceServer interface {
 	ListCollections(context.Context, *ListCollectionsRequest) (*ListCollectionsResponse, error)
 	AddToAllowlist(context.Context, *AddToAllowlistRequest) (*AddToAllowlistResponse, error)
 	DeleteCollection(context.Context, *DeleteCollectionRequest) (*DeleteCollectionResponse, error)
+	ProcessIndexerWebhook(context.Context, *ProcessIndexerWebhookRequest) (*ProcessIndexerWebhookResponse, error)
 	mustEmbedUnimplementedCollectionServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedCollectionServiceServer) AddToAllowlist(context.Context, *Add
 }
 func (UnimplementedCollectionServiceServer) DeleteCollection(context.Context, *DeleteCollectionRequest) (*DeleteCollectionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteCollection not implemented")
+}
+func (UnimplementedCollectionServiceServer) ProcessIndexerWebhook(context.Context, *ProcessIndexerWebhookRequest) (*ProcessIndexerWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcessIndexerWebhook not implemented")
 }
 func (UnimplementedCollectionServiceServer) mustEmbedUnimplementedCollectionServiceServer() {}
 func (UnimplementedCollectionServiceServer) testEmbeddedByValue()                           {}
@@ -308,6 +324,24 @@ func _CollectionService_DeleteCollection_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CollectionService_ProcessIndexerWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessIndexerWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CollectionServiceServer).ProcessIndexerWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CollectionService_ProcessIndexerWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CollectionServiceServer).ProcessIndexerWebhook(ctx, req.(*ProcessIndexerWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CollectionService_ServiceDesc is the grpc.ServiceDesc for CollectionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var CollectionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteCollection",
 			Handler:    _CollectionService_DeleteCollection_Handler,
+		},
+		{
+			MethodName: "ProcessIndexerWebhook",
+			Handler:    _CollectionService_ProcessIndexerWebhook_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

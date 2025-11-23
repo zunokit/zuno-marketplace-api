@@ -81,6 +81,9 @@ func main() {
 	mediaClient := pb.NewMediaServiceClient(mediaConn)
 	uploadHandler := handlers.NewUploadHandler(mediaClient, logger)
 
+	// Initialize webhook handler with Collection Service client
+	webhookHandler := handlers.NewWebhookHandler(collectionConn, cfg.WebhookSecret)
+
 	// Setup HTTP router
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
@@ -131,15 +134,19 @@ func main() {
 		log.Println("GraphQL Playground enabled at http://localhost" + cfg.Server.HTTPAddr + "/playground")
 	}
 
-	// Upload endpoints (NEW)
+	// Upload endpoints
 	router.Post("/api/upload/media", uploadHandler.UploadMedia)
 	router.Post("/api/upload/batch", uploadHandler.BatchUploadMedia)
+
+	// Webhook endpoints
+	router.Post("/api/webhooks/indexer", webhookHandler.HandleIndexerWebhook)
 
 	// Start server
 	log.Printf("GraphQL Gateway listening on %s", cfg.Server.HTTPAddr)
 	log.Printf("GraphQL endpoint: http://localhost%s/graphql", cfg.Server.HTTPAddr)
 	log.Printf("Upload Media endpoint: http://localhost%s/api/upload/media", cfg.Server.HTTPAddr)
 	log.Printf("Batch Upload endpoint: http://localhost%s/api/upload/batch", cfg.Server.HTTPAddr)
+	log.Printf("Indexer Webhook endpoint: http://localhost%s/api/webhooks/indexer", cfg.Server.HTTPAddr)
 
 	if err := http.ListenAndServe(cfg.Server.HTTPAddr, router); err != nil {
 		log.Fatal(err)

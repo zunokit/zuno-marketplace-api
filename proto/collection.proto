@@ -249,6 +249,19 @@ message DeleteCollectionResponse {
   bool success = 1;
 }
 
+// Indexer Webhook Request/Response
+message ProcessIndexerWebhookRequest {
+  string event = 1;               // e.g., "collection.created"
+  int64 chain_id = 2;             // Chain ID (e.g., 31337)
+  int64 timestamp = 3;            // Block timestamp
+  string data_json = 4;           // JSON-encoded event data
+}
+
+message ProcessIndexerWebhookResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -261,4 +274,5 @@ service CollectionService {
   rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
   rpc AddToAllowlist(AddToAllowlistRequest) returns (AddToAllowlistResponse);
   rpc DeleteCollection(DeleteCollectionRequest) returns (DeleteCollectionResponse);
+  rpc ProcessIndexerWebhook(ProcessIndexerWebhookRequest) returns (ProcessIndexerWebhookResponse);
 }

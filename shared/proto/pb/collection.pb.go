@@ -1982,6 +1982,127 @@ func (x *DeleteCollectionResponse) GetSuccess() bool {
 	return false
 }
 
+// Indexer Webhook Request/Response
+type ProcessIndexerWebhookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         string                 `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`                       // e.g., "collection.created"
+	ChainId       int64                  `protobuf:"varint,2,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`   // Chain ID (e.g., 31337)
+	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`              // Block timestamp
+	DataJson      string                 `protobuf:"bytes,4,opt,name=data_json,json=dataJson,proto3" json:"data_json,omitempty"` // JSON-encoded event data
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcessIndexerWebhookRequest) Reset() {
+	*x = ProcessIndexerWebhookRequest{}
+	mi := &file_proto_collection_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessIndexerWebhookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessIndexerWebhookRequest) ProtoMessage() {}
+
+func (x *ProcessIndexerWebhookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_collection_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessIndexerWebhookRequest.ProtoReflect.Descriptor instead.
+func (*ProcessIndexerWebhookRequest) Descriptor() ([]byte, []int) {
+	return file_proto_collection_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ProcessIndexerWebhookRequest) GetEvent() string {
+	if x != nil {
+		return x.Event
+	}
+	return ""
+}
+
+func (x *ProcessIndexerWebhookRequest) GetChainId() int64 {
+	if x != nil {
+		return x.ChainId
+	}
+	return 0
+}
+
+func (x *ProcessIndexerWebhookRequest) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *ProcessIndexerWebhookRequest) GetDataJson() string {
+	if x != nil {
+		return x.DataJson
+	}
+	return ""
+}
+
+type ProcessIndexerWebhookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcessIndexerWebhookResponse) Reset() {
+	*x = ProcessIndexerWebhookResponse{}
+	mi := &file_proto_collection_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessIndexerWebhookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessIndexerWebhookResponse) ProtoMessage() {}
+
+func (x *ProcessIndexerWebhookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_collection_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessIndexerWebhookResponse.ProtoReflect.Descriptor instead.
+func (*ProcessIndexerWebhookResponse) Descriptor() ([]byte, []int) {
+	return file_proto_collection_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ProcessIndexerWebhookResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *ProcessIndexerWebhookResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_collection_proto protoreflect.FileDescriptor
 
 const file_proto_collection_proto_rawDesc = "" +
@@ -2217,7 +2338,15 @@ const file_proto_collection_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"4\n" +
 	"\x18DeleteCollectionResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess*f\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x8a\x01\n" +
+	"\x1cProcessIndexerWebhookRequest\x12\x14\n" +
+	"\x05event\x18\x01 \x01(\tR\x05event\x12\x19\n" +
+	"\bchain_id\x18\x02 \x01(\x03R\achainId\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\x12\x1b\n" +
+	"\tdata_json\x18\x04 \x01(\tR\bdataJson\"S\n" +
+	"\x1dProcessIndexerWebhookResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*f\n" +
 	"\rTokenStandard\x12\x1e\n" +
 	"\x1aTOKEN_STANDARD_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TOKEN_STANDARD_ERC721\x10\x01\x12\x1a\n" +
@@ -2233,7 +2362,7 @@ const file_proto_collection_proto_rawDesc = "" +
 	"\x18INDEX_STATUS_NOT_STARTED\x10\x01\x12\x18\n" +
 	"\x14INDEX_STATUS_SYNCING\x10\x02\x12\x17\n" +
 	"\x13INDEX_STATUS_SYNCED\x10\x03\x12\x17\n" +
-	"\x13INDEX_STATUS_FAILED\x10\x042\xb3\x04\n" +
+	"\x13INDEX_STATUS_FAILED\x10\x042\x91\x05\n" +
 	"\x11CollectionService\x12M\n" +
 	"\x10CreateCollection\x12\x1b.pb.CreateCollectionRequest\x1a\x1c.pb.CreateCollectionResponse\x12D\n" +
 	"\rGetCollection\x12\x18.pb.GetCollectionRequest\x1a\x19.pb.GetCollectionResponse\x12M\n" +
@@ -2241,7 +2370,8 @@ const file_proto_collection_proto_rawDesc = "" +
 	"\x15ListCollectionsByUser\x12 .pb.ListCollectionsByUserRequest\x1a\x1b.pb.ListCollectionsResponse\x12J\n" +
 	"\x0fListCollections\x12\x1a.pb.ListCollectionsRequest\x1a\x1b.pb.ListCollectionsResponse\x12G\n" +
 	"\x0eAddToAllowlist\x12\x19.pb.AddToAllowlistRequest\x1a\x1a.pb.AddToAllowlistResponse\x12M\n" +
-	"\x10DeleteCollection\x12\x1b.pb.DeleteCollectionRequest\x1a\x1c.pb.DeleteCollectionResponseB8Z6github.com/quangdang46/NFT-Marketplace/shared/proto/pbb\x06proto3"
+	"\x10DeleteCollection\x12\x1b.pb.DeleteCollectionRequest\x1a\x1c.pb.DeleteCollectionResponse\x12\\\n" +
+	"\x15ProcessIndexerWebhook\x12 .pb.ProcessIndexerWebhookRequest\x1a!.pb.ProcessIndexerWebhookResponseB8Z6github.com/quangdang46/NFT-Marketplace/shared/proto/pbb\x06proto3"
 
 var (
 	file_proto_collection_proto_rawDescOnce sync.Once
@@ -2256,52 +2386,54 @@ func file_proto_collection_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_collection_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_proto_collection_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_proto_collection_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_proto_collection_proto_goTypes = []any{
-	(TokenStandard)(0),                   // 0: pb.TokenStandard
-	(CollectionStatus)(0),                // 1: pb.CollectionStatus
-	(IndexStatus)(0),                     // 2: pb.IndexStatus
-	(*Collection)(nil),                   // 3: pb.Collection
-	(*CollectionMetadata)(nil),           // 4: pb.CollectionMetadata
-	(*CollectionStats)(nil),              // 5: pb.CollectionStats
-	(*CollectionAllowlist)(nil),          // 6: pb.CollectionAllowlist
-	(*CreateCollectionRequest)(nil),      // 7: pb.CreateCollectionRequest
-	(*CreateCollectionResponse)(nil),     // 8: pb.CreateCollectionResponse
-	(*GetCollectionRequest)(nil),         // 9: pb.GetCollectionRequest
-	(*GetCollectionResponse)(nil),        // 10: pb.GetCollectionResponse
-	(*UpdateCollectionRequest)(nil),      // 11: pb.UpdateCollectionRequest
-	(*UpdateCollectionResponse)(nil),     // 12: pb.UpdateCollectionResponse
-	(*ListCollectionsByUserRequest)(nil), // 13: pb.ListCollectionsByUserRequest
-	(*ListCollectionsRequest)(nil),       // 14: pb.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),      // 15: pb.ListCollectionsResponse
-	(*AddToAllowlistRequest)(nil),        // 16: pb.AddToAllowlistRequest
-	(*AddToAllowlistResponse)(nil),       // 17: pb.AddToAllowlistResponse
-	(*DeleteCollectionRequest)(nil),      // 18: pb.DeleteCollectionRequest
-	(*DeleteCollectionResponse)(nil),     // 19: pb.DeleteCollectionResponse
-	(*timestamppb.Timestamp)(nil),        // 20: google.protobuf.Timestamp
+	(TokenStandard)(0),                    // 0: pb.TokenStandard
+	(CollectionStatus)(0),                 // 1: pb.CollectionStatus
+	(IndexStatus)(0),                      // 2: pb.IndexStatus
+	(*Collection)(nil),                    // 3: pb.Collection
+	(*CollectionMetadata)(nil),            // 4: pb.CollectionMetadata
+	(*CollectionStats)(nil),               // 5: pb.CollectionStats
+	(*CollectionAllowlist)(nil),           // 6: pb.CollectionAllowlist
+	(*CreateCollectionRequest)(nil),       // 7: pb.CreateCollectionRequest
+	(*CreateCollectionResponse)(nil),      // 8: pb.CreateCollectionResponse
+	(*GetCollectionRequest)(nil),          // 9: pb.GetCollectionRequest
+	(*GetCollectionResponse)(nil),         // 10: pb.GetCollectionResponse
+	(*UpdateCollectionRequest)(nil),       // 11: pb.UpdateCollectionRequest
+	(*UpdateCollectionResponse)(nil),      // 12: pb.UpdateCollectionResponse
+	(*ListCollectionsByUserRequest)(nil),  // 13: pb.ListCollectionsByUserRequest
+	(*ListCollectionsRequest)(nil),        // 14: pb.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),       // 15: pb.ListCollectionsResponse
+	(*AddToAllowlistRequest)(nil),         // 16: pb.AddToAllowlistRequest
+	(*AddToAllowlistResponse)(nil),        // 17: pb.AddToAllowlistResponse
+	(*DeleteCollectionRequest)(nil),       // 18: pb.DeleteCollectionRequest
+	(*DeleteCollectionResponse)(nil),      // 19: pb.DeleteCollectionResponse
+	(*ProcessIndexerWebhookRequest)(nil),  // 20: pb.ProcessIndexerWebhookRequest
+	(*ProcessIndexerWebhookResponse)(nil), // 21: pb.ProcessIndexerWebhookResponse
+	(*timestamppb.Timestamp)(nil),         // 22: google.protobuf.Timestamp
 }
 var file_proto_collection_proto_depIdxs = []int32{
 	0,  // 0: pb.Collection.token_standard:type_name -> pb.TokenStandard
 	1,  // 1: pb.Collection.status:type_name -> pb.CollectionStatus
-	20, // 2: pb.Collection.deployed_at:type_name -> google.protobuf.Timestamp
+	22, // 2: pb.Collection.deployed_at:type_name -> google.protobuf.Timestamp
 	2,  // 3: pb.Collection.index_status:type_name -> pb.IndexStatus
-	20, // 4: pb.Collection.mint_start_time:type_name -> google.protobuf.Timestamp
-	20, // 5: pb.Collection.allowlist_stage_end:type_name -> google.protobuf.Timestamp
-	20, // 6: pb.Collection.created_at:type_name -> google.protobuf.Timestamp
-	20, // 7: pb.Collection.updated_at:type_name -> google.protobuf.Timestamp
+	22, // 4: pb.Collection.mint_start_time:type_name -> google.protobuf.Timestamp
+	22, // 5: pb.Collection.allowlist_stage_end:type_name -> google.protobuf.Timestamp
+	22, // 6: pb.Collection.created_at:type_name -> google.protobuf.Timestamp
+	22, // 7: pb.Collection.updated_at:type_name -> google.protobuf.Timestamp
 	4,  // 8: pb.Collection.metadata:type_name -> pb.CollectionMetadata
 	5,  // 9: pb.Collection.stats:type_name -> pb.CollectionStats
-	20, // 10: pb.CollectionStats.last_sale_at:type_name -> google.protobuf.Timestamp
-	20, // 11: pb.CollectionStats.last_mint_at:type_name -> google.protobuf.Timestamp
-	20, // 12: pb.CollectionStats.updated_at:type_name -> google.protobuf.Timestamp
-	20, // 13: pb.CollectionAllowlist.added_at:type_name -> google.protobuf.Timestamp
+	22, // 10: pb.CollectionStats.last_sale_at:type_name -> google.protobuf.Timestamp
+	22, // 11: pb.CollectionStats.last_mint_at:type_name -> google.protobuf.Timestamp
+	22, // 12: pb.CollectionStats.updated_at:type_name -> google.protobuf.Timestamp
+	22, // 13: pb.CollectionAllowlist.added_at:type_name -> google.protobuf.Timestamp
 	0,  // 14: pb.CreateCollectionRequest.token_standard:type_name -> pb.TokenStandard
-	20, // 15: pb.CreateCollectionRequest.mint_start_time:type_name -> google.protobuf.Timestamp
-	20, // 16: pb.CreateCollectionRequest.allowlist_stage_end:type_name -> google.protobuf.Timestamp
+	22, // 15: pb.CreateCollectionRequest.mint_start_time:type_name -> google.protobuf.Timestamp
+	22, // 16: pb.CreateCollectionRequest.allowlist_stage_end:type_name -> google.protobuf.Timestamp
 	3,  // 17: pb.CreateCollectionResponse.collection:type_name -> pb.Collection
 	3,  // 18: pb.GetCollectionResponse.collection:type_name -> pb.Collection
-	20, // 19: pb.UpdateCollectionRequest.mint_start_time:type_name -> google.protobuf.Timestamp
-	20, // 20: pb.UpdateCollectionRequest.allowlist_stage_end:type_name -> google.protobuf.Timestamp
+	22, // 19: pb.UpdateCollectionRequest.mint_start_time:type_name -> google.protobuf.Timestamp
+	22, // 20: pb.UpdateCollectionRequest.allowlist_stage_end:type_name -> google.protobuf.Timestamp
 	1,  // 21: pb.UpdateCollectionRequest.status:type_name -> pb.CollectionStatus
 	3,  // 22: pb.UpdateCollectionResponse.collection:type_name -> pb.Collection
 	3,  // 23: pb.ListCollectionsResponse.collections:type_name -> pb.Collection
@@ -2312,15 +2444,17 @@ var file_proto_collection_proto_depIdxs = []int32{
 	14, // 28: pb.CollectionService.ListCollections:input_type -> pb.ListCollectionsRequest
 	16, // 29: pb.CollectionService.AddToAllowlist:input_type -> pb.AddToAllowlistRequest
 	18, // 30: pb.CollectionService.DeleteCollection:input_type -> pb.DeleteCollectionRequest
-	8,  // 31: pb.CollectionService.CreateCollection:output_type -> pb.CreateCollectionResponse
-	10, // 32: pb.CollectionService.GetCollection:output_type -> pb.GetCollectionResponse
-	12, // 33: pb.CollectionService.UpdateCollection:output_type -> pb.UpdateCollectionResponse
-	15, // 34: pb.CollectionService.ListCollectionsByUser:output_type -> pb.ListCollectionsResponse
-	15, // 35: pb.CollectionService.ListCollections:output_type -> pb.ListCollectionsResponse
-	17, // 36: pb.CollectionService.AddToAllowlist:output_type -> pb.AddToAllowlistResponse
-	19, // 37: pb.CollectionService.DeleteCollection:output_type -> pb.DeleteCollectionResponse
-	31, // [31:38] is the sub-list for method output_type
-	24, // [24:31] is the sub-list for method input_type
+	20, // 31: pb.CollectionService.ProcessIndexerWebhook:input_type -> pb.ProcessIndexerWebhookRequest
+	8,  // 32: pb.CollectionService.CreateCollection:output_type -> pb.CreateCollectionResponse
+	10, // 33: pb.CollectionService.GetCollection:output_type -> pb.GetCollectionResponse
+	12, // 34: pb.CollectionService.UpdateCollection:output_type -> pb.UpdateCollectionResponse
+	15, // 35: pb.CollectionService.ListCollectionsByUser:output_type -> pb.ListCollectionsResponse
+	15, // 36: pb.CollectionService.ListCollections:output_type -> pb.ListCollectionsResponse
+	17, // 37: pb.CollectionService.AddToAllowlist:output_type -> pb.AddToAllowlistResponse
+	19, // 38: pb.CollectionService.DeleteCollection:output_type -> pb.DeleteCollectionResponse
+	21, // 39: pb.CollectionService.ProcessIndexerWebhook:output_type -> pb.ProcessIndexerWebhookResponse
+	32, // [32:40] is the sub-list for method output_type
+	24, // [24:32] is the sub-list for method input_type
 	24, // [24:24] is the sub-list for extension type_name
 	24, // [24:24] is the sub-list for extension extendee
 	0,  // [0:24] is the sub-list for field type_name
@@ -2339,7 +2473,7 @@ func file_proto_collection_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_collection_proto_rawDesc), len(file_proto_collection_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
