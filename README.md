@@ -275,6 +275,15 @@ Frontend → GraphQL Gateway (HTTP/WS) → gRPC Services
 - **PostgreSQL**: ACID compliance for critical data
 - **Redis**: Fast session/cache storage
 
+## 📚 Documentation
+
+Complete documentation available in `/docs` directory:
+
+- **[project-overview-pdr.md](docs/project-overview-pdr.md)** - Project vision, PDR, roadmap, and success criteria
+- **[codebase-summary.md](docs/codebase-summary.md)** - Repository structure, file inventory, and service breakdown
+- **[code-standards.md](docs/code-standards.md)** - Go conventions, patterns, testing, and TDD workflow
+- **[system-architecture.md](docs/system-architecture.md)** - High-level architecture, database schema, auth flows, and deployment
+
 ## 📄 License
 
 MIT
@@ -282,5 +291,5 @@ MIT
 ---
 
 **Status**: 🟢 Clean skeleton ready for development
-**Last Updated**: 2025-11-15
+**Last Updated**: 2025-12-04
 **Maintainer**: Zuno Team
