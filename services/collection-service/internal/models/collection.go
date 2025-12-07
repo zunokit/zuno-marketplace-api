@@ -151,8 +151,8 @@ type CollectionMetadata struct {
 
 	// IPFS
 	MetadataURI *string `gorm:"type:text" json:"metadata_uri,omitempty"`
-	IPFSHash    *string `gorm:"size:100;index" json:"ipfs_hash,omitempty"`
-	IPFSURL     *string `gorm:"type:text" json:"ipfs_url,omitempty"`
+	IPFSHash    *string `gorm:"column:ipfs_hash;size:100;index" json:"ipfs_hash,omitempty"`
+	IPFSURL     *string `gorm:"column:ipfs_url;type:text" json:"ipfs_url,omitempty"`
 
 	// Social Media
 	DiscordURL   *string `gorm:"type:text" json:"discord_url,omitempty"`

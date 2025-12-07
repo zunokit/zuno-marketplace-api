@@ -181,7 +181,14 @@ func MapCreateRequestToModel(req *pb.CreateCollectionRequest, userID uuid.UUID) 
 		collection.ChainID = &req.ChainId
 	}
 	if req.TokenStandard != pb.TokenStandard_TOKEN_STANDARD_UNSPECIFIED {
-		ts := models.TokenStandard(req.TokenStandard.String())
+		// Convert proto enum "TOKEN_STANDARD_ERC721" -> "ERC721"
+		var ts models.TokenStandard
+		switch req.TokenStandard {
+		case pb.TokenStandard_TOKEN_STANDARD_ERC721:
+			ts = models.TokenStandardERC721
+		case pb.TokenStandard_TOKEN_STANDARD_ERC1155:
+			ts = models.TokenStandardERC1155
+		}
 		collection.TokenStandard = &ts
 	}
 	if req.BannerUrl != "" {
