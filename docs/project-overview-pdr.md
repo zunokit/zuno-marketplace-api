@@ -10,6 +10,7 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Release Date**: November 15, 2025
 - **Status**: Ready for feature development
 - **Branch**: `develop-claude`
+- **Latest Update**: Phase 01 - Sentry observability package implemented (2025-12-29)
 
 ## Key Objectives
 
@@ -78,6 +79,11 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Linting**: golangci-lint
 - **Security**: gosec, go vet
 - **Formatting**: gofmt
+
+### Observability
+- **Error Tracking**: Sentry (sentry-go v0.40.0)
+- **Privacy Scrubbing**: Automatic sensitive data filtering
+- **Performance Monitoring**: Distributed tracing with configurable sampling
 
 ## Database Schema
 
@@ -159,6 +165,12 @@ GraphQL Gateway
 
 ## Development Roadmap
 
+### Phase 0: Observability Foundation (Completed - v0.1.0)
+- ✅ Sentry error tracking integration (Phase 01)
+- ✅ Privacy scrubbing for sensitive data
+- ✅ Distributed tracing support
+- ✅ Centralized observability package
+
 ### Phase 1: Foundation (Current - v0.1.0)
 - ✅ Clean skeleton with tested schemas
 - ✅ gRPC service definitions
@@ -233,7 +245,7 @@ GraphQL Gateway
 - RabbitMQ integration not implemented
 - Redis utilization pending
 - Production Kubernetes manifests missing
-- Monitoring/observability stack absent
+- Service-level Sentry integration (shared package ready, per-service init pending)
 
 ### Documentation Gaps
 - DEVELOPMENT.md referenced but not present
@@ -259,6 +271,6 @@ GraphQL Gateway
 
 ---
 
-**Version**: 0.1.0
-**Last Updated**: 2025-12-04
+**Version**: 0.1.1
+**Last Updated**: 2025-12-29
 **Maintainer**: Zuno Development Team

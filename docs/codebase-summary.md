@@ -37,6 +37,8 @@ zuno-marketplace-api/
 │   └── graphql-gateway/       # GraphQL BFF API
 ├── shared/                    # Shared packages
 │   ├── env/                   # Environment loading
+│   ├── observability/         # Error tracking & monitoring
+│   │   └── sentry/            # Sentry integration
 │   └── proto/pb/              # Generated protobuf code
 ├── CLAUDE.md                  # Claude Code instructions
 ├── docker-compose.yml         # Local development
@@ -176,6 +178,59 @@ zuno-marketplace-api/
 - `GetBool()` - Load boolean variables
 - Required vs optional variables
 - Sensible defaults
+
+### `shared/observability/sentry/` - Sentry Error Tracking
+
+**Location**: `shared/observability/sentry/`
+**Purpose**: Centralized error tracking and observability for all microservices
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+- `sentry.go` - Core Sentry functions (Init, Flush, CaptureException, CaptureMessage, AddBreadcrumb)
+- `scrubber.go` - Privacy scrubbing logic for sensitive data
+- `scrubber_test.go` - Unit tests for scrubbing logic
+- `README.md` - Usage documentation
+
+**Features**:
+- **Automatic Error Capture**: Captures unhandled panics and errors
+- **Performance Monitoring**: Distributed tracing with configurable sampling
+- **Privacy-First**: Auto-scrubs sensitive data before sending to Sentry
+- **Production-Ready**: Breadcrumbs, context attachment, stack traces
+
+**Privacy Scrubbing Patterns**:
+- Ethereum addresses (0x + 40 hex chars)
+- CAIP-10 account IDs (chain namespace:address)
+- JWT tokens (header.payload.signature)
+- Email addresses
+- Private keys (64-char hex)
+- Sensitive HTTP headers (Authorization, Cookie, X-API-Key, etc.)
+
+**Usage Example**:
+```go
+import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+
+func main() {
+    // Initialize Sentry
+    obs.Init(
+        cfg.Sentry.DSN,
+        cfg.Sentry.Environment,
+        "auth-service",  // service name
+        "v1.0.0",        // release version
+        0.2,             // 20% trace sampling
+    )
+    defer obs.Flush(2 * time.Second)
+
+    // Capture errors
+    if err != nil {
+        obs.CaptureException(err)
+    }
+
+    // Add breadcrumbs
+    obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
+        "action": "click_button",
+    })
+}
+```
 
 ### `shared/proto/pb/` - Generated Protobuf Code
 
@@ -394,12 +449,12 @@ tests := []struct {
 ## File Statistics
 
 **Total Files**: 138 tracked
-**Go Source Files**: 39
+**Go Source Files**: 42
 - Auth Service: 8 files
 - User Service: 5 files
 - Wallet Service: 5 files
 - GraphQL Gateway: 8 files
-- Shared: 2 files
+- Shared: 5 files (env, sentry)
 - Generated: 6 files
 
 **Configuration Files**: 20+
@@ -425,6 +480,7 @@ tests := []struct {
 - PostgreSQL driver
 - JWT library
 - GraphQL gqlgen
+- Sentry error tracking (sentry-go v0.40.0)
 - Standard library (context, encoding, net, etc.)
 
 ### Runtime Dependencies
@@ -440,10 +496,10 @@ tests := []struct {
 - User Service: ~400 lines
 - Wallet Service: ~400 lines
 - GraphQL Gateway: ~600 lines
-- Shared: ~100 lines
+- Shared: ~350 lines (env, observability/sentry)
 - Generated Code: ~5000 lines (protobuf)
-- Tests: ~600 lines
-- **Total**: ~8000 lines (excluding generated code)
+- Tests: ~800 lines
+- **Total**: ~8350 lines (excluding generated code)
 
 ## Architecture Patterns Used
 
@@ -480,7 +536,7 @@ tests := []struct {
 - Redis caching
 - Complete E2E tests
 - Production Kubernetes manifests
-- Monitoring and observability
+- Enhanced observability metrics (Prometheus, Jaeger)
 
 ## Unresolved Items
 
@@ -494,5 +550,5 @@ tests := []struct {
 ---
 
 **Generated**: 2025-12-04
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-29
 **Source**: repomix output analysis

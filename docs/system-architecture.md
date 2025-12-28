@@ -613,7 +613,60 @@ Connection Max Lifetime: 5 minutes
 - Monitoring stack
 - Logging aggregation
 
-## Monitoring & Observability (Future)
+## Monitoring & Observability
+
+### Error Tracking (Sentry)
+
+**Status**: Phase 01 Implemented
+
+**Implementation**: `shared/observability/sentry/`
+
+**Features**:
+- **Automatic Error Capture**: Captures unhandled panics and exceptions
+- **Performance Monitoring**: Distributed tracing with configurable sampling rates
+- **Privacy-First**: Automatic scrubbing of sensitive data before transmission
+- **Breadcrumbs**: Context tracking for user actions leading to errors
+- **Stack Traces**: Full stack trace attachment for debugging
+
+**Privacy Scrubbing Patterns**:
+```
+- Ethereum addresses: 0x[a-fA-F0-9]{40} → [FILTERED:ETH_ADDRESS]
+- CAIP-10 IDs: eip155:1:0x... → [FILTERED:CAIP10]
+- JWT tokens: eyJ... → [FILTERED:JWT]
+- Email: user@domain.com → [FILTERED:EMAIL]
+- Private keys: 64-char hex → [FILTERED:PRIVATE_KEY]
+- Sensitive headers: Authorization, Cookie, X-API-Key → [FILTERED]
+```
+
+**Integration Pattern** (per service):
+```go
+import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+
+func main() {
+    // Initialize Sentry
+    obs.Init(
+        cfg.Sentry.DSN,
+        cfg.Sentry.Environment,
+        "auth-service",     // service name
+        "v1.0.0",          // release version
+        0.2,               // 20% trace sampling
+    )
+    defer obs.Flush(2 * time.Second)
+
+    // Capture errors
+    if err != nil {
+        obs.CaptureException(err)
+    }
+}
+```
+
+**Configuration Requirements** (per service):
+```bash
+SENTRY_DSN=https://...@sentry.io/...
+SENTRY_ENVIRONMENT=production|staging|development
+SENTRY_RELEASE=v1.0.0
+SENTRY_TRACES_SAMPLE_RATE=0.2
+```
 
 ### Health Checks
 
@@ -623,7 +676,6 @@ Connection Max Lifetime: 5 minutes
 
 **Missing**:
 - Detailed metrics (Prometheus)
-- Distributed tracing (Jaeger)
 - Log aggregation (ELK/Loki)
 - Alert rules (AlertManager)
 
@@ -636,6 +688,7 @@ Connection Max Lifetime: 5 minutes
 - Login success/failure ratio
 - Cache hit rate
 - Queue depth
+- Error rate by service
 
 ### Alert Scenarios
 
@@ -644,6 +697,7 @@ Connection Max Lifetime: 5 minutes
 - High login failure rate
 - Token validation errors
 - gRPC service timeouts
+- Spike in error rate
 
 ## Security Architecture
 
@@ -699,6 +753,6 @@ Connection Max Lifetime: 5 minutes
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-12-04
+**Version**: 1.1
+**Last Updated**: 2025-12-29
 **Diagram Format**: ASCII (future: Mermaid diagrams)

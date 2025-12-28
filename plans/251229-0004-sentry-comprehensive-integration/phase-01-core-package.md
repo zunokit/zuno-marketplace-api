@@ -8,7 +8,8 @@
 
 Create shared observability package with Sentry initialization, event scrubbing, and core utilities. This is foundation for all other phases.
 
-**Status**: Pending
+**Status**: ✅ COMPLETED (2025-12-29) - All tasks implemented, security fixes applied, tests passing (10/10), coverage 71.8%
+**Review**: `plans/reports/code-reviewer-251229-0041-sentry-phase01-security-fixes.md`
 
 ---
 
@@ -385,22 +386,22 @@ go get github.com/getsentry/sentry-go@latest
 
 ## Todo List
 
-- [ ] Create `shared/observability/sentry/` directory
-- [ ] Implement `sentry.go` with Init, Flush, Capture functions
-- [ ] Implement `scrubber.go` with regex patterns and scrubbing logic
-- [ ] Create `README.md` with usage documentation
-- [ ] Update `go.mod` with sentry-go dependency
-- [ ] Write unit tests for scrubbing logic
-- [ ] Verify compilation with `go build ./...`
+- [x] Create `shared/observability/sentry/` directory
+- [x] Implement `sentry.go` with Init, Flush, Capture functions
+- [x] Implement `scrubber.go` with regex patterns and scrubbing logic
+- [x] Create `README.md` with usage documentation
+- [x] Update `go.mod` with sentry-go dependency
+- [x] Write unit tests for scrubbing logic
+- [x] Verify compilation with `go build ./...`
 
 ---
 
 ## Success Criteria
 
-- [ ] Package compiles without errors
-- [ ] Init() accepts all parameters and configures Sentry
-- [ ] Scrubber filters all test patterns (ETH addr, JWT, email)
-- [ ] README documents usage clearly
+- [x] Package compiles without errors
+- [x] Init() accepts all parameters and configures Sentry
+- [x] Scrubber filters all test patterns (ETH addr, JWT, email, CAIP-10, private keys)
+- [x] README documents usage clearly
 
 ---
 
