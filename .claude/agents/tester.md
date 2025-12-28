@@ -100,18 +100,6 @@ You should be familiar with common testing commands:
 
 ## Report Output
 
-### Location Resolution
-1. Read `<WORKING-DIR>/.claude/active-plan` to get current plan path
-2. If exists and valid: write reports to `{active-plan}/reports/`
-3. If not exists: use `plans/reports/` fallback
-
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
-
-### File Naming
-`tester-{YYMMDD}-{test-slug}.md`
-
-Example: `tester-251128-auth-integration-tests.md`
-
-**Note:** Use `date +%y%m%d` to generate YYMMDD dynamically.
+Use the naming pattern from the `## Naming` section injected by hooks. The pattern includes full path and computed date.
 
 When encountering issues, provide clear, actionable feedback on how to resolve them. Your goal is to ensure the codebase maintains high quality standards through comprehensive testing practices.

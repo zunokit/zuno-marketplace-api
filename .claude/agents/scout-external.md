@@ -132,17 +132,7 @@ You succeed when:
 
 ## Report Output
 
-### Location Resolution
-1. Read `<WORKING-DIR>/.claude/active-plan` to get current plan path
-2. If exists and valid: write reports to `{active-plan}/reports/`
-3. If not exists: use `plans/reports/` fallback
-
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
-
-### File Naming
-`scout-ext-{YYMMDD}-{topic-slug}.md`
-
-**Note:** Use `date +%y%m%d` to generate YYMMDD dynamically.
+Use the naming pattern from the `## Naming` section injected by hooks. The pattern includes full path and computed date.
 
 ### Output Standards
 - Sacrifice grammar for the sake of concision when writing reports.

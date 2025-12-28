@@ -3,67 +3,94 @@
 ## Directory Structure
 
 ### Plan Location
-Save plans in `./plans` directory with timestamp and descriptive name.
+Use `Plan dir:` from `## Naming` section injected by hooks. This is the full computed path.
 
-**Format:** `plans/YYYYMMDD-HHmm-your-plan-name/`
-
-**Example:** `plans/20251101-1505-authentication-and-profile-implementation/`
+**Example:** `plans/251101-1505-authentication/` or `ai_docs/feature/MRR-1453/`
 
 ### File Organization
 
 ```
-plans/
-├── 20251101-1505-authentication-and-profile-implementation/
-    ├── research/
-    │   ├── researcher-XX-report.md
-    │   └── ...
-│   ├── reports/
-│   │   ├── scout-report.md
-│   │   ├── researcher-report.md
-│   │   └── ...
-│   ├── plan.md                                # Overview access point
-│   ├── phase-01-setup-environment.md          # Setup environment
-│   ├── phase-02-implement-database.md         # Database models
-│   ├── phase-03-implement-api-endpoints.md    # API endpoints
-│   ├── phase-04-implement-ui-components.md    # UI components
-│   ├── phase-05-implement-authentication.md   # Auth & authorization
-│   ├── phase-06-implement-profile.md          # Profile page
-│   └── phase-07-write-tests.md                # Tests
-└── ...
+{plan-dir}/                                    # From `Plan dir:` in ## Naming
+├── research/
+│   ├── researcher-XX-report.md
+│   └── ...
+├── reports/
+│   ├── scout-report.md
+│   ├── researcher-report.md
+│   └── ...
+├── plan.md                                    # Overview access point
+├── phase-01-setup-environment.md              # Setup environment
+├── phase-02-implement-database.md             # Database models
+├── phase-03-implement-api-endpoints.md        # API endpoints
+├── phase-04-implement-ui-components.md        # UI components
+├── phase-05-implement-authentication.md       # Auth & authorization
+├── phase-06-implement-profile.md              # Profile page
+└── phase-07-write-tests.md                    # Tests
 ```
 
 ### Active Plan State Tracking
 
-**State File:** `<WORKING-DIR>/.claude/active-plan`
-
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
-
-- Contains path to current working plan (e.g., `plans/20251128-1654-feature-name`)
-- All agents read this file to determine report output location
-- Commands check this file before creating new plan folders
+Check the `## Plan Context` section injected by hooks:
+- **"Plan: {path}"** = Active plan - use for reports
+- **"Suggested: {path}"** = Branch-matched, hint only - do NOT auto-use
+- **"Plan: none"** = No active plan
 
 **Pre-Creation Check:**
+1. If "Plan:" shows a path → ask "Continue with existing plan? [Y/n]"
+2. If "Suggested:" shows a path → inform user (hint only, do NOT auto-use)
+3. If "Plan: none" → create new plan using naming from `## Naming` section
+
+**After Creating Plan:**
 ```bash
-# Before creating any plan folder:
-if [ -f "<WORKING-DIR>/.claude/active-plan" ]; then
-  ACTIVE=$(cat <WORKING-DIR>/.claude/active-plan)
-  if [ -d "$ACTIVE" ]; then
-    # Ask user: "Continue with existing plan? [Y/n]"
-    # Y → reuse $ACTIVE
-    # n → create new, update active-plan
-  fi
-fi
+# Update session state so subagents get the new plan context:
+node .claude/scripts/set-active-plan.cjs {plan-dir}
 ```
 
 **Report Output Rules:**
-1. Read `<WORKING-DIR>/.claude/active-plan` to get plan path
-2. Write reports to `{plan-path}/reports/`
-3. Use naming: `{agent}-{YYMMDD}-{slug}.md`
-4. Fallback: `plans/reports/` if no active-plan exists
+1. Use `Report:` and `Plan dir:` from `## Naming` section
+2. Active plans use plan-specific reports path
+3. Suggested plans use default reports path to prevent old plan pollution
 
 ## File Structure
 
 ### Overview Plan (plan.md)
+
+**IMPORTANT:** All plan.md files MUST include YAML frontmatter. See `output-standards.md` for schema.
+
+**Example plan.md structure:**
+```markdown
+---
+title: "Feature Implementation Plan"
+description: "Add user authentication with OAuth2 support"
+status: pending
+priority: P1
+effort: 8h
+issue: 123
+branch: kai/feat/oauth-auth
+tags: [auth, backend, security]
+created: 2025-12-16
+---
+
+# Feature Implementation Plan
+
+## Overview
+
+Brief description of what this plan accomplishes.
+
+## Phases
+
+| # | Phase | Status | Effort | Link |
+|---|-------|--------|--------|------|
+| 1 | Setup | Pending | 2h | [phase-01](./phase-01-setup.md) |
+| 2 | Implementation | Pending | 4h | [phase-02](./phase-02-impl.md) |
+| 3 | Testing | Pending | 2h | [phase-03](./phase-03-test.md) |
+
+## Dependencies
+
+- List key dependencies here
+```
+
+**Guidelines:**
 - Keep generic and under 80 lines
 - List each phase with status/progress
 - Link to detailed phase files

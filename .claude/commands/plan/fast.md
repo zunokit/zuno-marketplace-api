@@ -11,27 +11,17 @@ Activate `planning` skill.
 $ARGUMENTS
 </task>
 
-## Pre-Creation Check
+## Pre-Creation Check (Active vs Suggested Plan)
 
-Before creating plan folder:
-
-1. **Check for active plan:**
-   - If `<WORKING-DIR>/.claude/active-plan` exists AND points to valid directory:
-     - Ask user: "Active plan found: {path}. Continue with this? [Y/n]"
-     - If Y (default): Use existing path, skip folder creation
-     - If n: Proceed to create new plan
-   - If not exists or invalid: Proceed to create new
-
-2. **Create plan folder** (only if creating new):
-   - Generate: `plans/YYYYMMDD-HHmm-plan-name`
-   - Write path to `<WORKING-DIR>/.claude/active-plan`
-
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
+Check the `## Plan Context` section in the injected context:
+- If "Plan:" shows a path → Active plan exists. Ask user: "Continue with this? [Y/n]"
+- If "Suggested:" shows a path → Branch-matched hint only. Ask if they want to activate or create new.
+- If "Plan: none" → Create new plan using naming from `## Naming` section.
 
 ## Workflow
 Use `planner` subagent to:
-1. If creating new plan: Create directory `plans/YYYYMMDD-HHmm-plan-name` and update `<WORKING-DIR>/.claude/active-plan`.
-   If reusing existing: Use the active plan path.
+1. If creating new: Create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`
+   If reusing: Use the active plan path from Plan Context.
    Make sure you pass the directory path to every subagent during the process.
 2. Follow strictly to the "Plan Creation & Organization" rules of `planning` skill.
 3. Analyze the codebase by reading `codebase-summary.md`, `code-standards.md`, `system-architecture.md` and `project-overview-pdr.md` file.
@@ -40,21 +30,33 @@ Use `planner` subagent to:
 
 ## Output Requirements
 
-**Plan Directory Structure**
+**Plan Directory Structure** (use `Plan dir:` from `## Naming` section)
 ```
-plans/
-└── YYYYMMDD-HHmm-plan-name/
-    ├── reports/
-    │   ├── XX-report.md
-    │   └── ...
-    ├── plan.md
-    ├── phase-XX-phase-name-here.md
-    └── ...
+{plan-dir}/
+├── reports/
+│   ├── XX-report.md
+│   └── ...
+├── plan.md
+├── phase-XX-phase-name-here.md
+└── ...
 ```
 
 **Plan File Specification**
-- Save the overview access point at `plans/YYYYMMDD-HHmm-plan-name/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
-- For each phase, create `plans/YYYYMMDD-HHmm-plan-name/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
+- Every `plan.md` MUST start with YAML frontmatter:
+  ```yaml
+  ---
+  title: "{Brief title}"
+  description: "{One sentence for card preview}"
+  status: pending
+  priority: P2
+  effort: {sum of phases, e.g., 4h}
+  branch: {current git branch}
+  tags: [relevant, tags]
+  created: {YYYY-MM-DD}
+  ---
+  ```
+- Save the overview access point at `{plan-dir}/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
+- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
 
 ## Important Notes
 - **IMPORTANT:** Ensure token consumption efficiency while maintaining high quality.

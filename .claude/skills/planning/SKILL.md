@@ -61,7 +61,7 @@ Load: `references/output-standards.md`
 **Plan Directory Structure**
 ```
 plans/
-└── YYYYMMDD-HHmm-plan-name/
+└── {date}-plan-name/
     ├── research/
     │   ├── researcher-XX-report.md
     │   └── ...
@@ -78,36 +78,30 @@ plans/
 
 ## Active Plan State
 
-Prevents version proliferation by tracking current working plan.
+Prevents version proliferation by tracking current working plan via session state.
 
-### State File
-`<WORKING-DIR>/.claude/active-plan` - Single line containing path to current plan folder.
+### Active vs Suggested Plans
 
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
-
-**Example content:**
-```
-plans/20251128-1654-fix-agent-coordination
-```
+Check the `## Plan Context` section injected by hooks:
+- **"Plan: {path}"** = Active plan, explicitly set via `set-active-plan.cjs` - use for reports
+- **"Suggested: {path}"** = Branch-matched, hint only - do NOT auto-use
+- **"Plan: none"** = No active plan
 
 ### Rules
 
-1. **Check first**: Before creating plan, check if `<WORKING-DIR>/.claude/active-plan` exists
-2. **Validate path**: If exists, verify the path is a valid directory
-3. **Prompt user**: If valid, ask "Continue with existing plan? [Y/n]"
-   - Y (default): Reuse existing plan path
-   - n: Create new plan, update state file
-4. **Set on create**: When creating new plan, write path to `<WORKING-DIR>/.claude/active-plan`
-5. **Reset**: User can delete file manually (`rm .claude/active-plan`) to start fresh
+1. **If "Plan:" shows a path**: Ask "Continue with existing plan? [Y/n]"
+2. **If "Suggested:" shows a path**: Inform user, ask if they want to activate or create new
+3. **If "Plan: none"**: Create new plan using naming from `## Naming` section
+4. **Update on create**: Run `node .claude/scripts/set-active-plan.cjs {plan-dir}`
 
 ### Report Output Location
 
 All agents writing reports MUST:
-1. Read `<WORKING-DIR>/.claude/active-plan` to get current plan path
-2. Write reports to `{plan-path}/reports/`
-3. Use naming: `{agent}-{YYMMDD}-{slug}.md`
+1. Check `## Naming` section injected by hooks for the computed naming pattern
+2. Active plans use plan-specific reports path
+3. Suggested plans use default reports path (not plan folder)
 
-**Fallback:** If no active-plan file exists, use `plans/reports/`
+**Important:** Suggested plans do NOT get plan-specific reports - this prevents pollution of old plan folders.
 
 ## Quality Standards
 
