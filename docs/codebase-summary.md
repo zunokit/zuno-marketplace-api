@@ -3,10 +3,10 @@
 ## Repository Overview
 
 **Project**: Zuno NFT Marketplace API
-**Repository Size**: 138 tracked files
+**Repository Size**: 143 tracked files
 **Primary Language**: Go 1.21+
 **Architecture**: Microservices (gRPC) + GraphQL Gateway BFF
-**Infrastructure**: Docker Compose + Kubernetes/Tilt + Serverless (Supabase/Upstash/CloudAMQP) - Phase 3 Complete
+**Infrastructure**: Docker Compose + Kubernetes/Tilt + Serverless (Supabase/Upstash/CloudAMQP) - Phase 4 Complete
 
 ## Directory Structure
 
@@ -23,6 +23,8 @@ zuno-marketplace-api/
 ├── db/                        # Database migrations
 │   └── migrations/            # SQL migration files
 ├── docs/                      # Project documentation
+│   ├── serverless-development.md # Serverless setup guide (Phase 4)
+│   └── troubleshooting.md     # Troubleshooting guide (Phase 4)
 ├── infra/                     # Infrastructure configurations
 │   ├── development/
 │   │   ├── build/             # Build scripts
@@ -39,9 +41,13 @@ zuno-marketplace-api/
 │   ├── env/                   # Environment loading
 │   └── proto/pb/              # Generated protobuf code
 ├── CLAUDE.md                  # Claude Code instructions
+├── DEVELOPMENT.md             # Development guide (Phase 4)
 ├── docker-compose.yml         # Local development
 ├── go.mod                     # Go dependencies
 ├── Makefile                   # Development commands
+├── scripts/
+│   ├── health-check.sh        # Infrastructure health check (Phase 4)
+│   └── setup-env.sh           # Environment setup (Phase 2)
 ├── Tiltfile                   # Kubernetes hot reload
 └── README.md                  # Project documentation
 ```
@@ -426,8 +432,11 @@ tests := []struct {
 - Dockerfiles
 - Docker Compose
 
-**Documentation**: 10+ files
-- README.md
+**Documentation**: 15+ files
+- README.md (updated with serverless section in Phase 4)
+- DEVELOPMENT.md (new in Phase 4)
+- docs/serverless-development.md (new in Phase 4)
+- docs/troubleshooting.md (new in Phase 4)
 - QUICKSTART.md
 - TILT.md
 - Service READMEs
@@ -500,7 +509,6 @@ tests := []struct {
 - Complete E2E tests
 - Production Kubernetes manifests
 - Monitoring and observability
-- Serverless health check scripts
 
 ## Unresolved Items
 
@@ -514,6 +522,6 @@ tests := []struct {
 ---
 
 **Generated**: 2025-12-04
-**Last Updated**: 2025-12-29
+**Last Updated**: 2025-12-30
 **Source**: repomix output analysis
-**Phase 3 Complete**: Application Configuration (INFRA_MODE support, URL-based config, comprehensive tests)
+**Phase 4 Complete**: Documentation & Scripts (serverless guide, troubleshooting, health check script, DEVELOPMENT.md)

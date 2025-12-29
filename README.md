@@ -122,6 +122,62 @@ make ci
 
 **📖 For detailed development guide, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 
+---
+
+## 🌩️ Serverless Development (NEW - Recommended)
+
+**No Docker required!** Use free-tier cloud services for development.
+
+### Benefits
+- ✅ Zero local resource usage
+- ✅ $0/month (free tiers)
+- ✅ Quick 10-minute setup
+
+### Quick Setup
+
+```bash
+# 1. Create free accounts
+#    - Supabase (PostgreSQL): https://supabase.com
+#    - Upstash (Redis): https://upstash.com
+#    - CloudAMQP (RabbitMQ): https://www.cloudamqp.com
+
+# 2. Configure environment
+./scripts/setup-env.sh  # Select option 1 (serverless)
+
+# 3. Add connection strings to .env
+#    DATABASE_URL=postgresql://...
+#    REDIS_URL=redis://...
+#    CLOUDAMQP_URL=amqp://...
+
+# 4. Verify setup
+./scripts/health-check.sh
+
+# 5. Run services (no Docker needed!)
+go run ./services/auth-service/cmd/main.go
+```
+
+**Full guide:** [Serverless Development Guide](./docs/serverless-development.md)
+
+### Switching Modes
+
+```bash
+# Docker mode (current setup)
+INFRA_MODE=docker
+docker compose up -d
+
+# Serverless mode (new)
+INFRA_MODE=serverless
+# No Docker needed!
+```
+
+---
+
+## 🐳 Docker Development (Current)
+
+_Existing Docker setup remains fully functional_
+
+See "Quick Start" section above for Docker instructions.
+
 ### Environment Variables
 
 The project supports two infrastructure modes:
