@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
 )
@@ -16,14 +18,35 @@ func SentryHTTP(next http.Handler) http.Handler {
 			return
 		}
 
-		// Start transaction
-		transaction := sentry.StartTransaction(
-			r.Context(),
-			fmt.Sprintf("%s %s", r.Method, r.URL.Path),
-			sentry.WithTransactionName(r.URL.Path),
-			sentry.WithOpName("http.server"),
-			sentry.WithDescription(fmt.Sprintf("%s request to %s", r.Method, r.URL.Path)),
-		)
+		// Extract sentry-trace header before starting transaction for distributed tracing
+		var traceParentOption sentry.SpanOption
+		if traceHeader := r.Header.Get("sentry-trace"); traceHeader != "" {
+			traceParentOption = continueFromTraceHeaderHTTP(traceHeader)
+		}
+
+		// Start transaction with trace continuation option if available
+		var transaction *sentry.Span
+		if traceHeader := r.Header.Get("sentry-trace"); traceHeader != "" {
+			// Create transaction with parent trace context
+			transaction = sentry.StartTransaction(
+				r.Context(),
+				fmt.Sprintf("%s %s", r.Method, r.URL.Path),
+				sentry.WithTransactionName(r.URL.Path),
+				sentry.WithOpName("http.server"),
+				sentry.WithDescription(fmt.Sprintf("%s request to %s", r.Method, r.URL.Path)),
+			)
+			// Apply trace continuation
+			traceParentOption(transaction)
+		} else {
+			// No parent trace, start new transaction
+			transaction = sentry.StartTransaction(
+				r.Context(),
+				fmt.Sprintf("%s %s", r.Method, r.URL.Path),
+				sentry.WithTransactionName(r.URL.Path),
+				sentry.WithOpName("http.server"),
+				sentry.WithDescription(fmt.Sprintf("%s request to %s", r.Method, r.URL.Path)),
+			)
+		}
 		defer transaction.Finish()
 
 		// Add HTTP context data
@@ -34,11 +57,6 @@ func SentryHTTP(next http.Handler) http.Handler {
 		transaction.SetData("http.path", r.URL.Path)
 		transaction.SetData("http.query", r.URL.RawQuery)
 		transaction.SetData("http.remote_addr", r.RemoteAddr)
-
-		// Extract sentry-trace from incoming request for distributed tracing
-		if traceHeader := r.Header.Get("sentry-trace"); traceHeader != "" {
-			transaction.SetData("sentry.trace", traceHeader)
-		}
 
 		// Continue with trace context
 		r = r.WithContext(transaction.Context())
@@ -59,6 +77,46 @@ func SentryHTTP(next http.Handler) http.Handler {
 			transaction.Status = sentry.SpanStatusOK
 		}
 	})
+}
+
+// continueFromTraceHeaderHTTP creates a span option from sentry-trace header for HTTP
+// Header format: {trace_id}-{parent_span_id}-{sampled}
+func continueFromTraceHeaderHTTP(header string) sentry.SpanOption {
+	return func(span *sentry.Span) {
+		parts := strings.Split(header, "-")
+		if len(parts) != 3 {
+			return
+		}
+
+		traceIDStr := parts[0]
+		parentSpanIDStr := parts[1]
+		// parts[2] is sampled flag
+
+		// Parse trace ID (32 hex chars -> 16 bytes)
+		traceIDBytes, err := hex.DecodeString(traceIDStr)
+		if err != nil || len(traceIDBytes) != 16 {
+			return
+		}
+
+		// Parse parent span ID (16 hex chars -> 8 bytes)
+		parentSpanIDBytes, err := hex.DecodeString(parentSpanIDStr)
+		if err != nil || len(parentSpanIDBytes) != 8 {
+			return
+		}
+
+		var traceID sentry.TraceID
+		copy(traceID[:], traceIDBytes)
+
+		var parentSpanID sentry.SpanID
+		copy(parentSpanID[:], parentSpanIDBytes)
+
+		// Set the trace context to continue the parent trace
+		span.TraceID = traceID
+		span.ParentSpanID = parentSpanID
+
+		// Mark this as continuing from a trace header
+		span.SetData("sentry.trace_source", "header")
+	}
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code

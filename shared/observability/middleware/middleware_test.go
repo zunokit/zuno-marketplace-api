@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/getsentry/sentry-go"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 // TestSentryHTTP tests the HTTP middleware
@@ -241,4 +243,158 @@ type mockServerStream struct {
 
 func (m *mockServerStream) Context() context.Context {
 	return m.ctx
+}
+
+// TestHTTPTracePropagation tests that HTTP middleware continues trace from header
+func TestHTTPTracePropagation(t *testing.T) {
+	_ = sentry.Init(sentry.ClientOptions{
+		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
+		TracesSampleRate: 1.0,
+	})
+	defer sentry.Flush(1)
+
+	// Create a parent span to get a valid trace ID
+	parentCtx := context.Background()
+	parentSpan := sentry.StartSpan(parentCtx, "parent")
+	defer parentSpan.Finish()
+
+	// Generate trace header from parent span
+	traceHeader := formatTraceHeader(parentSpan)
+
+	// Create test handler that validates trace continuation
+	var capturedTraceID sentry.TraceID
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the transaction from context
+		span := sentry.SpanFromContext(r.Context())
+		if span != nil {
+			capturedTraceID = span.TraceID
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Wrap with Sentry middleware
+	mw := SentryHTTP(handler)
+
+	// Create request with sentry-trace header
+	req := httptest.NewRequest("GET", "/api/test", nil)
+	req.Header.Set("sentry-trace", traceHeader)
+	w := httptest.NewRecorder()
+
+	// Execute
+	mw.ServeHTTP(w, req)
+
+	// Verify trace ID matches parent (trace propagation works)
+	if capturedTraceID.String() == "" {
+		t.Error("expected non-empty trace ID in child span")
+	}
+
+	// The child should have the same trace ID as the parent
+	if capturedTraceID != parentSpan.TraceID {
+		t.Errorf("trace propagation failed: expected trace ID %s, got %s",
+			parentSpan.TraceID, capturedTraceID)
+	}
+}
+
+// TestGRPCTracePropagation tests that gRPC server interceptor continues trace from header
+func TestGRPCTracePropagation(t *testing.T) {
+	_ = sentry.Init(sentry.ClientOptions{
+		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
+		TracesSampleRate: 1.0,
+	})
+	defer sentry.Flush(1)
+
+	// Create a parent span to get a valid trace ID
+	parentCtx := context.Background()
+	parentSpan := sentry.StartSpan(parentCtx, "parent")
+	defer parentSpan.Finish()
+
+	// Generate trace header from parent span
+	traceHeader := formatTraceHeader(parentSpan)
+
+	var capturedTraceID sentry.TraceID
+	var capturedParentSpanID sentry.SpanID
+
+	interceptor := UnaryServerInterceptor()
+	unaryHandler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		// Get the span from context
+		span := sentry.SpanFromContext(ctx)
+		if span != nil {
+			capturedTraceID = span.TraceID
+			capturedParentSpanID = span.ParentSpanID
+		}
+		return "response", nil
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/test.Service/Method",
+		Server:     "test-server",
+	}
+
+	// Create context with sentry-trace header in metadata
+	md := metadata.Pairs("sentry-trace", traceHeader)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// Execute interceptor
+	resp, err := interceptor(ctx, "request", info, unaryHandler)
+
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if resp != "response" {
+		t.Errorf("expected response 'response', got %v", resp)
+	}
+
+	// Verify trace ID matches parent (trace propagation works)
+	if capturedTraceID.String() == "" {
+		t.Error("expected non-empty trace ID in child span")
+	}
+
+	if capturedTraceID != parentSpan.TraceID {
+		t.Errorf("trace propagation failed: expected trace ID %s, got %s",
+			parentSpan.TraceID, capturedTraceID)
+	}
+
+	// Verify parent span ID matches
+	if capturedParentSpanID != parentSpan.SpanID {
+		t.Errorf("parent span ID mismatch: expected %s, got %s",
+			parentSpan.SpanID, capturedParentSpanID)
+	}
+}
+
+// TestTraceHeaderFormat tests that trace header is correctly formatted
+func TestTraceHeaderFormat(t *testing.T) {
+	_ = sentry.Init(sentry.ClientOptions{
+		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
+		TracesSampleRate: 1.0,
+	})
+	defer sentry.Flush(1)
+
+	ctx := context.Background()
+	span := sentry.StartSpan(ctx, "test")
+	defer span.Finish()
+
+	header := formatTraceHeader(span)
+
+	// Header format: {trace_id}-{span_id}-{sampled}
+	// Example: 12345678901234567890123456789012-1234567890123456-1
+	parts := strings.Split(header, "-")
+	if len(parts) != 3 {
+		t.Errorf("expected 3 parts in trace header, got %d: %s", len(parts), header)
+	}
+
+	// Check trace ID (32 hex chars)
+	if len(parts[0]) != 32 {
+		t.Errorf("expected trace ID length 32, got %d: %s", len(parts[0]), parts[0])
+	}
+
+	// Check span ID (16 hex chars)
+	if len(parts[1]) != 16 {
+		t.Errorf("expected span ID length 16, got %d: %s", len(parts[1]), parts[1])
+	}
+
+	// Check sampled flag
+	if parts[2] != "1" {
+		t.Errorf("expected sampled flag '1', got %s", parts[2])
+	}
 }

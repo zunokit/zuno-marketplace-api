@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -118,10 +120,44 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 }
 
 // continueFromTraceHeader creates a span option from sentry-trace header
+// Header format: {trace_id}-{parent_span_id}-{sampled}
+// Example: 12345678901234567890123456789012-1234567890123456-1
 func continueFromTraceHeader(header string) sentry.SpanOption {
-	// Parse sentry-trace header format: {trace_id}-{span_id}-{sampled}
-	// This is a simplified version - Sentry SDK handles full parsing
-	return sentry.WithTransactionSource("custom")
+	return func(span *sentry.Span) {
+		parts := strings.Split(header, "-")
+		if len(parts) != 3 {
+			return
+		}
+
+		traceIDStr := parts[0]
+		parentSpanIDStr := parts[1]
+		// parts[2] is sampled flag, currently not used
+
+		// Parse trace ID (32 hex chars -> 16 bytes)
+		traceIDBytes, err := hex.DecodeString(traceIDStr)
+		if err != nil || len(traceIDBytes) != 16 {
+			return
+		}
+
+		// Parse parent span ID (16 hex chars -> 8 bytes)
+		parentSpanIDBytes, err := hex.DecodeString(parentSpanIDStr)
+		if err != nil || len(parentSpanIDBytes) != 8 {
+			return
+		}
+
+		var traceID sentry.TraceID
+		copy(traceID[:], traceIDBytes)
+
+		var parentSpanID sentry.SpanID
+		copy(parentSpanID[:], parentSpanIDBytes)
+
+		// Set the trace context to continue the parent trace
+		span.TraceID = traceID
+		span.ParentSpanID = parentSpanID
+
+		// Mark this as continuing from a trace header
+		span.SetData("sentry.trace_source", "header")
+	}
 }
 
 // formatTraceHeader formats span data as sentry-trace header
