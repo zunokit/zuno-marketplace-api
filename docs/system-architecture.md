@@ -580,7 +580,7 @@ Connection Max Lifetime: 5 minutes
 **Startup**: `docker compose up -d`
 **Logs**: `docker compose logs -f`
 
-### Development (Serverless - NEW)
+### Development (Serverless - Phase 2 Complete)
 
 **Infrastructure Providers**:
 - Supabase (PostgreSQL) - Free tier
@@ -588,6 +588,7 @@ Connection Max Lifetime: 5 minutes
 - CloudAMQP (RabbitMQ) - Little Lemur free tier
 
 **Configuration**: `.env` with serverless connection strings
+**Setup**: Run `./scripts/setup-env.sh` and select "serverless" mode
 **Startup**: No infrastructure startup required - just run services
 **Benefits**:
 - Zero local resource usage
@@ -595,20 +596,25 @@ Connection Max Lifetime: 5 minutes
 - Shared dev environment
 - Quick setup (10 minutes)
 
-**Environment Variables** (see `.env.example`):
+**Environment Variables** (see `.env.development.example`):
 ```bash
+# Infrastructure mode
+INFRA_MODE=serverless
+
 # Supabase (PostgreSQL)
-SUPABASE_DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
 
 # Upstash (Redis)
-UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
-UPSTASH_REDIS_REST_TOKEN=AXxX...xXxX
+REDIS_URL=redis://default:[PASSWORD]@xxx.upstash.io:6379
 
 # CloudAMQP (RabbitMQ)
 CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
 ```
+
+**Quick Setup Guides**:
+- **Supabase**: https://supabase.com/docs/guides/getting-started
+- **Upstash**: https://upstash.com/docs/redis/quickstart/redis
+- **CloudAMQP**: https://www.cloudamqp.com/docs/how-to-connection-url.html
 
 ### Development (Kubernetes + Tilt)
 
@@ -643,12 +649,22 @@ CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
 - Monitoring stack
 - Logging aggregation
 
-### Infrastructure Mode Switching
+### Infrastructure Mode Switching (Phase 2 Complete)
 
 The application supports switching between Docker and Serverless modes via environment configuration:
 
+**Interactive Setup**:
+```bash
+./scripts/setup-env.sh  # Guides you through mode selection
+```
+
+**Manual Mode Selection**:
+
 **Docker Mode** (default):
 ```bash
+# Copy template
+cp .env.production.example .env
+
 # Uses local infrastructure
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
@@ -662,9 +678,12 @@ RABBITMQ_PORT=5672
 
 **Serverless Mode**:
 ```bash
+# Copy template
+cp .env.development.example .env
+
 # Uses cloud infrastructure
-SUPABASE_DATABASE_URL=postgresql://...
-UPSTASH_REDIS_REST_URL=https://...
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
 CLOUDAMQP_URL=amqp://...
 
 # No Docker required
@@ -756,6 +775,7 @@ CLOUDAMQP_URL=amqp://...
 
 ---
 
-**Version**: 1.1
+**Version**: 1.2
 **Last Updated**: 2025-12-29
 **Diagram Format**: ASCII (future: Mermaid diagrams)
+**Phase 2 Complete**: Environment Configuration (Serverless + Docker modes)

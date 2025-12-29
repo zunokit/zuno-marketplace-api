@@ -1,6 +1,9 @@
 tmp
 .env
 .envrc
+.env.development
+.env.production
+.env.local
 bin/
 
 # Logs

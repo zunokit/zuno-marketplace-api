@@ -124,30 +124,74 @@ make ci
 
 ### Environment Variables
 
-Copy `.env.example` to `.env`:
+The project supports two infrastructure modes:
 
+**Option 1: Docker (default)**
+- Uses local Docker containers for PostgreSQL, Redis, and RabbitMQ
+- Requires Docker Desktop running
+- More resource intensive
+
+**Option 2: Serverless**
+- Uses external cloud services (Supabase, Upstash, CloudAMQP)
+- No Docker required for infrastructure services
+- Free tier accounts available
+
+#### Quick Setup
+
+Run the interactive setup script:
+
+```bash
+./scripts/setup-env.sh
+```
+
+This will guide you through selecting your infrastructure mode and create the appropriate `.env` file.
+
+#### Manual Setup
+
+For Docker mode, copy `.env.production.example`:
+```bash
+cp .env.production.example .env
+docker compose up -d
+```
+
+For Serverless mode, copy `.env.development.example`:
+```bash
+cp .env.development.example .env
+# Then edit .env with your cloud service connection strings
+```
+
+#### Environment Variables Reference
+
+**Docker Mode (.env.production.example):**
 ```env
-# Database
-POSTGRES_HOST=localhost
+INFRA_MODE=docker
+POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DATABASE=nft_marketplace
-
-# Redis
-REDIS_HOST=localhost
+REDIS_HOST=redis
 REDIS_PORT=6379
-
-# RabbitMQ
-RABBITMQ_HOST=localhost
+RABBITMQ_HOST=rabbitmq
 RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-RABBITMQ_EXCHANGE=nft_events
+```
 
-# JWT Secrets (Change in production!)
+**Serverless Mode (.env.development.example):**
+```env
+INFRA_MODE=serverless
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.supabase.co:5432/postgres
+REDIS_URL=redis://default:[PASSWORD]@xxx.upstash.io:6379
+CLOUDAMQP_URL=amqp://user:password@host/vhost
+```
+
+**Common Variables:**
+```env
 JWT_SECRET=your-256-bit-secret-key-here
 REFRESH_SECRET=your-256-bit-refresh-secret-key-here
+AUTH_GRPC_PORT=50051
+USER_GRPC_PORT=50052
+WALLET_GRPC_PORT=50053
+GATEWAY_HTTP_ADDR=8080
 ```
 
 ## 📊 Infrastructure Test Results
