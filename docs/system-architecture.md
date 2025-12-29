@@ -598,6 +598,140 @@ Connection Max Lifetime: 5 minutes
 - `user_updates.queue` - User state changes
 - `wallet_updates.queue` - Wallet activity
 
+## CI/CD Pipeline (Phase 05)
+
+### GitHub Actions Workflows
+
+**Status**: Phase 05 Complete (CI/CD Integration with Sentry Release Tracking)
+
+The project uses GitHub Actions for automated testing, building, and deployment:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push to `main`, `develop-claude`, PR | Lint, test, build, security scan, Sentry release |
+| `deploy-staging.yml` | Push to `main`, `develop-claude`, `feature/add-sentry`, manual | Deploy to staging with Sentry tracking |
+| `pr.yml` | Pull request | PR quality checks |
+
+### CI Workflow (`.github/workflows/ci.yml`)
+
+**Jobs**:
+
+1. **Lint**: golangci-lint with 5-minute timeout
+2. **Test**: Run tests with PostgreSQL, Redis, RabbitMQ services
+   - Uploads coverage to Codecov
+3. **Build**: Matrix build for all 4 services (auth, user, wallet, graphql-gateway)
+   - Uploads artifacts (7-day retention)
+4. **Docker Build**: Multi-stage Docker builds with GitHub Actions cache
+5. **Security Scan**: gosec with SARIF upload to GitHub Security
+6. **Sentry Release**: Create release with associated commits (main/develop-claude only)
+
+### Deploy Workflow (`.github/workflows/deploy-staging.yml`)
+
+**Deployment Steps**:
+
+1. **Checkout code** with full git history (`fetch-depth: 0`)
+2. **Run tests** to verify build
+3. **Build services** using Makefile with version injection
+4. **Create Sentry Release** with associated commits
+5. **Deploy to staging** environment (main/develop-claude only)
+6. **Notify Sentry** of deploy completion
+7. **Health check** for service readiness
+8. **Failure notification** if deploy fails
+
+### Version Injection via Makefile
+
+**Build-time Variables**:
+
+```makefile
+# From Makefile
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown")
+LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
+```
+
+**Service Integration**:
+
+```go
+// From services/*/cmd/main.go
+var (
+    Version   = "dev"
+    BuildTime = "unknown"
+)
+
+func getBuildVersion() string {
+    return Version
+}
+
+func main() {
+    log.Printf("Starting service Version: %s BuildTime: %s", Version, BuildTime)
+    // ...
+}
+```
+
+**Version Format Examples**:
+
+- `v1.0.0` - Tagged release
+- `v1.0.0-5-g123abcd` - 5 commits after tag
+- `feature-add-sentry-123abcd` - Branch-based version
+- `-dirty` - Uncommitted changes present
+
+### Sentry Release & Deploy Tracking
+
+**Release Creation** (automatic on push to main/develop-claude):
+
+```bash
+# From CI workflow
+VERSION=$(git describe --tags --always --dirty)
+sentry-cli releases new "$VERSION" --org zuno --project zuno-marketplace-api
+sentry-cli releases set-commits "$VERSION" --auto
+sentry-cli releases finalize "$VERSION"
+```
+
+**Deploy Notification** (automatic on successful deploy):
+
+```bash
+# From deploy workflow
+sentry-cli releases deploys "$VERSION" new \
+  --org zuno \
+  --project zuno-marketplace-api \
+  --env staging \
+  --name "Staging Deploy" \
+  --url "https://github.com/.../actions/runs/{run_id}"
+```
+
+### GitHub Secrets Configuration
+
+Required secrets for CI/CD:
+
+| Secret Name | Description | Required Scopes |
+|------------|-------------|-----------------|
+| `SENTRY_AUTH_TOKEN` | Authentication token for Sentry CLI | `project:releases`, `project:write` |
+| `SENTRY_DSN` | Sentry Data Source Name | - |
+| `SENTRY_ORG` | Sentry organization slug (e.g., `zuno`) | - |
+| `SENTRY_PROJECT` | Sentry project slug (e.g., `zuno-marketplace-api`) | - |
+
+**Setup**: Repository → Settings → Secrets and variables → Actions
+
+### Cross-Platform Makefile
+
+**Compatibility**: Linux, macOS, WSL (Windows)
+
+**Key Features**:
+
+- Version detection via `git describe`
+- Build time injection via `date -u`
+- Conditional Windows path handling for proto generation
+- Service-specific build targets with ldflags
+
+**Common Commands**:
+
+```bash
+make build          # Build all services with version injection
+make build-version  # Show version info
+make build-auth     # Build auth-service only
+make ci             # Run CI pipeline locally
+```
+
 ## Deployment Architectures
 
 ### Development (Docker Compose)

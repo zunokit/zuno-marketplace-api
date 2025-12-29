@@ -30,6 +30,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Version and BuildTime are injected via ldflags during build
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+)
+
 func main() {
 	log.Println("Starting GraphQL Gateway...")
 
@@ -208,7 +214,7 @@ func contextMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// getBuildVersion returns the version from build info or git
+// getBuildVersion returns the version injected by build ldflags
 func getBuildVersion() string {
-	return "v0.1.0" // Placeholder
+	return Version
 }

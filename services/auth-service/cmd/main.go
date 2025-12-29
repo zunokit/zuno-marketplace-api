@@ -27,6 +27,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// Version and BuildTime are injected via ldflags during build
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+)
+
 func main() {
 	log.Println("Starting Auth Service...")
 
@@ -134,7 +140,7 @@ func main() {
 	}
 }
 
-// getBuildVersion returns the version from build info or git
+// getBuildVersion returns the version injected by build ldflags
 func getBuildVersion() string {
-	return "v0.1.0" // Placeholder
+	return Version
 }

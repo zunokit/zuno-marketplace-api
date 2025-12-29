@@ -7,12 +7,13 @@
 SHELL := /bin/bash
 GOPATH := $(shell go env GOPATH)
 
-# Migrate tool path (Windows/Unix compatible)
-ifeq ($(OS),Windows_NT)
-	MIGRATE := "$(GOPATH)\bin\migrate.exe"
-else
-	MIGRATE := $(GOPATH)/bin/migrate
-endif
+# Version information for Sentry releases
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown")
+LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
+
+# Migrate tool path (cross-platform)
+MIGRATE := $(GOPATH)/bin/migrate
 
 # Database configuration
 DB_HOST ?= localhost
@@ -43,7 +44,8 @@ help: ## Show help
 	@echo
 	@echo Common Commands:
 	@echo   make test          - Run tests
-	@echo   make build         - Build services
+	@echo   make build         - Build all services
+	@echo   make build-version - Show build version info
 	@echo   make migrate       - Run migrations
 	@echo   make proto         - Generate protobuf
 	@echo   make lint          - Run linter
@@ -61,11 +63,11 @@ dev: ## Start Docker Compose (one command does everything)
 	@echo ============================================================
 	@echo   Starting Docker Compose environment...
 	@echo ============================================================
-	@docker compose down -v 2>nul >nul || true
+	@docker compose down -v 2>/dev/null || true
 	@echo [1/3] Starting services...
 	docker compose up -d
 	@echo [2/3] Waiting for PostgreSQL to be ready...
-	@timeout /t 8 /nobreak > nul 2>&1
+	@sleep 8
 	@echo [3/3] Running database migrations...
 	@$(MAKE) migrate
 	@echo ============================================================
@@ -106,7 +108,7 @@ migrate-status: ## Show migration status
 	-@$(MIGRATE) -path db/migrations -database "$(DB_URL)" version
 	@echo
 	@echo Available migrations:
-	@dir /b db\migrations\*.up.sql 2>nul || ls -1 db/migrations/*.up.sql 2>/dev/null
+	@find db/migrations -name "*.up.sql" 2>/dev/null || ls -1 db/migrations/*.up.sql 2>/dev/null || echo "No migrations found"
 
 migrate-create: ## Create new migration (make migrate-create NAME=add_feature)
 	@echo Creating migration: $(NAME)
@@ -138,19 +140,39 @@ test-verbose: ## Run tests with verbose output
 # Building
 # ============================================================
 
-build: ## Build all services
-	@echo Building all services...
-	@if not exist "build" mkdir build
-	cd services/auth-service/cmd && go build -o ../../../build/auth-service.exe .
-	cd services/user-service/cmd && go build -o ../../../build/user-service.exe .
-	cd services/wallet-service/cmd && go build -o ../../../build/wallet-service.exe .
-	cd services/graphql-gateway && go build -o ../build/graphql-gateway.exe .
+build-auth: ## Build auth service
+	@echo Building auth-service...
+	@mkdir -p build
+	cd services/auth-service/cmd && go build $(LDFLAGS) -o ../../build/auth-service .
+
+build-user: ## Build user service
+	@echo Building user-service...
+	@mkdir -p build
+	cd services/user-service/cmd && go build $(LDFLAGS) -o ../../build/user-service .
+
+build-wallet: ## Build wallet service
+	@echo Building wallet-service...
+	@mkdir -p build
+	cd services/wallet-service/cmd && go build $(LDFLAGS) -o ../../build/wallet-service .
+
+build-gateway: ## Build graphql gateway
+	@echo Building graphql-gateway...
+	@mkdir -p build
+	cd services/graphql-gateway/cmd && go build $(LDFLAGS) -o ../../../build/graphql-gateway .
+
+build: build-auth build-user build-wallet build-gateway ## Build all services
 	@echo Build complete! Binaries in ./build/
+	@echo Version: $(VERSION) BuildTime: $(BUILD_TIME)
+
+build-version: ## Show build version info
+	@echo Version: $(VERSION)
+	@echo BuildTime: $(BUILD_TIME)
+	@echo LDFLAGS: $(LDFLAGS)
 
 clean: ## Clean build artifacts
 	@echo Cleaning build artifacts...
-	@if exist "build" rmdir /s /q build
-	@if not exist "build" mkdir build
+	@rm -rf build
+	@mkdir -p build
 
 # ============================================================
 # Code Generation
