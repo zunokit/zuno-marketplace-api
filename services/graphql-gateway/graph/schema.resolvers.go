@@ -8,11 +8,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
-	appcontext "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/context"
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/cookie"
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
-	"github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
+	appcontext "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/context"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/cookie"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
+	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 // VerifySiwe is the resolver for the verifySiwe field.
