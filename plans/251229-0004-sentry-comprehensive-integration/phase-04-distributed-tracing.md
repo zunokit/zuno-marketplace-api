@@ -24,12 +24,14 @@ Implement smart sampling, trace propagation helpers, and verify end-to-end distr
 ## Requirements
 
 ### Functional
+
 - Environment-based sampling rates (100% dev, 20% staging, 5% prod)
 - Endpoint-specific sampling (skip health, always trace auth)
 - Trace header injection/extraction utilities
 - Verify trace continuity in Sentry UI
 
 ### Non-Functional
+
 - Sampling configurable without code changes
 - Zero performance impact when sampling disabled
 
@@ -46,6 +48,7 @@ Implement smart sampling, trace propagation helpers, and verify end-to-end distr
 ```
 
 **Trace Flow**:
+
 ```
 Client Request
     ↓
@@ -63,6 +66,7 @@ All spans visible in Sentry as single waterfall trace
 ## Implementation Steps
 
 ### Step 1: Create Tracing Directory
+
 ```bash
 mkdir -p shared/observability/tracing
 ```
@@ -270,7 +274,7 @@ Update the interceptors to use the propagator:
 
 ```go
 // At the top of grpc.go, add:
-import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+import obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 
 // Update UnaryServerInterceptor:
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -388,7 +392,7 @@ func SentryHTTP(next http.Handler) http.Handler {
 Replace the hardcoded sample rate with the sampler:
 
 ```go
-import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+import obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 
 // In main(), replace:
 if err := obs.Init(
@@ -428,17 +432,18 @@ if err := obs.Init(
 
 ## Risk Assessment
 
-| Risk | Mitigation |
-|------|------------|
-| Sampling too aggressive misses bugs | Always trace errors + auth |
-| Trace propagation broken | E2E test verifies waterfall |
-| Cost overruns | Set quota alerts in Sentry |
+| Risk                                | Mitigation                  |
+| ----------------------------------- | --------------------------- |
+| Sampling too aggressive misses bugs | Always trace errors + auth  |
+| Trace propagation broken            | E2E test verifies waterfall |
+| Cost overruns                       | Set quota alerts in Sentry  |
 
 ---
 
 ## Verification Steps
 
 1. **Manual Test**:
+
    ```bash
    # Start all services
    make dev
@@ -452,6 +457,7 @@ if err := obs.Init(
    ```
 
 2. **Verify Waterfall**:
+
    - Go to Sentry → Performance
    - Should see trace with: HTTP → GraphQL → gRPC (Auth/User/Wallet)
    - Each service should be a span in the waterfall
@@ -472,6 +478,7 @@ if err := obs.Init(
 **Report**: `plans/reports/code-reviewer-251229-1243-phase04-distributed-tracing.md`
 
 ### Review Summary
+
 - **Grade**: B+
 - **Critical Issues**: 0
 - **High Priority**: 2 (YAGNI violations: unused `TracesSampler()`, duplicate `formatTraceHeader()`)
@@ -479,12 +486,14 @@ if err := obs.Init(
 - **Low Priority**: 2 (integration tests, hardcoded patterns)
 
 ### Action Items from Review
+
 1. **Must Fix**: Decide on `TracesSampler()` - integrate or remove
 2. **Must Fix**: Consolidate `formatTraceHeader()` duplication
 3. **Should Fix**: Use `strings.Contains()` instead of custom implementation
 4. **Should Fix**: Remove or implement `ExtractTraceContext()` properly
 
 ### Task Status Update
+
 - [x] Create `shared/observability/tracing/` directory
 - [x] Implement `sampler.go` with environment-based rates
 - [x] Implement `propagator.go` with header injection/extraction

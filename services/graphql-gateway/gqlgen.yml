@@ -20,15 +20,14 @@ resolver:
   dir: graph
   package: graph
   filename_template: "{name}.resolvers.go"
-
 # Optional: turn on to not generate the automatic bind
 # autobind:
-#  - "github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
+#  - "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
 
 # Tell gqlgen about existing models you want to reuse for GraphQL types
 # models:
 #   User:
-#     model: github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model.User
+#     model: github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model.User
 
 # Uncomment to enable federation
 # federation:

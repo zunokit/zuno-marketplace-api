@@ -23,6 +23,7 @@ Create shared observability package with Sentry initialization, event scrubbing,
 ## Requirements
 
 ### Functional
+
 - Init Sentry with DSN, environment, service name, release, sampling
 - Flush events on shutdown with timeout
 - Scrub Ethereum addresses (0x + 40 hex chars)
@@ -31,6 +32,7 @@ Create shared observability package with Sentry initialization, event scrubbing,
 - Attach stacktraces to errors
 
 ### Non-Functional
+
 - Zero dependencies beyond sentry-go
 - Thread-safe initialization
 - Graceful degradation if Sentry unavailable
@@ -50,6 +52,7 @@ shared/observability/sentry/
 ## Implementation Steps
 
 ### Step 1: Create Package Directory
+
 ```bash
 mkdir -p shared/observability/sentry
 ```
@@ -313,7 +316,7 @@ func scrubUser(user *sentry.User) *sentry.User {
 
 **File**: `shared/observability/README.md`
 
-```markdown
+````markdown
 # Observability Package
 
 Shared Sentry integration for all Zuno NFT Marketplace microservices.
@@ -324,7 +327,7 @@ Shared Sentry integration for all Zuno NFT Marketplace microservices.
 
 ```go
 import (
-    obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+    obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 )
 
 func main() {
@@ -341,11 +344,12 @@ func main() {
     defer obs.Flush(2 * time.Second)
 }
 ```
+````
 
 ### Capturing Errors
 
 ```go
-import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 
 // Capture exception
 if err != nil {
@@ -365,13 +369,15 @@ obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
 ## Privacy Scrubbing
 
 The following patterns are automatically scrubbed:
+
 - Ethereum addresses (0x + 40 hex chars)
 - JWT tokens
 - Email addresses
 - Private keys
 - CAIP-10 account IDs
 - Sensitive HTTP headers (Authorization, Cookie, etc.)
-```
+
+````
 
 ### Step 5: Update go.mod
 
@@ -380,7 +386,7 @@ The following patterns are automatically scrubbed:
 Add dependency:
 ```bash
 go get github.com/getsentry/sentry-go@latest
-```
+````
 
 ---
 
@@ -407,10 +413,10 @@ go get github.com/getsentry/sentry-go@latest
 
 ## Risk Assessment
 
-| Risk | Mitigation |
-|------|------------|
-| Regex false positives | Test with real wallet addresses |
-| Performance overhead | Scrubbing is synchronous but minimal |
+| Risk                  | Mitigation                                  |
+| --------------------- | ------------------------------------------- |
+| Regex false positives | Test with real wallet addresses             |
+| Performance overhead  | Scrubbing is synchronous but minimal        |
 | Scrubbing misses data | Multi-layer approach (headers, body, extra) |
 
 ---

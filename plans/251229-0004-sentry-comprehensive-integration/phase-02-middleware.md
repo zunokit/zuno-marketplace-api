@@ -24,6 +24,7 @@ Create middleware for HTTP (Chi), gRPC (server/client), and GraphQL (gqlgen) to 
 ## Requirements
 
 ### Functional
+
 - HTTP middleware for Chi router (GraphQL Gateway)
 - gRPC server interceptor for unary calls
 - gRPC client interceptor for outbound calls
@@ -32,6 +33,7 @@ Create middleware for HTTP (Chi), gRPC (server/client), and GraphQL (gqlgen) to 
 - Skip tracing for health endpoints
 
 ### Non-Functional
+
 - Minimal overhead (<1ms)
 - No breaking changes to existing middleware chains
 
@@ -49,6 +51,7 @@ Create middleware for HTTP (Chi), gRPC (server/client), and GraphQL (gqlgen) to 
 ```
 
 **Trace Propagation Flow**:
+
 ```
 HTTP Request → Chi MW → Transaction → sentry-trace header
                                     ↓
@@ -62,6 +65,7 @@ gRPC Client → Inject Header → gRPC Server → Extract → Continue Span
 ## Implementation Steps
 
 ### Step 1: Create Middleware Directory
+
 ```bash
 mkdir -p shared/observability/middleware
 ```
@@ -437,24 +441,25 @@ func GraphQLResponseMiddleware() graphql.ResponseMiddleware {
 
 Add middleware usage documentation:
 
-```markdown
+````markdown
 ### Middleware Usage
 
 #### HTTP Middleware (Chi)
 
 ```go
-import obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 router := chi.NewRouter()
 router.Use(obshttp.SentryHTTP)  // Add BEFORE other middleware
 router.Use(middleware.Logger)
 router.Use(middleware.Recoverer)
 ```
+````
 
 #### gRPC Server Interceptor
 
 ```go
-import obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 grpcServer := grpc.NewServer(
 	grpc.ChainUnaryInterceptor(
@@ -478,13 +483,14 @@ conn, err := grpc.Dial(
 #### GraphQL Middleware
 
 ```go
-import obsgraphql "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgraphql "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 // In GraphQL server setup
 srv := handler.NewDefaultServer(schema)
 srv.Use(obsgraphql.GraphQLFieldMiddleware())
 srv.Use(obsgraphql.GraphQLResponseMiddleware())
 ```
+
 ```
 
 ---
@@ -541,3 +547,4 @@ srv.Use(obsgraphql.GraphQLResponseMiddleware())
 ### After Fixes: Phase 03: Service Integration
 
 Integrate middleware into all 4 services (auth-service, user-service, wallet-service, graphql-gateway).
+```

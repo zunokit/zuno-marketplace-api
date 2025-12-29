@@ -36,12 +36,14 @@ Phase 01 of Sentry integration has been successfully implemented with **critical
 **Issue**: Original pattern `[eip][0-9]+` only matched single character (`e` OR `i` OR `p`)
 
 **Fix Applied**:
+
 ```go
 // scrubber.go line 13
 caip10Pattern = regexp.MustCompile(`\beip[0-9]+:[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+\b`)
 ```
 
 **Verification**:
+
 - Pattern now correctly matches `eip155:1:0x...`
 - Character class `[eip]` changed to literal `eip`
 - Test case validates: `eip155:1:0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb`
@@ -51,6 +53,7 @@ caip10Pattern = regexp.MustCompile(`\beip[0-9]+:[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+\b`
 **Issue**: CAIP-10 was checked AFTER ETH_ADDRESS, causing partial matches
 
 **Fix Applied**:
+
 ```go
 // scrubber.go lines 107-114 - Order matters comment added
 func scrubString(s string) string {
@@ -62,6 +65,7 @@ func scrubString(s string) string {
 ```
 
 **Verification**:
+
 - CAIP-10 checked first (line 109)
 - Prevents `eip155:1:0x...` from being partially filtered as ETH_ADDRESS
 - Comment added explaining order dependency
@@ -71,6 +75,7 @@ func scrubString(s string) string {
 **Issue**: Pattern required signature, missed tokens without optional third part
 
 **Fix Applied**:
+
 ```go
 // scrubber.go line 20
 jwtPattern = regexp.MustCompile(`eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)?`)
@@ -78,6 +83,7 @@ jwtPattern = regexp.MustCompile(`eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-
 ```
 
 **Verification**:
+
 - `(?:\.[a-zA-Z0-9_-]+)?` matches optional signature
 - Test cases validate both formats:
   - With signature: `eyJ... .eyJ... .dozjg...`
@@ -88,6 +94,7 @@ jwtPattern = regexp.MustCompile(`eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-
 **Issue**: Missing critical headers for security filtering
 
 **Fix Applied**:
+
 ```go
 // scrubber.go lines 142-146
 sensitiveKeys := []string{
@@ -98,6 +105,7 @@ sensitiveKeys := []string{
 ```
 
 **Added headers**:
+
 - `x-csrf-token` - CSRF protection tokens
 - `proxy-authorization` - Proxy credentials
 - `sec-websocket-key` - WebSocket handshake keys
@@ -107,6 +115,7 @@ sensitiveKeys := []string{
 **Issue**: Test JWT used invalid characters (`+` instead of `.`)
 
 **Fix Applied**:
+
 ```go
 // scrubber_test.go lines 49-50, 298
 "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
@@ -143,7 +152,7 @@ sensitiveKeys := []string{
 === RUN   TestMultiplePatterns
 --- PASS: TestMultiplePatterns (0.00s)
 PASS
-ok      github.com/quangdang46/NFT-Marketplace/shared/observability/sentry  4.314s
+ok      github.com/zunokit/zuno-marketplace-api/shared/observability/sentry  4.314s
 coverage: 71.8% of statements
 ```
 
@@ -194,6 +203,7 @@ coverage: 71.8% of statements
 ### Security (EXCELLENT)
 
 **Multi-layer scrubbing approach**:
+
 1. Request headers (complete filtering for sensitive keys)
 2. Request data (string-based pattern replacement)
 3. Breadcrumbs (recursive map scrubbing)
@@ -203,6 +213,7 @@ coverage: 71.8% of statements
 7. Exception stacktraces (variable scrubbing)
 
 **Sensitive data patterns covered**:
+
 - Ethereum addresses: `\b0x[a-fA-F0-9]{40}\b`
 - JWT tokens: `eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)?`
 - Emails: `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`
@@ -273,6 +284,7 @@ coverage: 71.8% of statements
 **Target**: 80% (per code standards)
 
 **Missing coverage areas**:
+
 - `AddBreadcrumb()` - Not tested
 - `CaptureException()` - Not tested
 - `CaptureMessage()` - Not tested
@@ -285,6 +297,7 @@ coverage: 71.8% of statements
 **Current**: Only `AttachStacktrace: true` set
 
 **From Phase 01 spec**:
+
 ```go
 StacktraceConfig: sentry.StacktraceConfig{
     ContextLines: 5,
@@ -298,6 +311,7 @@ StacktraceConfig: sentry.StacktraceConfig{
 ### 3. scrubber.go Request.Data Type Assumption
 
 **Line 35**:
+
 ```go
 event.Request.Data = scrubString(event.Request.Data)  // Assumes string
 ```
@@ -305,6 +319,7 @@ event.Request.Data = scrubString(event.Request.Data)  // Assumes string
 **Issue**: `Request.Data` is `map[string]interface{}` in Sentry SDK
 
 **Fix needed**:
+
 ```go
 if data, ok := event.Request.Data.(map[string]interface{}); ok {
     event.Request.Data = scrubMap(data)
@@ -329,6 +344,7 @@ if data, ok := event.Request.Data.(map[string]interface{}); ok {
 ### 2. Add Benchmark Tests
 
 **Example**:
+
 ```go
 func BenchmarkScrubString(b *testing.B) {
     input := "Wallet: 0x1234...7890 Email: user@example.com"
@@ -343,6 +359,7 @@ func BenchmarkScrubString(b *testing.B) {
 ### 3. Add Example Tests
 
 **Example**:
+
 ```go
 func ExampleInit() {
     err := Init("dsn", "dev", "auth-service", "v1.0.0", 0.1)
@@ -403,16 +420,16 @@ func ExampleInit() {
 
 ## Metrics
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Test Pass Rate | 100% (10/10) | 100% | ✓ |
-| Test Coverage | 71.8% | 80% | ⚠ |
-| Build Status | PASS | PASS | ✓ |
-| go vet | CLEAN | CLEAN | ✓ |
-| gofmt | FORMATTED | FORMATTED | ✓ |
-| Files Changed | 4 | 4 | ✓ |
-| LOC Added | 643 | ~600 | ✓ |
-| Security Issues | 0 critical | 0 | ✓ |
+| Metric          | Value        | Target    | Status |
+| --------------- | ------------ | --------- | ------ |
+| Test Pass Rate  | 100% (10/10) | 100%      | ✓      |
+| Test Coverage   | 71.8%        | 80%       | ⚠      |
+| Build Status    | PASS         | PASS      | ✓      |
+| go vet          | CLEAN        | CLEAN     | ✓      |
+| gofmt           | FORMATTED    | FORMATTED | ✓      |
+| Files Changed   | 4            | 4         | ✓      |
+| LOC Added       | 643          | ~600      | ✓      |
+| Security Issues | 0 critical   | 0         | ✓      |
 
 ---
 
@@ -421,6 +438,7 @@ func ExampleInit() {
 **Phase 01 Implementation: APPROVED with minor fixes required**
 
 All critical security issues have been properly resolved:
+
 - CAIP-10 regex fixed (literal `eip` not `[eip]`)
 - Pattern order corrected (CAIP-10 before ETH_ADDRESS)
 - JWT pattern handles optional signature

@@ -8,7 +8,7 @@ Shared Sentry integration for all Zuno NFT Marketplace microservices.
 
 ```go
 import (
-    obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+    obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 ### Capturing Errors
 
 ```go
-import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 
 // Capture exception
 if err != nil {
@@ -49,6 +49,7 @@ obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
 ## Privacy Scrubbing
 
 The following patterns are automatically scrubbed:
+
 - Ethereum addresses (0x + 40 hex chars)
 - JWT tokens
 - Email addresses
@@ -63,7 +64,7 @@ The following patterns are automatically scrubbed:
 ### HTTP Middleware (Chi)
 
 ```go
-import obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 router := chi.NewRouter()
 router.Use(obshttp.SentryHTTP)  // Add BEFORE other middleware
@@ -74,7 +75,7 @@ router.Use(middleware.Recoverer)
 ### gRPC Server Interceptor
 
 ```go
-import obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 grpcServer := grpc.NewServer(
     grpc.ChainUnaryInterceptor(
@@ -98,7 +99,7 @@ conn, err := grpc.Dial(
 ### GraphQL Middleware
 
 ```go
-import obsgraphql "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgraphql "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 // In GraphQL server setup
 srv := handler.NewDefaultServer(schema)

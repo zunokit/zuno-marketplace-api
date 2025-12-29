@@ -47,6 +47,7 @@ The implementation shows good architectural design with proper separation of con
 **Impact**: JWT tokens in certain formats leak to Sentry.
 
 **Fix**:
+
 ```go
 // Current (broken)
 jwtPattern = regexp.MustCompile(`\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]*\b`)
@@ -71,6 +72,7 @@ jwtPattern = regexp.MustCompile(`eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_
 **Impact**: CAIP-10 account IDs leak chain namespace information.
 
 **Fix Options**:
+
 1. Move CAIP-10 pattern check before ETH_ADDRESS in `scrubString()`
 2. Update pattern to be more specific: `\b[eip][0-9]+:[a-zA-Z0-9_-]+:\b0x[a-fA-F0-9]{40}\b`
 
@@ -115,6 +117,7 @@ func Init(dsn, environment, service, release string, tracesSampleRate float64) e
 **Impact**: Errors silently not captured; debugging harder in production.
 
 **Suggestion**: Add graceful degradation or logger:
+
 ```go
 func Init(dsn, environment, service, release string, tracesSampleRate float64) error {
     err := sentry.Init(...)
@@ -145,6 +148,7 @@ privateKeyPattern = regexp.MustCompile(`\b[0-9a-fA-F]{64}\b`)
 ```
 
 **Issue**: Matches ANY 64-char hex string, including:
+
 - Transaction hashes
 - Block hashes
 - Random hex identifiers
@@ -165,6 +169,7 @@ sensitiveKeys := []string{
 ```
 
 **Missing headers**:
+
 - `x-csrf-token` / `x-csrf-header`
 - `proxy-authorization`
 - `sec-websocket-key` (for WS upgrades)
@@ -178,9 +183,10 @@ sensitiveKeys := []string{
 
 **File**: `shared/observability/sentry/scrubber.go:142-152`
 
-**Issue**: Nested loop with `strings.Contains` on every header. O(n*m) complexity where n=headers, m=sensitive keys.
+**Issue**: Nested loop with `strings.Contains` on every header. O(n\*m) complexity where n=headers, m=sensitive keys.
 
 **Suggestion**: Use map for O(1) lookup:
+
 ```go
 sensitiveKeysMap := map[string]bool{
     "authorization": true, "cookie": true, ...
@@ -195,7 +201,7 @@ if sensitiveKeysMap[lowerKey] || strings.HasPrefix(lowerKey, "x-") {
 **File**: `shared/observability/README.md:11`
 
 ```go
-import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 ```
 
 **Issue**: Hardcoded username `quangdang46` in module path.
@@ -205,6 +211,7 @@ import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
 ### 3. No Integration Tests (TESTING)
 
 **Missing**: Integration tests for:
+
 - End-to-end event capture and scrubbing
 - Performance benchmarks for scrubbing
 - Sentry DSN validation
@@ -224,6 +231,7 @@ Functions `contains()` and `containsMiddle()` are test-only but could use `strin
 **File**: `shared/observability/sentry/sentry.go`
 
 Add package documentation:
+
 ```go
 // Package sentry provides Sentry error tracking integration with automatic
 // sensitive data scrubbing for Ethereum addresses, JWT tokens, emails, and
@@ -236,6 +244,7 @@ package sentry
 **File**: `shared/observability/sentry/scrubber.go:105-110`
 
 Magic strings like `[FILTERED:ETH_ADDRESS]` should be constants:
+
 ```go
 const (
     filterEthAddr    = "[FILTERED:ETH_ADDRESS]"
@@ -269,13 +278,13 @@ Check if this is latest. As of review, v0.41.0+ may be available.
 
 ## Architectural Assessment
 
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| YAGNI | PASS | No unnecessary features detected |
-| KISS | PASS | Code is simple and readable |
-| DRY | PASS | Minimal repetition, good helper functions |
-| SOLID | PASS | Single responsibility per function |
-| Security | FAIL | 3 test failures = broken scrubbing |
+| Principle | Status | Notes                                     |
+| --------- | ------ | ----------------------------------------- |
+| YAGNI     | PASS   | No unnecessary features detected          |
+| KISS      | PASS   | Code is simple and readable               |
+| DRY       | PASS   | Minimal repetition, good helper functions |
+| SOLID     | PASS   | Single responsibility per function        |
+| Security  | FAIL   | 3 test failures = broken scrubbing        |
 
 ---
 
@@ -305,13 +314,13 @@ Check if this is latest. As of review, v0.41.0+ may be available.
 
 ## Metrics
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| Test Pass Rate | 56% (5/9) | 100% |
-| Build Status | PASS | PASS |
-| go vet | PASS | PASS |
-| Code Coverage | ~70% | 80% |
-| Security Issues | 4 critical | 0 |
+| Metric          | Value      | Target |
+| --------------- | ---------- | ------ |
+| Test Pass Rate  | 56% (5/9)  | 100%   |
+| Build Status    | PASS       | PASS   |
+| go vet          | PASS       | PASS   |
+| Code Coverage   | ~70%       | 80%    |
+| Security Issues | 4 critical | 0      |
 
 ---
 

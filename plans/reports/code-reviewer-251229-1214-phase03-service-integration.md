@@ -9,13 +9,13 @@
 
 ## Scope
 
-| Component | Files | Status |
-|-----------|-------|--------|
-| auth-service | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed |
-| user-service | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed |
-| wallet-service | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed |
-| graphql-gateway | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed |
-| shared/observability | `sentry/sentry.go`, `middleware/*` | :white_check_mark: Referenced |
+| Component            | Files                                      | Status                        |
+| -------------------- | ------------------------------------------ | ----------------------------- |
+| auth-service         | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed   |
+| user-service         | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed   |
+| wallet-service       | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed   |
+| graphql-gateway      | `internal/config/config.go`, `cmd/main.go` | :white_check_mark: Reviewed   |
+| shared/observability | `sentry/sentry.go`, `middleware/*`         | :white_check_mark: Referenced |
 
 **Build Status**: :white_check_mark: `go build ./...` - SUCCESS
 **Lines of Code**: ~150 (changes across 8 files)
@@ -29,6 +29,7 @@
 Phase 03 successfully integrates Sentry across all 4 services. Implementation follows non-blocking init pattern, proper error handling, and graceful shutdown (partial). Code compiles successfully.
 
 **Key Concerns**:
+
 1. graphql-gateway missing graceful shutdown
 2. Duplicate import paths in graphql-gateway
 3. Hardcoded sampling rate not configurable
@@ -51,6 +52,7 @@ Phase 03 successfully integrates Sentry across all 4 services. Implementation fo
 **Issue**: graphql-gateway lacks graceful shutdown handler that other services have.
 
 **Current State**:
+
 - auth-service: Has graceful shutdown (lines 118-132)
 - user-service: Has graceful shutdown (lines 98-113)
 - wallet-service: Has graceful shutdown (lines 98-113)
@@ -59,6 +61,7 @@ Phase 03 successfully integrates Sentry across all 4 services. Implementation fo
 **Impact**: Sentry events may be lost on shutdown. Inconsistent shutdown behavior across services.
 
 **Recommendation**:
+
 ```go
 // Add after line 162 (before ListenAndServe)
 go func() {
@@ -87,16 +90,18 @@ go func() {
 **File**: `E:\zuno-marketplace-api\services\graphql-gateway\cmd\main.go:15-16`
 
 **Issue**:
+
 ```go
-obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 ```
 
 Both imports point to the SAME package with different aliases. Only `SentryHTTP` is used (line 112). `obsgrpc` is only used for gRPC client interceptors but this is confusing.
 
 **Recommendation**: Use single import or clarify package structure:
+
 ```go
-obs "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+obs "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 // Then use: obs.SentryHTTP, obs.UnaryClientInterceptor()
 ```
 
@@ -107,6 +112,7 @@ obs "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
 **Files**: All 4 `cmd/main.go` files
 
 **Issue**: `tracesSampleRate: 0.2` (20%) hardcoded in all services:
+
 - auth-service:43
 - user-service:41
 - wallet-service:41
@@ -115,6 +121,7 @@ obs "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
 **Impact**: Cannot adjust sampling per environment without code change.
 
 **Recommendation**: Add to `SentryConfig`:
+
 ```go
 // config.go
 type SentryConfig struct {
@@ -134,6 +141,7 @@ TracesSampleRate: env.GetFloat("SENTRY_TRACES_SAMPLE_RATE", 0.2),
 **Files**: `auth-service/cmd/main.go:134-136`, `user-service/cmd/main.go:116-118`, `wallet-service/cmd/main.go:116-118`
 
 **Issue**:
+
 ```go
 if err := grpcServer.Serve(listener); err != nil {
     sentry.CaptureException(err)  // <-- Captured
@@ -146,6 +154,7 @@ if err := grpcServer.Serve(listener); err != nil {
 ** graphql-gateway** (lines 164-166) has same issue.
 
 **Recommendation**: Add flush before fatal:
+
 ```go
 if err := grpcServer.Serve(listener); err != nil {
     sentry.CaptureException(err)
@@ -163,12 +172,14 @@ if err := grpcServer.Serve(listener); err != nil {
 **Files**: All 4 services
 
 **Issue**: `SentryConfig` struct duplicated identically across:
+
 - auth-service/internal/config/config.go
 - user-service/internal/config/config.go
 - wallet-service/internal/config/config.go
 - graphql-gateway/internal/config/config.go
 
 **Init pattern duplicated**:
+
 ```go
 // Repeated 4 times with only service name changing
 if cfg.Sentry.DSN != "" {
@@ -186,6 +197,7 @@ if cfg.Sentry.DSN != "" {
 **getBuildVersion() duplicated** across all main.go files - identical placeholder.
 
 **Recommendation**: Extract to shared module:
+
 ```go
 // shared/observability/sentry/init.go
 func InitService(cfg *SentryConfig, serviceName string) error {
@@ -208,6 +220,7 @@ func InitService(cfg *SentryConfig, serviceName string) error {
 **Issue**: Only empty string check. No format validation for Sentry DSN.
 
 **Current**:
+
 ```go
 if cfg.Sentry.DSN != "" { ... }
 ```
@@ -215,6 +228,7 @@ if cfg.Sentry.DSN != "" { ... }
 **Impact**: Malformed DSN fails silently at runtime.
 
 **Recommendation**:
+
 ```go
 if cfg.Sentry.DSN != "" && !strings.HasPrefix(cfg.Sentry.DSN, "https://") {
     log.Printf("WARN: Sentry DSN format appears invalid (missing https:// prefix)")
@@ -228,6 +242,7 @@ if cfg.Sentry.DSN != "" && !strings.HasPrefix(cfg.Sentry.DSN, "https://") {
 **File**: `services/graphql-gateway/cmd/main.go:111-129`
 
 **Issue**: Sentry middleware placed before CORS and auth middleware:
+
 ```go
 router.Use(obshttp.SentryHTTP)         // FIRST
 router.Use(middleware.Logger)
@@ -262,6 +277,7 @@ router.Use(authmiddleware.AuthMiddleware(...))  // Auth after Sentry
 **Issue**: `defer obs.Flush(2 * time.Second)` won't execute if `log.Fatalf()` called before main returns (e.g., on `grpcServer.Serve()` error).
 
 **Current flow**:
+
 ```go
 defer obs.Flush(2 * time.Second)  // Registered
 // ... later ...
@@ -299,6 +315,7 @@ grpcServer.Serve(listener)  // If this returns error
 ### DRY (Don't Repeat Yourself)
 
 :yellow_circle: **CONCERNS**:
+
 - `SentryConfig` duplicated 4 times
 - Init block duplicated 4 times
 - `getBuildVersion()` duplicated 4 times
@@ -310,24 +327,24 @@ grpcServer.Serve(listener)  // If this returns error
 
 ## Security Review
 
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| DSN exposure | :white_check_mark: OK | Loaded from env, not hardcoded |
-| PII handling | :white_check_mark: OK | `SendDefaultPII: false` |
-| Privacy scrubbing | :white_check_mark: OK | `BeforeSend` hooks active |
-| Non-blocking init | :white_check_mark: OK | Service continues if Sentry down |
-| No secrets in logs | :white_check_mark: OK | Error logs don't expose DSN |
+| Aspect             | Status                | Notes                            |
+| ------------------ | --------------------- | -------------------------------- |
+| DSN exposure       | :white_check_mark: OK | Loaded from env, not hardcoded   |
+| PII handling       | :white_check_mark: OK | `SendDefaultPII: false`          |
+| Privacy scrubbing  | :white_check_mark: OK | `BeforeSend` hooks active        |
+| Non-blocking init  | :white_check_mark: OK | Service continues if Sentry down |
+| No secrets in logs | :white_check_mark: OK | Error logs don't expose DSN      |
 
 ---
 
 ## Performance Analysis
 
-| Aspect | Status | Notes |
-|--------|--------|-------|
-| Non-blocking init | :white_check_mark: OK | No startup delay |
-| Async event sending | :white_check_mark: OK | Sentry SDK handles internally |
-| Flush timeout | :white_blue_circle: OK | 2 seconds is reasonable |
-| Sampling rate | :yellow_circle: OK | 20% is good, but not configurable |
+| Aspect              | Status                 | Notes                             |
+| ------------------- | ---------------------- | --------------------------------- |
+| Non-blocking init   | :white_check_mark: OK  | No startup delay                  |
+| Async event sending | :white_check_mark: OK  | Sentry SDK handles internally     |
+| Flush timeout       | :white_blue_circle: OK | 2 seconds is reasonable           |
+| Sampling rate       | :yellow_circle: OK     | 20% is good, but not configurable |
 
 **No blocking operations detected.** Sentry operations are non-blocking by design.
 
@@ -348,15 +365,16 @@ grpcServer.Serve(listener)  // If this returns error
 
 Based on `plans/reports/tester-251229-1209-phase03-service-integration.md`:
 
-| Test Category | Status |
-|---------------|--------|
-| Unit Tests | :white_check_mark: 78/78 PASS |
-| Middleware Tests | :white_check_mark: 10/10 PASS |
-| Sentry Core Tests | :white_check_mark: 24/24 PASS |
-| Build | :white_check_mark: SUCCESS |
-| Coverage | :white_check_mark: 32.6% - 74.2% |
+| Test Category     | Status                           |
+| ----------------- | -------------------------------- |
+| Unit Tests        | :white_check_mark: 78/78 PASS    |
+| Middleware Tests  | :white_check_mark: 10/10 PASS    |
+| Sentry Core Tests | :white_check_mark: 24/24 PASS    |
+| Build             | :white_check_mark: SUCCESS       |
+| Coverage          | :white_check_mark: 32.6% - 74.2% |
 
 **Phase 03 Success Criteria**: :white_check_mark: **ALL MET**
+
 - All 4 services initialize Sentry on startup
 - GraphQL Gateway traces HTTP requests
 - gRPC services trace incoming calls
@@ -368,13 +386,13 @@ Based on `plans/reports/tester-251229-1209-phase03-service-integration.md`:
 
 ## Metrics
 
-| Metric | Value |
-|--------|-------|
-| Type Coverage | :white_check_mark: Strong (Go's static typing) |
-| Test Coverage | 54.6% avg across tested packages |
-| Build Status | :white_check_mark: SUCCESS |
-| Linting Issues | 0 blocking |
-| Security Issues | 0 critical |
+| Metric          | Value                                          |
+| --------------- | ---------------------------------------------- |
+| Type Coverage   | :white_check_mark: Strong (Go's static typing) |
+| Test Coverage   | 54.6% avg across tested packages               |
+| Build Status    | :white_check_mark: SUCCESS                     |
+| Linting Issues  | 0 blocking                                     |
+| Security Issues | 0 critical                                     |
 
 ---
 

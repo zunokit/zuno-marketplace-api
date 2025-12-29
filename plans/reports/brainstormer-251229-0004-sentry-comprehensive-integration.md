@@ -12,6 +12,7 @@
 Integrate **comprehensive Sentry monitoring** (error tracking + performance monitoring + distributed tracing) into **zuno-marketplace-api** - a Go microservices NFT Marketplace backend.
 
 ### Requirements Collected
+
 - **Scope**: Full Sentry (errors + performance + distributed tracing) across all microservices
 - **Architecture**: 4 services (GraphQL Gateway + Auth/User/Wallet via gRPC)
 - **Environment**: Development/Staging (cost-conscious, <1000 req/s)
@@ -19,6 +20,7 @@ Integrate **comprehensive Sentry monitoring** (error tracking + performance moni
 - **CI/CD**: Full GitHub Actions integration with deploy tracking
 
 ### Current State Assessment
+
 - **Clean skeleton** (v0.1.0) - ideal time to add observability
 - **No existing monitoring** - starting fresh
 - **gRPC internal comms** - needs trace propagation
@@ -29,11 +31,11 @@ Integrate **comprehensive Sentry monitoring** (error tracking + performance moni
 
 ## Approaches Evaluated
 
-| Approach | Pros | Cons | Verdict |
-|----------|------|------|---------|
-| **1. Native Sentry per service** | Simple start, zero abstraction | Code duplication, DRY violation, inconsistent tracing | ❌ Rejected |
-| **2. OpenTelemetry + Sentry** | Vendor-agnostic, standard instrumentation | Over-engineered, 3x dependencies, steep learning curve | ❌ Rejected |
-| **3. Hybrid KISS (Recommended)** | Single SDK, shared package, cost-optimized, DRY | Locked to Sentry (acceptable) | ✅ **SELECTED** |
+| Approach                         | Pros                                            | Cons                                                   | Verdict         |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------------------------ | --------------- |
+| **1. Native Sentry per service** | Simple start, zero abstraction                  | Code duplication, DRY violation, inconsistent tracing  | ❌ Rejected     |
+| **2. OpenTelemetry + Sentry**    | Vendor-agnostic, standard instrumentation       | Over-engineered, 3x dependencies, steep learning curve | ❌ Rejected     |
+| **3. Hybrid KISS (Recommended)** | Single SDK, shared package, cost-optimized, DRY | Locked to Sentry (acceptable)                          | ✅ **SELECTED** |
 
 ### Approach 3 Rationale
 
@@ -385,8 +387,8 @@ import (
     "syscall"
 
     "github.com/getsentry/sentry-go"
-    obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
-    obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+    obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+    obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
     // ... other imports
 )
 
@@ -441,9 +443,9 @@ func main() {
 package main
 
 import (
-    obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
-    obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-    obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+    obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+    obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+    obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 )
 
 func main() {
@@ -517,7 +519,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for Sentry
+          fetch-depth: 0 # Full history for Sentry
 
       - name: Create Sentry Release
         run: |
@@ -544,43 +546,46 @@ jobs:
 
 ## Risk Assessment & Mitigation
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| **Sentry DSN leaked** | High | Medium | Use secrets manager, never commit to git |
-| **Quota exceeded** | Medium | Low | Smart sampling, set alerts |
-| **gRPC trace propagation breaks** | Medium | Low | Comprehensive E2E tests |
-| **Performance overhead** | Low | Very Low | Async sending, sampling |
-| **Sensitive data leakage** | High | Low | Multi-layer scrubbing, test with real data |
+| Risk                              | Impact | Probability | Mitigation                                 |
+| --------------------------------- | ------ | ----------- | ------------------------------------------ |
+| **Sentry DSN leaked**             | High   | Medium      | Use secrets manager, never commit to git   |
+| **Quota exceeded**                | Medium | Low         | Smart sampling, set alerts                 |
+| **gRPC trace propagation breaks** | Medium | Low         | Comprehensive E2E tests                    |
+| **Performance overhead**          | Low    | Very Low    | Async sending, sampling                    |
+| **Sensitive data leakage**        | High   | Low         | Multi-layer scrubbing, test with real data |
 
 ---
 
 ## Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **Error capture rate** | >95% | Test by triggering panics |
-| **Trace continuity** | 100% across services | Verify waterfalls in Sentry UI |
-| **PII scrubbing** | 0 wallet addresses leaked | Manual review of test events |
-| **Performance impact** | <5ms p99 latency | Load tests before/after |
-| **Setup time** | <4 hours | Time from DSN to first trace |
+| Metric                 | Target                    | Measurement                    |
+| ---------------------- | ------------------------- | ------------------------------ |
+| **Error capture rate** | >95%                      | Test by triggering panics      |
+| **Trace continuity**   | 100% across services      | Verify waterfalls in Sentry UI |
+| **PII scrubbing**      | 0 wallet addresses leaked | Manual review of test events   |
+| **Performance impact** | <5ms p99 latency          | Load tests before/after        |
+| **Setup time**         | <4 hours                  | Time from DSN to first trace   |
 
 ---
 
 ## Implementation Checklist
 
 ### Core Infrastructure
+
 - [ ] Create `shared/observability/` package structure
 - [ ] Implement `sentry/sentry.go` with Init/Flush
 - [ ] Implement `sentry/scrubber.go` with regex patterns
 - [ ] Add unit tests for scrubbing logic
 
 ### Middleware Layer
+
 - [ ] Implement `middleware/http.go` for Chi
 - [ ] Implement `middleware/grpc.go` with interceptors
 - [ ] Implement `middleware/graphql.go` for gqlgen
 - [ ] Add middleware tests
 
 ### Service Integration
+
 - [ ] Update `auth-service/cmd/main.go`
 - [ ] Update `graphql-gateway/cmd/main.go`
 - [ ] Update `user-service/cmd/main.go`
@@ -588,17 +593,20 @@ jobs:
 - [ ] Add Sentry config to all services
 
 ### Distributed Tracing
+
 - [ ] Implement `tracing/propagator.go`
 - [ ] Implement `tracing/sampler.go`
 - [ ] Test trace propagation Gateway → gRPC
 - [ ] Verify in Sentry UI
 
 ### CI/CD
+
 - [ ] Add SENTRY_AUTH_TOKEN to GitHub Secrets
 - [ ] Create deploy workflow with release tracking
 - [ ] Test deploy notification webhook
 
 ### Documentation
+
 - [ ] Add observability README
 - [ ] Update DEVELOPMENT.md with Sentry setup
 - [ ] Document scrubbing patterns
@@ -617,13 +625,15 @@ jobs:
 ## Unresolved Questions
 
 1. **Sentry Project Structure**: Single project for all services or separate per service?
-   - *Recommendation*: Single project with `service` tag for simpler billing
+
+   - _Recommendation_: Single project with `service` tag for simpler billing
 
 2. **Sampling Strategy**: Should authentication mutations be sampled at 100%?
-   - *Recommendation*: Yes, auth failures are critical
+
+   - _Recommendation_: Yes, auth failures are critical
 
 3. **Trace Retention**: How long to keep traces for debugging?
-   - *Recommendation*: 30 days for staging, 7 days for dev
+   - _Recommendation_: 30 days for staging, 7 days for dev
 
 ---
 

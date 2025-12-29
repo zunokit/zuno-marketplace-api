@@ -433,6 +433,7 @@ make lint  # Run locally before commit
 ```
 
 **Checks**:
+
 - `gofmt` - Code formatting
 - `govet` - Common Go mistakes
 - `errcheck` - Unchecked errors
@@ -460,6 +461,7 @@ go vet ./...  # Run in repo root
 ```
 
 **Checks**:
+
 - Unreachable code
 - Type mismatches
 - Build constraints
@@ -475,6 +477,7 @@ gosec ./...  # Run locally
 ```
 
 **Checks**:
+
 - SQL injection risks
 - Hardcoded secrets
 - Weak cryptography
@@ -777,7 +780,7 @@ err = bcrypt.CompareHashAndPassword(hash, []byte(inputPassword))
 All services must initialize Sentry at startup:
 
 ```go
-import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 
 func main() {
     // Initialize Sentry (fail gracefully if not configured)
@@ -799,6 +802,7 @@ func main() {
 ### Error Capture Patterns
 
 **Automatic Capture** (for panics):
+
 ```go
 func main() {
     // Sentry automatically recovers panics
@@ -810,6 +814,7 @@ func main() {
 ```
 
 **Manual Exception Capture**:
+
 ```go
 if err != nil {
     obs.CaptureException(err)
@@ -818,11 +823,13 @@ if err != nil {
 ```
 
 **Message Capture** (for non-error events):
+
 ```go
 obs.CaptureMessage("User login failed: invalid signature")
 ```
 
 **Breadcrumbs** (for context):
+
 ```go
 obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
     "action": "click_button",
@@ -833,6 +840,7 @@ obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
 ### Privacy Requirements
 
 The shared Sentry package automatically scrubs:
+
 - Ethereum addresses (0x...)
 - CAIP-10 account IDs
 - JWT tokens
@@ -841,6 +849,7 @@ The shared Sentry package automatically scrubs:
 - Sensitive headers (Authorization, Cookie, X-API-Key)
 
 **Never log or send to Sentry**:
+
 - Raw private keys
 - Unhashed passwords
 - Full JWT tokens
@@ -849,6 +858,7 @@ The shared Sentry package automatically scrubs:
 ### Configuration Requirements
 
 Per-service environment variables:
+
 ```bash
 SENTRY_DSN=https://...@sentry.io/...
 SENTRY_ENVIRONMENT=production|staging|development

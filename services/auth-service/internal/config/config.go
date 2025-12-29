@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/quangdang46/NFT-Marketplace/shared/env"
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
 // Config holds all configuration for the auth service

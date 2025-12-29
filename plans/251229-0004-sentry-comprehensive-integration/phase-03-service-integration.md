@@ -12,11 +12,11 @@ Integrate Sentry into all 4 services (Auth, User, Wallet, GraphQL Gateway) by ad
 
 ### Fix Verification Status
 
-| Fix | graphql-gateway | auth/user/wallet | Status |
-|-----|-----------------|------------------|--------|
-| Graceful shutdown | :white_check_mark: Verified | :white_check_mark: Already had | PASS |
-| Simplified imports | :white_check_mark: Verified | N/A | PASS |
-| No capture before fatal | :white_check_mark: Verified | :warning: Needs flush | PARTIAL |
+| Fix                     | graphql-gateway             | auth/user/wallet               | Status  |
+| ----------------------- | --------------------------- | ------------------------------ | ------- |
+| Graceful shutdown       | :white_check_mark: Verified | :white_check_mark: Already had | PASS    |
+| Simplified imports      | :white_check_mark: Verified | N/A                            | PASS    |
+| No capture before fatal | :white_check_mark: Verified | :warning: Needs flush          | PARTIAL |
 
 **Report**: `plans/reports/code-reviewer-251229-1218-phase03-service-integration-fixes.md`
 
@@ -34,6 +34,7 @@ Integrate Sentry into all 4 services (Auth, User, Wallet, GraphQL Gateway) by ad
 ## Requirements
 
 ### Functional
+
 - Add Sentry config to all 4 services
 - Initialize Sentry at service startup
 - Add appropriate middleware to each service
@@ -41,6 +42,7 @@ Integrate Sentry into all 4 services (Auth, User, Wallet, GraphQL Gateway) by ad
 - Flush events on graceful shutdown
 
 ### Non-Functional
+
 - Services continue working if Sentry init fails
 - No blocking on Sentry operations
 
@@ -65,6 +67,7 @@ Service Startup Flow:
 ### Step 1: Update Config for All Services
 
 **Files to modify**:
+
 - `services/auth-service/internal/config/config.go`
 - `services/user-service/internal/config/config.go`
 - `services/wallet-service/internal/config/config.go`
@@ -110,8 +113,8 @@ import (
 	"syscall"
 	"time"
 
-	grpcMiddleware "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 
 	// ... existing imports
 	"github.com/getsentry/sentry-go"
@@ -227,8 +230,8 @@ import (
 	"syscall"
 	"time"
 
-	grpcMiddleware "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 	"github.com/getsentry/sentry-go"
 )
 
@@ -302,11 +305,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
-	obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-	obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
-	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+	obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -476,30 +479,35 @@ SENTRY_ENVIRONMENT=development
 ## Todo List
 
 ### Config
+
 - [ ] Update auth-service config.go with SentryConfig
 - [ ] Update user-service config.go with SentryConfig
 - [ ] Update wallet-service config.go with SentryConfig
 - [ ] Update graphql-gateway config.go with SentryConfig
 
 ### Auth Service
+
 - [ ] Add Sentry initialization in main.go
 - [ ] Add gRPC server interceptor
 - [ ] Add panic capture
 - [ ] Add graceful shutdown flush
 
 ### User Service
+
 - [ ] Add Sentry initialization in main.go
 - [ ] Add gRPC server interceptor
 - [ ] Add panic capture
 - [ ] Add graceful shutdown flush
 
 ### Wallet Service
+
 - [ ] Add Sentry initialization in main.go
 - [ ] Add gRPC server interceptor
 - [ ] Add panic capture
 - [ ] Add graceful shutdown flush
 
 ### GraphQL Gateway
+
 - [ ] Add Sentry initialization in main.go
 - [ ] Add HTTP middleware to Chi router
 - [ ] Add gRPC client interceptors
@@ -507,6 +515,7 @@ SENTRY_ENVIRONMENT=development
 - [ ] Add graceful shutdown flush
 
 ### Environment
+
 - [ ] Update .env.example with Sentry variables
 
 ---
@@ -526,11 +535,11 @@ SENTRY_ENVIRONMENT=development
 
 ## Risk Assessment
 
-| Risk | Mitigation |
-|------|------------|
+| Risk                         | Mitigation                        |
+| ---------------------------- | --------------------------------- |
 | Service fails if Sentry down | Non-blocking init, log error only |
-| Missing trace context | E2E test to verify waterfalls |
-| Config errors | Validate DSN format before init |
+| Missing trace context        | E2E test to verify waterfalls     |
+| Config errors                | Validate DSN format before init   |
 
 ---
 
@@ -543,13 +552,16 @@ SENTRY_ENVIRONMENT=development
 ## Remaining Items (Future Follow-up)
 
 ### High Priority
+
 - [ ] Add flush before fatal errors in auth/user/wallet services
   - Current: `sentry.CaptureException(err); log.Fatalf(...)` (async capture lost)
   - Fix: Add `obs.Flush(2 * time.Second)` before fatal, or remove capture entirely
 
 ### Medium Priority
+
 - [ ] Make `tracesSampleRate` configurable via environment variable
 - [ ] Extract shared init logic to reduce code duplication
 
 ### Low Priority
+
 - [ ] Add DSN format validation (warn if invalid format)

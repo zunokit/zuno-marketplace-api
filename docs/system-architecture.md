@@ -56,6 +56,7 @@
 **Port**: 8081
 
 **Request Flow**:
+
 1. Client sends GraphQL query with JWT token
 2. Gateway middleware validates token
 3. Resolvers fan out to gRPC services
@@ -69,6 +70,7 @@
 **Ports**: 50051 (Auth), 50052 (User), 50053 (Wallet)
 
 **Service Dependencies**:
+
 - Gateway depends on: Auth, User, Wallet
 - Auth depends on: User, Wallet (internal calls)
 - Wallet depends on: User
@@ -104,6 +106,7 @@ Database: nft_marketplace
 #### Auth Service Tables
 
 **auth_nonces** - SIWE nonce management
+
 ```
 id              BIGSERIAL PRIMARY KEY
 address         VARCHAR(42) NOT NULL  -- Ethereum address
@@ -119,6 +122,7 @@ INDEX idx_auth_nonces_used (used_at) -- For cleanup queries
 ```
 
 **sessions** - User session tracking
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID NOT NULL REFERENCES users(id)
@@ -134,6 +138,7 @@ INDEX idx_sessions_expires_at (expires_at)
 ```
 
 **login_events** - Audit trail
+
 ```
 id              BIGSERIAL PRIMARY KEY
 user_id         UUID NOT NULL REFERENCES users(id)
@@ -151,6 +156,7 @@ INDEX idx_login_events_timestamp (timestamp)
 #### User Service Tables
 
 **users** - Core user accounts
+
 ```
 id              UUID PRIMARY KEY              -- UUID v5(namespace, address)
 account_id      VARCHAR(255) UNIQUE           -- CAIP-10: chain:network:address
@@ -166,6 +172,7 @@ INDEX idx_users_created_at (created_at)
 ```
 
 **profiles** - User profile information
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID NOT NULL UNIQUE REFERENCES users(id)
@@ -180,6 +187,7 @@ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ```
 
 **user_follows** - Social relationships
+
 ```
 follower_id     UUID NOT NULL REFERENCES users(id)
 following_id    UUID NOT NULL REFERENCES users(id)
@@ -191,6 +199,7 @@ INDEX idx_user_follows_following (following_id)
 ```
 
 **user_preferences** - User settings
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID NOT NULL UNIQUE REFERENCES users(id)
@@ -204,6 +213,7 @@ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ```
 
 **user_stats** - Activity statistics
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID NOT NULL UNIQUE REFERENCES users(id)
@@ -219,6 +229,7 @@ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 #### Wallet Service Tables
 
 **wallet_links** - Multi-wallet associations
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id         UUID NOT NULL REFERENCES users(id)
@@ -238,6 +249,7 @@ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ```
 
 **wallet_verifications** - Verification status tracking
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 wallet_link_id  UUID NOT NULL REFERENCES wallet_links(id)
@@ -253,6 +265,7 @@ FOREIGN KEY (wallet_link_id) REFERENCES wallet_links(id)
 ```
 
 **wallet_activity** - Transaction history
+
 ```
 id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
 wallet_link_id  UUID NOT NULL REFERENCES wallet_links(id)
@@ -271,6 +284,7 @@ FOREIGN KEY (wallet_link_id) REFERENCES wallet_links(id)
 ### Query Patterns
 
 **Atomic Nonce Consumption**:
+
 ```sql
 BEGIN;
   UPDATE auth_nonces
@@ -281,6 +295,7 @@ COMMIT;
 ```
 
 **Ensure User Idempotency**:
+
 ```sql
 INSERT INTO users (id, account_id, email, created_at, updated_at)
 VALUES ($1, $2, $3, NOW(), NOW())
@@ -291,6 +306,7 @@ RETURNING *;
 ```
 
 **User-Wallet Association**:
+
 ```sql
 SELECT u.id, u.account_id, wl.address, wl.chain_id
 FROM users u
@@ -368,6 +384,7 @@ WHERE u.id = $1 AND wl.deleted_at IS NULL;
 ### Token Structure
 
 **Access Token** (JWT, short-lived)
+
 ```
 Header:
 {
@@ -392,6 +409,7 @@ Signature: HMAC-SHA256(secret)
 ```
 
 **Refresh Token** (JWT, long-lived, rotates)
+
 ```
 Header:
 {
@@ -419,23 +437,27 @@ Signature: HMAC-SHA256(refresh-secret)
 ### Security Features
 
 #### Nonce Management
+
 - Random nonce generated per auth request
 - Single-use (atomic database constraint)
 - 10-minute expiration window
 - Prevents replay attacks
 
 #### Refresh Token Rotation
+
 - New token issued on each refresh
 - Token family tracks related tokens
 - Reuse detection on invalid family
 - Suspicious activity triggers session revocation
 
 #### Session Fingerprinting
+
 - Device hash = MD5(User-Agent + IP)
 - Mismatch triggers re-authentication
 - Prevents session token theft
 
 #### Token Expiry
+
 - Access: 15 minutes (low risk window)
 - Refresh: 7 days (long maintenance)
 - Nonce: 10 minutes (auth window)
@@ -445,6 +467,7 @@ Signature: HMAC-SHA256(refresh-secret)
 ### gRPC Service Interfaces
 
 **Auth Service** (AuthServiceServer)
+
 ```protobuf
 service Auth {
   rpc GetNonce(GetNonceRequest) returns (GetNonceResponse)
@@ -456,6 +479,7 @@ service Auth {
 ```
 
 **User Service** (UserServiceServer)
+
 ```protobuf
 service User {
   rpc GetUser(GetUserRequest) returns (GetUserResponse)
@@ -467,6 +491,7 @@ service User {
 ```
 
 **Wallet Service** (WalletServiceServer)
+
 ```protobuf
 service Wallet {
   rpc LinkWallet(LinkWalletRequest) returns (LinkWalletResponse)
@@ -478,6 +503,7 @@ service Wallet {
 ### Service-to-Service Calls
 
 **Initialization** (in GraphQL Gateway):
+
 ```go
 // Create gRPC connections at startup
 authConn, _ := grpc.Dial("auth-service:50051")
@@ -490,6 +516,7 @@ walletClient := pb.NewWalletClient(walletConn)
 ```
 
 **Within Services** (Auth calling User):
+
 ```go
 // Auth service depends on User service
 type authServer struct {
@@ -507,6 +534,7 @@ user, err := s.userClient.CreateUser(ctx, &pb.CreateUserRequest{
 ### PostgreSQL Database
 
 **Configuration**:
+
 - Version: PostgreSQL 15
 - Container: `postgres:15-alpine`
 - Port: 5432
@@ -515,6 +543,7 @@ user, err := s.userClient.CreateUser(ctx, &pb.CreateUserRequest{
 - Database: nft_marketplace
 
 **Connection Pool** (from each service):
+
 ```
 Max Open Connections: 25
 Max Idle Connections: 5
@@ -522,6 +551,7 @@ Connection Max Lifetime: 5 minutes
 ```
 
 **Replication** (future):
+
 - Primary-standby replication
 - Automatic failover
 - Backup recovery procedures
@@ -529,6 +559,7 @@ Connection Max Lifetime: 5 minutes
 ### Redis Cache
 
 **Configuration**:
+
 - Version: Redis 7
 - Container: `redis:7-alpine`
 - Port: 6379
@@ -539,6 +570,7 @@ Connection Max Lifetime: 5 minutes
 **Current Usage**: None (infrastructure ready)
 
 **Planned Usage**:
+
 - Session storage (30-day TTL)
 - User preferences cache (24-hour TTL)
 - Rate limit counters (per-minute)
@@ -546,6 +578,7 @@ Connection Max Lifetime: 5 minutes
 ### RabbitMQ Message Queue
 
 **Configuration**:
+
 - Version: RabbitMQ 3 (latest)
 - Container: `rabbitmq:3-management`
 - AMQP Port: 5672
@@ -555,10 +588,12 @@ Connection Max Lifetime: 5 minutes
 **Current Usage**: None (infrastructure ready)
 
 **Planned Exchanges**:
+
 - `nft_events` - Direct exchange for service events
 - `audit_logs` - Topic exchange for audit trail
 
 **Planned Queues**:
+
 - `login_events.queue` - Login audit logging
 - `user_updates.queue` - User state changes
 - `wallet_updates.queue` - Wallet activity
@@ -568,6 +603,7 @@ Connection Max Lifetime: 5 minutes
 ### Development (Docker Compose)
 
 **Services**:
+
 - postgres (database)
 - redis (cache)
 - rabbitmq (message queue)
@@ -583,6 +619,7 @@ Connection Max Lifetime: 5 minutes
 ### Development (Kubernetes + Tilt)
 
 **Components**:
+
 - PostgreSQL StatefulSet (persistence via PVC)
 - Redis Deployment (in-memory cache)
 - RabbitMQ StatefulSet (message broker)
@@ -592,6 +629,7 @@ Connection Max Lifetime: 5 minutes
 - GraphQL Gateway Deployment (replicas: 2)
 
 **Features**:
+
 - Hot reload via Tilt
 - Service DNS discovery
 - ConfigMap for config
@@ -604,6 +642,7 @@ Connection Max Lifetime: 5 minutes
 ### Production (Kubernetes - TODO)
 
 **Missing Configurations**:
+
 - Ingress controller
 - TLS/SSL certificates
 - Pod autoscaling
@@ -622,12 +661,14 @@ Connection Max Lifetime: 5 minutes
 **Implementation**: `shared/observability/sentry/` + `shared/observability/middleware/` + `shared/observability/tracing/`
 
 **Integrated Services**:
+
 - Auth Service (Port 50051)
 - User Service (Port 50052)
 - Wallet Service (Port 50053)
 - GraphQL Gateway (Port 8081)
 
 **Features**:
+
 - **Automatic Error Capture**: Captures unhandled panics and exceptions
 - **Performance Monitoring**: Distributed tracing with configurable sampling rates
 - **Privacy-First**: Automatic scrubbing of sensitive data before transmission
@@ -635,6 +676,7 @@ Connection Max Lifetime: 5 minutes
 - **Stack Traces**: Full stack trace attachment for debugging
 
 **Privacy Scrubbing Patterns**:
+
 ```
 - Ethereum addresses: 0x[a-fA-F0-9]{40} → [FILTERED:ETH_ADDRESS]
 - CAIP-10 IDs: eip155:1:0x... → [FILTERED:CAIP10]
@@ -645,9 +687,10 @@ Connection Max Lifetime: 5 minutes
 ```
 
 **Integration Pattern** (per service):
+
 ```go
-import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
-import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+import obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 
 func main() {
     // Initialize Sentry with environment-based sampling
@@ -672,6 +715,7 @@ func main() {
 ```
 
 **Configuration Requirements** (per service):
+
 ```bash
 SENTRY_DSN=https://...@sentry.io/...
 SENTRY_ENVIRONMENT=production|staging|development  # Determines sampling rate automatically
@@ -683,12 +727,14 @@ SENTRY_RELEASE=v1.0.0
 ```
 
 **Configuration Decisions**:
+
 - **Sentry Project Strategy**: Share one Sentry project for all services (current), with future scaling to allow per-service projects
 - **Trace Sampling Rate**: Environment-based (100% dev, 20% staging, 5% prod) - balances debugging needs with cost control
 - **Smart Sampling**: Health checks excluded from tracing (0%), auth operations always traced (100%)
 - **Custom Tags**: Add `user_id` and `wallet_hash` tags for user context (wallet address SHA256 hashed)
 
 **Recommended Tag Usage**:
+
 ```go
 // Add user context with hashed wallet
 import "crypto/sha256"
@@ -713,6 +759,7 @@ The middleware layer provides automatic distributed tracing across all service c
 **Purpose**: Capture HTTP requests as Sentry transactions with distributed tracing support.
 
 **Features**:
+
 - Health/ready endpoint skip (`/health`, `/ready`) for clean trace data
 - Transaction name from HTTP method + path (e.g., `GET /api/v1/users`)
 - HTTP context capture: method, URL, scheme, host, path, query, remote_addr
@@ -724,8 +771,9 @@ The middleware layer provides automatic distributed tracing across all service c
   - Others → `OK`
 
 **Usage**:
+
 ```go
-import obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obshttp "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 router := chi.NewRouter()
 router.Use(obshttp.SentryHTTP)  // Add BEFORE other middleware
@@ -740,23 +788,27 @@ router.Use(middleware.Recoverer)
 **Purpose**: Distributed tracing for gRPC service-to-service communication.
 
 **UnaryServerInterceptor**:
+
 - Captures incoming gRPC calls as Sentry spans
 - Extracts `sentry-trace` from incoming metadata for distributed tracing
 - Captures method name and service info
 - Error mapping to span status
 
 **UnaryClientInterceptor**:
+
 - Injects `sentry-trace` header into outbound gRPC calls
 - Captures target service and method info
 - Formats trace header: `{trace_id}-{span_id}-{sampled}`
 
 **StreamServerInterceptor**:
+
 - Support for streaming gRPC RPCs
 - Context propagation via `streamWithContext` wrapper
 
 **Usage**:
+
 ```go
-import obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgrpc "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 // Server
 grpcServer := grpc.NewServer(
@@ -778,6 +830,7 @@ conn, err := grpc.Dial(
 **Purpose**: Field-level and operation-level tracing for GraphQL resolvers.
 
 **GraphQLFieldMiddleware**:
+
 - Creates span for each GraphQL field resolution
 - Captures field name, type, parent type
 - Operation context (query/mutation/subscription)
@@ -785,13 +838,15 @@ conn, err := grpc.Dial(
 - Panic recovery with proper span cleanup
 
 **GraphQLResponseMiddleware**:
+
 - Operation-level metrics
 - Error count tracking
 - Operation type classification
 
 **Usage**:
+
 ```go
-import obsgraphql "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+import obsgraphql "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 
 srv := handler.NewDefaultServer(schema)
 srv.Use(obsgraphql.GraphQLFieldMiddleware())
@@ -841,6 +896,7 @@ srv.Use(obsgraphql.GraphQLResponseMiddleware())
 **File**: `middleware/middleware_test.go`
 
 Tests: 6/6 passing
+
 - `TestSentryHTTP`: Health/ready endpoint skip, regular tracing, POST requests
 - `TestResponseWriter`: Status code wrapper functionality
 - `TestUnaryServerInterceptor`: gRPC server request handling
@@ -855,24 +911,28 @@ Tests: 6/6 passing
 All 4 services now have integrated Sentry observability:
 
 **Auth Service** (`services/auth-service/cmd/main.go`):
+
 - Sentry initialization with non-blocking approach
 - gRPC server interceptor for incoming request tracing
 - Graceful shutdown with Sentry flush
 - Config: `SentryConfig` struct with DSN and Environment
 
 **User Service** (`services/user-service/cmd/main.go`):
+
 - Sentry initialization with non-blocking approach
 - gRPC server interceptor for incoming request tracing
 - Graceful shutdown with Sentry flush
 - Config: `SentryConfig` struct with DSN and Environment
 
 **Wallet Service** (`services/wallet-service/cmd/main.go`):
+
 - Sentry initialization with non-blocking approach
 - gRPC server interceptor for incoming request tracing
 - Graceful shutdown with Sentry flush
 - Config: `SentryConfig` struct with DSN and Environment
 
 **GraphQL Gateway** (`services/graphql-gateway/cmd/main.go`):
+
 - Sentry initialization with non-blocking approach
 - HTTP middleware (`obs.SentryHTTP`) for request transaction tracking
 - gRPC client interceptors for all service connections (distributed tracing)
@@ -880,6 +940,7 @@ All 4 services now have integrated Sentry observability:
 - Config: `SentryConfig` struct with DSN and Environment
 
 **Configuration Pattern** (per service):
+
 ```go
 // Load configuration
 cfg := config.Load()
@@ -904,12 +965,14 @@ if cfg.Sentry.DSN != "" {
 ```
 
 **Environment Variables**:
+
 ```bash
 SENTRY_DSN=https://...@sentry.io/...      # Required for Sentry
 SENTRY_ENVIRONMENT=development              # development|staging|production
 ```
 
 **Distributed Tracing End-to-End Flow**:
+
 ```
 Client Request
     │
@@ -933,11 +996,13 @@ Client Request
 **Implementation**: `shared/observability/tracing/` + Service Integration
 
 **Environment-Based Sampling**:
+
 - Development: 100% (full traces for debugging)
 - Staging: 20% (balanced visibility)
 - Production: 5% (cost control)
 
 **Smart Sampling Logic** (via `TracesSampler`):
+
 - Health checks always excluded (0% sampling):
   - `GET /health`
   - `GET /ready`
@@ -952,8 +1017,9 @@ Client Request
   - `signIn`/`signOut`
 
 **Trace Helper Functions**:
+
 ```go
-import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+import obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 
 // Get sampling rate by environment
 rate := obsTrace.GetTracesSampleRate("production") // 0.05
@@ -991,10 +1057,12 @@ obs.Init(
 ### Health Checks
 
 **Implemented**:
+
 - `/health` endpoint on Gateway (returns service statuses)
 - Readiness checks on all deployments
 
 **Missing**:
+
 - Detailed metrics (Prometheus)
 - Log aggregation (ELK/Loki)
 - Alert rules (AlertManager)
@@ -1024,27 +1092,32 @@ obs.Init(
 ### Token Security
 
 **JWT Validation**:
+
 - Signature verification (HMAC-SHA256)
 - Expiry check (reject expired tokens)
 - Algorithm check (only HS256 accepted)
 - Audience validation
 
 **Token Storage** (client):
+
 - Access token: Memory (cleared on tab close)
 - Refresh token: Secure HTTP-only cookie
 
 **Token Transmission**:
+
 - Access: Authorization header (Bearer)
 - Refresh: HTTP-only cookie (automatic)
 
 ### Network Security
 
 **In-Transit**:
+
 - gRPC over TLS (future, development uses plain)
 - HTTP/HTTPS for clients (future: HTTPS enforced)
 - Service-to-service mTLS (future)
 
 **At-Rest**:
+
 - Database: TDE (transparent data encryption, future)
 - Secrets: Kubernetes Secrets (encrypted etcd backend)
 - Tokens: Signed, not encrypted (trust platform)
@@ -1052,10 +1125,12 @@ obs.Init(
 ### Access Control
 
 **Unauthenticated Endpoints**:
+
 - `POST /graphql` query (GetNonce, VerifySIWE)
 - `GET /health`
 
 **Authenticated Endpoints**:
+
 - All other queries and mutations
 - JWT required in Authorization header
 - Device fingerprint validation
