@@ -156,6 +156,39 @@ func main() {
 
 ## Configuration Loading
 
+### Infrastructure Mode Selection
+
+The application supports two infrastructure modes selected via environment variables:
+
+**Docker Mode** (default - local development):
+```bash
+INFRA_MODE=docker  # Optional, default when serverless vars not set
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=CHANGE_IN_PRODUCTION
+POSTGRES_DATABASE=nft_marketplace
+REDIS_HOST=localhost
+REDIS_PORT=6379
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+```
+
+**Serverless Mode** (cloud infrastructure - no Docker required):
+```bash
+INFRA_MODE=serverless
+SUPABASE_DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AXxX...xXxX
+CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
+```
+
+**Detection Priority**:
+1. If `SUPABASE_DATABASE_URL` is set → Serverless mode
+2. Otherwise → Docker mode (uses localhost defaults)
+
 ### Pattern
 
 Type-safe environment loading in `internal/config/config.go`:
@@ -188,7 +221,29 @@ func LoadConfig() *Config {
     JWTSecret: env.GetString("JWT_SECRET", ""),
     Port: env.GetInt("PORT", 50051),
     Env: env.GetString("ENV", "development"),
+
+    // Serverless infrastructure detection
+    InfraMode:     env.GetString("INFRA_MODE", "docker"),
+    SupabaseURL:   env.GetString("SUPABASE_DATABASE_URL", ""),
+    UpstashURL:    env.GetString("UPSTASH_REDIS_REST_URL", ""),
+    UpstashToken:  env.GetString("UPSTASH_REDIS_REST_TOKEN", ""),
+    CloudAMQPURL:  env.GetString("CLOUDAMQP_URL", ""),
   }
+}
+
+// IsServerless returns true if using cloud infrastructure
+func (c *Config) IsServerless() bool {
+  return c.SupabaseURL != "" || c.InfraMode == "serverless"
+}
+
+// GetDatabaseURL returns the appropriate database URL based on mode
+func (c *Config) GetDatabaseURL() string {
+  if c.IsServerless() && c.SupabaseURL != "" {
+    return c.SupabaseURL
+  }
+  // Build from Docker defaults
+  return fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+    c.DatabaseUser, c.DatabasePassword, c.DatabaseHost, c.DatabasePort, c.DatabaseName)
 }
 ```
 
@@ -199,6 +254,9 @@ func LoadConfig() *Config {
 - Document required vs optional
 - Validate critical values at startup
 - Never commit secrets; use `.env.example`
+- Support both Docker and Serverless modes
+- Detect infrastructure mode automatically
+- Document environment variable templates in `.env.example`
 
 ## Error Handling
 
@@ -810,6 +868,6 @@ func (s *AuthService) VerifySignature(ctx context.Context, message, signature st
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-12-04
+**Version**: 1.1
+**Last Updated**: 2025-12-29
 **Applies To**: All Go services in the project

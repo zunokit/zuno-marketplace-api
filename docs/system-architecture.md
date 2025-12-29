@@ -580,6 +580,36 @@ Connection Max Lifetime: 5 minutes
 **Startup**: `docker compose up -d`
 **Logs**: `docker compose logs -f`
 
+### Development (Serverless - NEW)
+
+**Infrastructure Providers**:
+- Supabase (PostgreSQL) - Free tier
+- Upstash (Redis) - Free tier
+- CloudAMQP (RabbitMQ) - Little Lemur free tier
+
+**Configuration**: `.env` with serverless connection strings
+**Startup**: No infrastructure startup required - just run services
+**Benefits**:
+- Zero local resource usage
+- No Docker overhead
+- Shared dev environment
+- Quick setup (10 minutes)
+
+**Environment Variables** (see `.env.example`):
+```bash
+# Supabase (PostgreSQL)
+SUPABASE_DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Upstash (Redis)
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AXxX...xXxX
+
+# CloudAMQP (RabbitMQ)
+CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
+```
+
 ### Development (Kubernetes + Tilt)
 
 **Components**:
@@ -612,6 +642,33 @@ Connection Max Lifetime: 5 minutes
 - Backup strategy
 - Monitoring stack
 - Logging aggregation
+
+### Infrastructure Mode Switching
+
+The application supports switching between Docker and Serverless modes via environment configuration:
+
+**Docker Mode** (default):
+```bash
+# Uses local infrastructure
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+REDIS_HOST=localhost
+REDIS_PORT=6379
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+
+# Requires: docker compose up -d
+```
+
+**Serverless Mode**:
+```bash
+# Uses cloud infrastructure
+SUPABASE_DATABASE_URL=postgresql://...
+UPSTASH_REDIS_REST_URL=https://...
+CLOUDAMQP_URL=amqp://...
+
+# No Docker required
+```
 
 ## Monitoring & Observability (Future)
 
@@ -699,6 +756,6 @@ Connection Max Lifetime: 5 minutes
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-12-04
+**Version**: 1.1
+**Last Updated**: 2025-12-29
 **Diagram Format**: ASCII (future: Mermaid diagrams)

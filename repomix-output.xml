@@ -16993,16 +16993,6 @@ RABBITMQ_PASSWORD=CHANGE_IN_PRODUCTION
 RABBITMQ_EXCHANGE=nft-marketplace
 
 # ============================================
-# BLOCKCHAIN RPC
-# ============================================
-# Testnet
-ETH_SEPOLIA_RPC=https://sepolia.infura.io/v3/your-infura-key
-
-# Local Development
-ANVIL_RPC=http://localhost:8545
-
-
-# ============================================
 # SERVICES PORTS (gRPC)
 # ============================================
 # Active microservices
@@ -17013,12 +17003,6 @@ WALLET_GRPC_PORT=50053
 # GraphQL Gateway
 GATEWAY_HTTP_ADDR=8081
 
-# ============================================
-# MONITORING (Optional)
-# ============================================
-# Sentry
-SENTRY_DSN=
-SENTRY_ENVIRONMENT=development
 </file>
 
 <file path="infra/development/k8s/graph-gateway-deployment.yaml">

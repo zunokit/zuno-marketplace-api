@@ -1,7 +1,7 @@
 # Phase 1: Account Setup & Configuration
 
 **Priority**: P1
-**Status**: Pending
+**Status**: Completed (2025-12-29)
 **Effort**: 1 hour
 
 ## Context Links
@@ -163,25 +163,27 @@ CLOUDAMQP_URL=amqp://xxx:xxx@xxx.rmq.cloudamqp.com/xxx
 
 ## Todo List
 
-- [ ] Create Supabase account
-- [ ] Create Supabase project
-- [ ] Save Supabase connection string to password manager
-- [ ] Create Upstash account
-- [ ] Create Upstash Redis database
-- [ ] Save Upstash connection details to password manager
-- [ ] Create CloudAMQP account
-- [ ] Create CloudAMQP instance (Little Lemur)
-- [ ] Save CloudAMQP URL to password manager
-- [ ] Create local connection details file (chmod 600)
-- [ ] Add connection details file to .gitignore
+- [x] Create Supabase account
+- [x] Create Supabase project
+- [x] Save Supabase connection string to password manager
+- [x] Create Upstash account
+- [x] Create Upstash Redis database
+- [x] Save Upstash connection details to password manager
+- [x] Create CloudAMQP account
+- [x] Create CloudAMQP instance (Little Lemur)
+- [x] Save CloudAMQP URL to password manager
+- [x] Create local connection details file (chmod 600)
+- [x] Add connection details file to .gitignore
+- [x] Add serverless environment variable templates to .env.example
 
 ## Success Criteria
 
-- [ ] All three accounts created with OAuth
-- [ ] All connection strings obtained and stored securely
-- [ ] Connection details file exists locally with correct permissions
-- [ ] Free tier confirmed for all services
-- [ ] Regions selected closest to developer location
+- [x] All three accounts created with OAuth
+- [x] All connection strings obtained and stored securely
+- [x] Connection details file exists locally with correct permissions
+- [x] Free tier confirmed for all services
+- [x] Regions selected closest to developer location
+- [x] Environment variable templates added to .env.example
 
 ## Risk Assessment
 

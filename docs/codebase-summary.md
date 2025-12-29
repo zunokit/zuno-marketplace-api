@@ -6,7 +6,7 @@
 **Repository Size**: 138 tracked files
 **Primary Language**: Go 1.21+
 **Architecture**: Microservices (gRPC) + GraphQL Gateway BFF
-**Infrastructure**: Docker Compose + Kubernetes/Tilt
+**Infrastructure**: Docker Compose + Kubernetes/Tilt + Serverless (Supabase/Upstash/CloudAMQP)
 
 ## Directory Structure
 
@@ -223,9 +223,23 @@ service Wallet {
 
 ## Infrastructure & Deployment
 
-### Development Setup
+### Development Setup Options
 
-**Docker Compose** (`docker-compose.yml`)
+**Option 1: Docker Compose** (`docker-compose.yml`)
+- PostgreSQL 15 (port 5432)
+- Redis 7 (port 6379)
+- RabbitMQ 3 (ports 5672, 15672)
+- 5 service containers (auth, user, wallet, gateway, postgres)
+- Requires: `docker compose up -d`
+
+**Option 2: Serverless** (NEW - No Docker required)
+- Supabase (PostgreSQL) - Free tier cloud database
+- Upstash (Redis) - Free tier cloud cache
+- CloudAMQP (RabbitMQ) - Little Lemur free tier
+- Zero local infrastructure overhead
+- Configuration via environment variables (see `.env.example`)
+
+### Kubernetes Deployment
 - PostgreSQL 15 (port 5432)
 - Redis 7 (port 6379)
 - RabbitMQ 3 (ports 5672, 15672)
@@ -481,6 +495,8 @@ tests := []struct {
 - Complete E2E tests
 - Production Kubernetes manifests
 - Monitoring and observability
+- Serverless health check scripts
+- Environment setup automation scripts
 
 ## Unresolved Items
 
@@ -494,5 +510,5 @@ tests := []struct {
 ---
 
 **Generated**: 2025-12-04
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-29
 **Source**: repomix output analysis
