@@ -18,6 +18,7 @@ import (
 
 	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
 	obsentry "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+	obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
 
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph"
 	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/config"
@@ -42,7 +43,7 @@ func main() {
 			cfg.Sentry.Environment,
 			"graphql-gateway",
 			getBuildVersion(),
-			0.2,
+			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
 		); err != nil {
 			log.Printf("Sentry init failed (continuing): %v", err)
 		} else {

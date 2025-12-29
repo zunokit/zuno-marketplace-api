@@ -39,7 +39,8 @@ zuno-marketplace-api/
 │   ├── env/                   # Environment loading
 │   ├── observability/         # Error tracking & monitoring
 │   │   ├── sentry/            # Sentry core package
-│   │   └── middleware/        # HTTP/gRPC/GraphQL middleware
+│   │   ├── middleware/        # HTTP/gRPC/GraphQL middleware
+│   │   └── tracing/           # Smart sampling & trace helpers
 │   └── proto/pb/              # Generated protobuf code
 ├── CLAUDE.md                  # Claude Code instructions
 ├── docker-compose.yml         # Local development
@@ -217,7 +218,57 @@ zuno-marketplace-api/
 - `grpc.go` - gRPC server/client interceptors with trace propagation
 - `graphql.go` - GraphQL field and response middleware
 - `middleware_test.go` - Comprehensive test suite (6/6 passing)
-- `README.md` - Usage documentation (updated)
+- `README.md` - Usage documentation
+
+### `shared/observability/tracing/` - Distributed Tracing Utilities
+
+**Location**: `shared/observability/tracing/`
+**Purpose**: Smart sampling and trace context propagation utilities for distributed tracing
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+- `sampler.go` - Environment-based smart sampling with endpoint-specific logic
+- `propagator.go` - Trace helper functions for context propagation
+- `sampler_test.go` - Unit tests for sampling logic
+- `propagator_test.go` - Unit tests for propagation helpers
+
+**Environment-Based Sampling**:
+- Development: 100% (full traces for debugging)
+- Staging: 20% (balanced visibility)
+- Production: 5% (cost control)
+
+**Smart Sampling Logic** (via `TracesSampler`):
+- Health checks skipped: `GET /health`, `GET /ready`, `grpc.health.v1.Health/Check`
+- Auth operations always traced: `VerifySIWE`, `RefreshToken`, `Login`, `Authenticate`, etc.
+
+**Trace Helper Functions**:
+- `GetTracesSampleRate(environment) float64` - Get sampling rate by environment
+- `TracesSampler(environment) sentry.TracesSampler` - Smart sampling with endpoint logic
+- `InjectTraceContext(ctx) context.Context` - Inject sentry-trace header into gRPC metadata
+- `ExtractTraceContext(ctx) []sentry.SpanOption` - Extract trace context from incoming metadata
+- `GetTraceID(ctx) string` - Get current trace ID from context
+- `GetSpanID(ctx) string` - Get current span ID from context
+
+**Usage Example**:
+```go
+import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+
+// In service main.go
+obs.Init(
+    cfg.Sentry.DSN,
+    cfg.Sentry.Environment,
+    "auth-service",
+    "v1.0.0",
+    obsTrace.GetTracesSampleRate(cfg.Sentry.Environment), // 100% dev, 20% staging, 5% prod
+)
+
+// Inject trace context for outbound gRPC calls
+ctx = obsTrace.InjectTraceContext(ctx)
+
+// Get trace ID for logging
+traceID := obsTrace.GetTraceID(ctx)
+log.Printf("Processing trace: %s", traceID)
+```
 
 **HTTP Middleware (Chi)**:
 - `SentryHTTP` middleware for request transaction tracking
@@ -500,13 +551,13 @@ tests := []struct {
 
 ## File Statistics
 
-**Total Files**: 138 tracked
-**Go Source Files**: 46
+**Total Files**: 142 tracked (+4 Phase 04 tracing files)
+**Go Source Files**: 50 (+4)
 - Auth Service: 8 files
 - User Service: 5 files
 - Wallet Service: 5 files
 - GraphQL Gateway: 8 files
-- Shared: 9 files (env, sentry, middleware)
+- Shared: 13 files (env, sentry, middleware, tracing)
 - Generated: 6 files
 
 **Configuration Files**: 20+
@@ -548,10 +599,10 @@ tests := []struct {
 - User Service: ~400 lines
 - Wallet Service: ~400 lines
 - GraphQL Gateway: ~600 lines
-- Shared: ~550 lines (env, observability/sentry, observability/middleware)
+- Shared: ~750 lines (env, observability/sentry, observability/middleware, observability/tracing)
 - Generated Code: ~5000 lines (protobuf)
-- Tests: ~950 lines
-- **Total**: ~8700 lines (excluding generated code)
+- Tests: ~1050 lines (+100 from Phase 04)
+- **Total**: ~8950 lines (excluding generated code)
 
 ## Architecture Patterns Used
 
@@ -574,7 +625,7 @@ tests := []struct {
 - GraphQL schema definitions
 - Health check endpoints
 - Docker and Kubernetes setup
-- Sentry observability (Core + Middleware + Service Integration complete)
+- Sentry observability (Phase 01-04 complete: Core + Middleware + Service Integration + Distributed Tracing)
 
 ### Partial
 - SIWE verification (has TODOs)

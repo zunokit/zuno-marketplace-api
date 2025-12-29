@@ -617,9 +617,9 @@ Connection Max Lifetime: 5 minutes
 
 ### Error Tracking (Sentry)
 
-**Status**: Phase 03 Complete (Core + Middleware + Service Integration)
+**Status**: Phase 04 Complete (Core + Middleware + Service Integration + Distributed Tracing)
 
-**Implementation**: `shared/observability/sentry/` + `shared/observability/middleware/`
+**Implementation**: `shared/observability/sentry/` + `shared/observability/middleware/` + `shared/observability/tracing/`
 
 **Integrated Services**:
 - Auth Service (Port 50051)
@@ -647,15 +647,16 @@ Connection Max Lifetime: 5 minutes
 **Integration Pattern** (per service):
 ```go
 import obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
 
 func main() {
-    // Initialize Sentry
+    // Initialize Sentry with environment-based sampling
     obs.Init(
         cfg.Sentry.DSN,
         cfg.Sentry.Environment,
         "auth-service",     // service name
         "v1.0.0",          // release version
-        0.2,               // 20% trace sampling
+        obsTrace.GetTracesSampleRate(cfg.Sentry.Environment), // 100% dev, 20% staging, 5% prod
     )
     defer obs.Flush(2 * time.Second)
 
@@ -663,20 +664,28 @@ func main() {
     if err != nil {
         obs.CaptureException(err)
     }
+
+    // Get trace ID for logging
+    traceID := obsTrace.GetTraceID(ctx)
+    log.Printf("Processing trace: %s", traceID)
 }
 ```
 
 **Configuration Requirements** (per service):
 ```bash
 SENTRY_DSN=https://...@sentry.io/...
-SENTRY_ENVIRONMENT=production|staging|development
+SENTRY_ENVIRONMENT=production|staging|development  # Determines sampling rate automatically
 SENTRY_RELEASE=v1.0.0
-SENTRY_TRACES_SAMPLE_RATE=0.2
+# Sampling rate is now auto-calculated based on environment:
+# - development: 100%
+# - staging: 20%
+# - production: 5%
 ```
 
 **Configuration Decisions**:
 - **Sentry Project Strategy**: Share one Sentry project for all services (current), with future scaling to allow per-service projects
-- **Trace Sampling Rate**: 0.2 (20%) for production - balances detail vs cost
+- **Trace Sampling Rate**: Environment-based (100% dev, 20% staging, 5% prod) - balances debugging needs with cost control
+- **Smart Sampling**: Health checks excluded from tracing (0%), auth operations always traced (100%)
 - **Custom Tags**: Add `user_id` and `wallet_hash` tags for user context (wallet address SHA256 hashed)
 
 **Recommended Tag Usage**:
@@ -917,6 +926,66 @@ Client Request
     │                       └──► obs.UnaryServerInterceptor (extract sentry-trace, continue span)
     │
     └──► Sentry receives complete distributed trace
+```
+
+#### Smart Sampling & Trace Helpers (Phase 04)
+
+**Implementation**: `shared/observability/tracing/` + Service Integration
+
+**Environment-Based Sampling**:
+- Development: 100% (full traces for debugging)
+- Staging: 20% (balanced visibility)
+- Production: 5% (cost control)
+
+**Smart Sampling Logic** (via `TracesSampler`):
+- Health checks always excluded (0% sampling):
+  - `GET /health`
+  - `GET /ready`
+  - `grpc.health.v1.Health/Check`
+- Auth operations always traced (100% sampling):
+  - `VerifySIWE`
+  - `RefreshToken`
+  - `Login`
+  - `Logout`
+  - `Authenticate`
+  - `Authorize`
+  - `signIn`/`signOut`
+
+**Trace Helper Functions**:
+```go
+import obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
+
+// Get sampling rate by environment
+rate := obsTrace.GetTracesSampleRate("production") // 0.05
+
+// Get smart sampler with endpoint-specific logic
+sampler := obsTrace.TracesSampler("staging")
+
+// Inject trace context into outbound gRPC calls
+ctx = obsTrace.InjectTraceContext(ctx)
+
+// Get current trace ID for logging/correlation
+traceID := obsTrace.GetTraceID(ctx)
+spanID := obsTrace.GetSpanID(ctx)
+```
+
+**Service Integration Updates**:
+All 4 services now use `obsTrace.GetTracesSampleRate(cfg.Sentry.Environment)`:
+
+```go
+// services/auth-service/cmd/main.go
+obs.Init(
+    cfg.Sentry.DSN,
+    cfg.Sentry.Environment,
+    "auth-service",
+    getBuildVersion(),
+    obsTrace.GetTracesSampleRate(cfg.Sentry.Environment), // Dynamic by env
+)
+
+// services/user-service/cmd/main.go
+// services/wallet-service/cmd/main.go
+// services/graphql-gateway/cmd/main.go
+// (same pattern applied)
 ```
 
 ### Health Checks

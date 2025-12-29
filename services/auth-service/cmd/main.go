@@ -10,6 +10,7 @@ import (
 
 	grpcMiddleware "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
 	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
+	obsTrace "github.com/quangdang46/NFT-Marketplace/shared/observability/tracing"
 
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/client"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/config"
@@ -39,7 +40,7 @@ func main() {
 			cfg.Sentry.Environment,
 			"auth-service",
 			getBuildVersion(),
-			0.2, // 20% sampling for staging
+			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
 		); err != nil {
 			log.Printf("Sentry init failed (continuing): %v", err)
 		} else {
