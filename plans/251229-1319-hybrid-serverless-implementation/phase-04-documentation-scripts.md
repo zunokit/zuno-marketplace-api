@@ -26,6 +26,7 @@ Create comprehensive documentation and helper scripts for serverless development
 ## Requirements
 
 ### Functional Requirements
+
 - FR1: Update README with serverless setup instructions
 - FR2: Create health check script for connections
 - FR3: Create troubleshooting guide
@@ -33,6 +34,7 @@ Create comprehensive documentation and helper scripts for serverless development
 - FR5: Add architecture diagram
 
 ### Non-Functional Requirements
+
 - NFR1: Instructions work for fresh clone
 - NFR2: Scripts handle common errors gracefully
 - NFR3: Clear section separation in README
@@ -41,10 +43,12 @@ Create comprehensive documentation and helper scripts for serverless development
 ## Related Code Files
 
 ### Files to Modify
+
 - `README.md` - Add serverless development section
 - `DEVELOPMENT.md` - May exist, add serverless notes
 
 ### Files to Create
+
 - `scripts/health-check.sh` - Connection validation script
 - `docs/serverless-development.md` - Detailed guide
 - `docs/troubleshooting.md` - Common issues and solutions
@@ -137,7 +141,7 @@ fi
 
 ### Step 2: Create Serverless Development Guide
 
-```markdown
+````markdown
 <!-- docs/serverless-development.md -->
 
 # Serverless Development Guide
@@ -164,15 +168,17 @@ This guide covers setting up a serverless development environment using free-tie
 ### 1. Create Provider Accounts
 
 **Supabase (PostgreSQL)**
+
 1. Go to https://supabase.com
 2. Sign up with GitHub
 3. Create new project:
-   - Name: `zuno-marketplace-dev`
+   - Name: `zuno-api`
    - Region: Select closest to you
    - Plan: Free
 4. Save connection string from Project → Settings → Database
 
 **Upstash (Redis)**
+
 1. Go to https://upstash.com
 2. Sign up with GitHub
 3. Create database:
@@ -182,6 +188,7 @@ This guide covers setting up a serverless development environment using free-tie
 4. Save REST API URL and Token
 
 **CloudAMQP (RabbitMQ)**
+
 1. Go to https://www.cloudamqp.com
 2. Sign up with GitHub
 3. Create instance:
@@ -201,8 +208,10 @@ This guide covers setting up a serverless development environment using free-tie
 # Edit .env and add your connection strings
 nano .env
 ```
+````
 
 Add your connection strings:
+
 ```bash
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
 REDIS_URL=redis://default:[PASSWORD]@xxx.upstash.io:6379
@@ -239,6 +248,7 @@ go run cmd/main.go
 ## Switching Between Modes
 
 ### Docker Mode (Current Production Setup)
+
 ```bash
 # Set INFRA_MODE in .env
 INFRA_MODE=docker
@@ -251,6 +261,7 @@ go run ./services/auth-service/cmd/main.go
 ```
 
 ### Serverless Mode (New Development Setup)
+
 ```bash
 # Set INFRA_MODE in .env
 INFRA_MODE=serverless
@@ -262,11 +273,11 @@ go run ./services/auth-service/cmd/main.go
 
 ## Provider Limits (Free Tiers)
 
-| Provider | Service | Limit |
-|----------|---------|-------|
-| Supabase | PostgreSQL | 500MB storage, 1GB file storage |
-| Upstash | Redis | 10K commands/day |
-| CloudAMQP | RabbitMQ | 100 queues, 10K messages |
+| Provider  | Service    | Limit                           |
+| --------- | ---------- | ------------------------------- |
+| Supabase  | PostgreSQL | 500MB storage, 1GB file storage |
+| Upstash   | Redis      | 10K commands/day                |
+| CloudAMQP | RabbitMQ   | 100 queues, 10K messages        |
 
 These limits are sufficient for development. If exceeded, consider upgrading or switching back to Docker mode.
 
@@ -279,11 +290,13 @@ See [Troubleshooting Guide](./troubleshooting.md) for common issues.
 If you have existing Docker setup with data:
 
 1. **Export existing data** (if needed):
+
    ```bash
    docker exec postgres pg_dump -U postgres nft_marketplace > backup.sql
    ```
 
 2. **Switch to serverless mode**:
+
    ```bash
    ./scripts/setup-env.sh  # Select option 1
    ```
@@ -298,7 +311,8 @@ If you have existing Docker setup with data:
 - Read [Development Guide](./DEVELOPMENT.md) for TDD workflow
 - Check [System Architecture](./system-architecture.md) for design details
 - See [Troubleshooting](./troubleshooting.md) for common issues
-```
+
+````
 
 ### Step 3: Create Troubleshooting Guide
 
@@ -351,11 +365,12 @@ If you have existing Docker setup with data:
 ```bash
 # Run setup script
 ./scripts/setup-env.sh
-```
+````
 
 ### "INFRA_MODE not set"
 
 Add to `.env`:
+
 ```bash
 INFRA_MODE=serverless  # or docker
 ```
@@ -371,16 +386,19 @@ INFRA_MODE=serverless  # or docker
 ### Supabase
 
 **"Project paused"**
+
 - Free projects pause after 1 week of inactivity
 - Click "Resume" in Supabase dashboard
 
 **"Connection rate limit"**
+
 - Free tier allows 60 concurrent connections
 - Close idle connections in your code
 
 ### Upstash
 
 **"Rate limit exceeded"**
+
 - Free tier: 10K commands/day
 - Check usage in Upstash dashboard
 - Consider upgrading or switching to Docker mode
@@ -388,11 +406,13 @@ INFRA_MODE=serverless  # or docker
 ### CloudAMQP
 
 **"Queue limit reached"**
+
 - Free tier: 100 queues max
 - Clean up unused queues in management UI
 - Or upgrade to higher tier
 
 **"Message limit reached"**
+
 - Free tier: 10K messages
 - Messages auto-delete after 28 days on free tier
 - Monitor usage in dashboard
@@ -402,22 +422,26 @@ INFRA_MODE=serverless  # or docker
 ### Slow response times
 
 **Serverless Mode:**
+
 - Check provider region selection (closer = faster)
 - Upstash HTTP has latency vs native Redis
 - Consider connection pooling
 
 **Docker Mode:**
+
 - Check Docker resource limits
 - Increase memory in Docker Desktop settings
 
 ### High memory usage
 
 **Serverless Mode:**
+
 - Should be minimal (no Docker overhead)
 - Check for connection leaks
 - Profile with: `pprof`
 
 **Docker Mode:**
+
 - Check container stats: `docker stats`
 - Limit container memory in docker-compose.yml
 
@@ -429,7 +453,8 @@ INFRA_MODE=serverless  # or docker
    - INFRA_MODE setting
    - Full error message
    - Output of `./scripts/health-check.sh`
-```
+
+````
 
 ### Step 4: Update README
 
@@ -466,7 +491,7 @@ Add new section after "Quick Start":
 
 # 5. Run services (no Docker needed!)
 go run ./services/auth-service/cmd/main.go
-```
+````
 
 **Full guide:** [Serverless Development Guide](./docs/serverless-development.md)
 
@@ -486,10 +511,11 @@ INFRA_MODE=serverless
 
 ## 🐳 Docker Development (Current)
 
-*Existing Docker setup remains fully functional*
+_Existing Docker setup remains fully functional_
 
 See "Quick Start" section above for Docker instructions.
-```
+
+````
 
 ### Step 5: Update DEVELOPMENT.md
 
@@ -513,7 +539,7 @@ Add section about serverless workflow:
 - Best for final testing before deployment
 
 Switch modes via `INFRA_MODE` in `.env`.
-```
+````
 
 ## Todo List
 
@@ -534,11 +560,11 @@ Switch modes via `INFRA_MODE` in `.env`.
 
 ## Risk Assessment
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Outdated provider docs | Medium | Low | Link to official docs |
-| Script permissions issue | Low | Low | Document chmod +x |
-| Broken links | Low | Low | Verify all links |
+| Risk                     | Probability | Impact | Mitigation            |
+| ------------------------ | ----------- | ------ | --------------------- |
+| Outdated provider docs   | Medium      | Low    | Link to official docs |
+| Script permissions issue | Low         | Low    | Document chmod +x     |
+| Broken links             | Low         | Low    | Verify all links      |
 
 ## Security Considerations
 

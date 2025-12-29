@@ -25,6 +25,7 @@ Create accounts on Supabase, Upstash, and CloudAMQP. Generate connection strings
 ## Requirements
 
 ### Functional Requirements
+
 - FR1: Create Supabase project with PostgreSQL database
 - FR2: Create Upstash Redis database
 - FR3: Create CloudAMQP instance (Little Lemur plan)
@@ -32,6 +33,7 @@ Create accounts on Supabase, Upstash, and CloudAMQP. Generate connection strings
 - FR5: Document all connection details in secure location
 
 ### Non-Functional Requirements
+
 - NFR1: Use GitHub/GitLab OAuth for account creation (no passwords to manage)
 - NFR2: Use default/free tier plans
 - NFR3: Select closest region to developer location (reduces latency)
@@ -62,14 +64,16 @@ Developer Laptop
 ### Step 1: Supabase Account & Project
 
 1. **Create Account**
+
    - Go to: https://supabase.com
    - Click "Start your project"
    - Sign in with GitHub (recommended)
 
 2. **Create New Project**
+
    - Click "New Project"
    - Organization: Select or create default
-   - Name: `zuno-marketplace-dev`
+   - Name: `zuno-api`
    - Database Password: Generate secure password (save to password manager)
    - Region: Select closest to you (e.g., Southeast Asia for Vietnam)
    - Pricing Plan: **Free** (default)
@@ -87,11 +91,13 @@ Developer Laptop
 ### Step 2: Upstash Account & Redis Database
 
 1. **Create Account**
+
    - Go to: https://upstash.com
    - Click "Sign Up"
    - Sign in with GitHub/GitLab
 
 2. **Create Redis Database**
+
    - Go to Dashboard
    - Click "Create Database"
    - Name: `zuno-marketplace-redis`
@@ -107,11 +113,13 @@ Developer Laptop
 ### Step 3: CloudAMQP Account & Instance
 
 1. **Create Account**
+
    - Go to: https://www.cloudamqp.com
    - Click "Sign Up"
    - Sign in with GitHub/GitLab
 
 2. **Create Instance (Little Lemur Plan)**
+
    - Go to Dashboard
    - Click "Create New Instance"
    - Name: `zuno-marketplace-rabbitmq`
@@ -138,6 +146,7 @@ chmod 600 ~/supabase-upstash-cloudamqp-connections.txt
 ```
 
 Add to file:
+
 ```
 # Supabase (PostgreSQL)
 SUPABASE_DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
@@ -176,11 +185,11 @@ CLOUDAMQP_URL=amqp://xxx:xxx@xxx.rmq.cloudamqp.com/xxx
 
 ## Risk Assessment
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Email already registered on provider | Low | Low | Use existing account, login |
-| Region not available | Low | Low | Select nearest available region |
-| Free tier exhausted during setup | Very Low | Low | Free tier sufficient for single dev |
+| Risk                                 | Probability | Impact | Mitigation                          |
+| ------------------------------------ | ----------- | ------ | ----------------------------------- |
+| Email already registered on provider | Low         | Low    | Use existing account, login         |
+| Region not available                 | Low         | Low    | Select nearest available region     |
+| Free tier exhausted during setup     | Very Low    | Low    | Free tier sufficient for single dev |
 
 ## Security Considerations
 
