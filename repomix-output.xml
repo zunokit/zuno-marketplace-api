@@ -42,7 +42,9 @@ The content is organized as follows:
 <directory_structure>
 .claude/.env.example
 .dockerignore
+.env.development.example
 .env.example
+.env.production.example
 .factory/commands/ask.md
 .factory/commands/bootstrap.md
 .factory/commands/brainstorm.md
@@ -112,6 +114,7 @@ proto/user.proto
 proto/wallet.proto
 QUICKSTART.md
 README.md
+scripts/setup-env.sh
 services/auth-service/cmd/.gitkeep
 services/auth-service/cmd/main.go
 services/auth-service/internal/.gitkeep
@@ -182,6 +185,224 @@ Tiltfile
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path=".dockerignore">
+# Ignore VCS
+.git
+.gitignore
+
+# Build artifacts
+build/
+**/bin/
+**/dist/
+
+# Kubernetes/Tilt and infra not needed for build
+Tiltfile
+infra/development/k8s/
+copilot/
+
+# Tests and docs (not needed for building binaries)
+**/test/
+**/*_test.go
+**/*.md
+
+# Node and editor junk
+node_modules/
+*.log
+.DS_Store
+.vscode/
+.idea/
+</file>
+
+<file path=".env.production.example">
+# ============================================
+# Zuno Marketplace - Production Environment
+# Infrastructure Mode: Docker
+# ============================================
+# This configuration uses Docker containers or AWS-managed services
+# for production deployment.
+# ============================================
+
+# Infrastructure Mode
+INFRA_MODE=docker
+
+# ============================================
+# CORE APPLICATION
+# ============================================
+ENVIRONMENT=production
+PORT=8080
+
+# ============================================
+# AUTHENTICATION
+# ============================================
+JWT_SECRET=your-production-jwt-secret-min-32-chars
+REFRESH_SECRET=your-production-refresh-secret-min-32-chars
+
+# ============================================
+# DATABASE (AWS RDS or Docker)
+# ============================================
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=nft_marketplace
+
+# Alternative: Use full connection URL for managed databases
+# DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+# ============================================
+# REDIS (AWS ElastiCache or Docker)
+# ============================================
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Alternative: Use full connection URL for managed Redis
+# REDIS_URL=redis://host:6379
+
+# ============================================
+# MESSAGE QUEUE (AWS MQ or Docker)
+# ============================================
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_PORT=5672
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+RABBITMQ_EXCHANGE=nft_events
+
+# Alternative: Use full connection URL for managed RabbitMQ
+# CLOUDAMQP_URL=amqp://user:password@host/vhost
+
+# ============================================
+# SERVICES PORTS (gRPC)
+# ============================================
+# Active microservices
+AUTH_GRPC_PORT=:50051
+USER_GRPC_PORT=:50052
+WALLET_GRPC_PORT=:50053
+
+# GraphQL Gateway
+GATEWAY_HTTP_ADDR=:8080
+
+# ============================================
+# SERVICE URLs (for inter-service communication)
+# ============================================
+USER_SERVICE_URL=localhost:50052
+WALLET_SERVICE_URL=localhost:50053
+</file>
+
+<file path="infra/development/docker/postgres.dockerfile">
+FROM postgres:15-alpine
+
+# Copy all migration scripts to init directory
+# PostgreSQL will execute these in alphabetical order
+COPY services/auth-service/db/up.sql /docker-entrypoint-initdb.d/01-auth.sql
+COPY services/user-service/db/up.sql /docker-entrypoint-initdb.d/02-user.sql  
+COPY services/wallet-service/db/up.sql /docker-entrypoint-initdb.d/03-wallet.sql
+COPY services/chain-registry-service/db/up.sql /docker-entrypoint-initdb.d/04-chain-registry.sql
+COPY services/orchestrator-service/db/up.sql /docker-entrypoint-initdb.d/05-orchestrator.sql
+COPY services/catalog-service/db/up.sql /docker-entrypoint-initdb.d/06-catalog.sql
+COPY services/indexer-service/db/up.sql /docker-entrypoint-initdb.d/07-indexer.sql
+EXPOSE 5432
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 Zuno Kit
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="scripts/setup-env.sh">
+#!/bin/bash
+# Zuno Marketplace - Environment Setup Script
+# This script helps you set up your .env file for either serverless or Docker mode
+
+set -e
+
+echo "=================================================="
+echo "  Zuno Marketplace - Environment Setup"
+echo "=================================================="
+echo ""
+
+# Check if .env exists
+if [ -f .env ]; then
+    echo "⚠️  .env file already exists"
+    read -p "Overwrite? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Aborted"
+        exit 1
+    fi
+    rm .env
+    echo "🗑️  Removed existing .env file"
+fi
+
+# Ask for infrastructure mode
+echo ""
+echo "Select infrastructure mode:"
+echo "  1) serverless - Supabase, Upstash, CloudAMQP (free, no Docker required)"
+echo "  2) docker     - Local containers (resource intensive)"
+echo ""
+read -p "Choice [1-2]: " mode_choice
+
+case $mode_choice in
+    1)
+        echo ""
+        echo "📋 Copying .env.development.example → .env"
+        cp .env.development.example .env
+        echo "✅ Serverless environment configured"
+        echo ""
+        echo "⚠️  IMPORTANT: Edit .env and add your connection strings:"
+        echo "   - DATABASE_URL (from Supabase Project → Settings → Database)"
+        echo "   - REDIS_URL (from Upstash Dashboard → Database → Details)"
+        echo "   - CLOUDAMQP_URL (from CloudAMQP Dashboard → Instance → Details)"
+        echo ""
+        echo "📖 Setup guides:"
+        echo "   - Supabase: https://supabase.com/docs/guides/getting-started"
+        echo "   - Upstash: https://upstash.com/docs/redis/quickstart/redis"
+        echo "   - CloudAMQP: https://www.cloudamqp.com/docs/how-to-connection-url.html"
+        ;;
+    2)
+        echo ""
+        echo "📋 Copying .env.production.example → .env"
+        cp .env.production.example .env
+        echo "✅ Docker environment configured"
+        echo ""
+        echo "🐳 Start services with: docker compose up -d"
+        echo "📊 Check status with: docker compose ps"
+        ;;
+    *)
+        echo "❌ Invalid choice"
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "✨ Setup complete!"
+echo ""
+echo "Next steps:"
+echo "  1. Edit .env file with your actual values"
+echo "  2. Run services (depending on mode):"
+echo "     - Serverless: go run ./services/..."
+echo "     - Docker: docker compose up -d"
+echo ""
+</file>
 
 <file path=".claude/.env.example">
 # Claude Code - Global Environment Variables
@@ -271,34 +492,6 @@ GEMINI_API_KEY=
 # Result: All skills use test-key regardless of config files
 #
 # Priority: runtime > skill-specific > shared > global (this file)
-</file>
-
-<file path=".dockerignore">
-# Ignore VCS
-.git
-.gitignore
-
-# Build artifacts
-build/
-**/bin/
-**/dist/
-
-# Kubernetes/Tilt and infra not needed for build
-Tiltfile
-infra/development/k8s/
-copilot/
-
-# Tests and docs (not needed for building binaries)
-**/test/
-**/*_test.go
-**/*.md
-
-# Node and editor junk
-node_modules/
-*.log
-.DS_Store
-.vscode/
-.idea/
 </file>
 
 <file path=".factory/commands/ask.md">
@@ -3489,45 +3682,6 @@ node_modules/*
 .venv/*
 </file>
 
-<file path="infra/development/docker/postgres.dockerfile">
-FROM postgres:15-alpine
-
-# Copy all migration scripts to init directory
-# PostgreSQL will execute these in alphabetical order
-COPY services/auth-service/db/up.sql /docker-entrypoint-initdb.d/01-auth.sql
-COPY services/user-service/db/up.sql /docker-entrypoint-initdb.d/02-user.sql  
-COPY services/wallet-service/db/up.sql /docker-entrypoint-initdb.d/03-wallet.sql
-COPY services/chain-registry-service/db/up.sql /docker-entrypoint-initdb.d/04-chain-registry.sql
-COPY services/orchestrator-service/db/up.sql /docker-entrypoint-initdb.d/05-orchestrator.sql
-COPY services/catalog-service/db/up.sql /docker-entrypoint-initdb.d/06-catalog.sql
-COPY services/indexer-service/db/up.sql /docker-entrypoint-initdb.d/07-indexer.sql
-EXPOSE 5432
-</file>
-
-<file path="LICENSE">
-MIT License
-
-Copyright (c) 2025 Zuno Kit
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</file>
-
 <file path="cmd.txt">
 claude --dangerously-skip-permissions --add-dir E:\zuno-marketplace-ui --add-dir E:\zuno-marketplace-sdk --add-dir E:\zuno-marketplace-abis --add-dir E:\zuno-marketplace-metadata --add-dir E:\zuno-marketplace-notifications --add-dir E:\zuno-marketplace-indexer --add-dir E:\zuno-marketplace-event-stream --add-dir E:\zuno-marketplace-contracts --add-dir E:\zuno-marketplace-admin --add-dir E:\zuno-marketplace-mini
 
@@ -4314,872 +4468,6 @@ func (s *Session) UpdateLastUsed() {
 }
 </file>
 
-<file path="services/auth-service/internal/repository/login_event_repository_test.go">
-package repository
-
-import (
-	"context"
-	"testing"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-)
-
-func setupTestDB(t *testing.T) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("Failed to open test database: %v", err)
-	}
-
-	// Create the login_events table
-	err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS login_events (
-			id TEXT PRIMARY KEY,
-			user_id TEXT,
-			account_id TEXT NOT NULL,
-			ip_address TEXT,
-			user_agent TEXT,
-			result TEXT NOT NULL,
-			error_message TEXT,
-			chain_id TEXT,
-			domain TEXT,
-			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)
-	`).Error
-	if err != nil {
-		t.Fatalf("Failed to create table: %v", err)
-	}
-
-	// Create indexes
-	db.Exec("CREATE INDEX idx_login_events_user_id ON login_events(user_id)")
-	db.Exec("CREATE INDEX idx_login_events_account_id ON login_events(account_id)")
-	db.Exec("CREATE INDEX idx_login_events_timestamp ON login_events(timestamp)")
-	db.Exec("CREATE INDEX idx_login_events_result ON login_events(result)")
-	db.Exec("CREATE INDEX idx_login_events_ip_address ON login_events(ip_address)")
-
-	return db
-}
-
-func TestLoginEventRepository_CreateLoginEvent(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	userID := uuid.New()
-	ipAddress := "192.168.1.1"
-	userAgent := "Mozilla/5.0"
-	chainID := "eip155:1"
-	domain := "localhost"
-
-	event := &models.LoginEvent{
-		ID:        uuid.New(), // SQLite doesn't auto-generate UUIDs
-		UserID:    &userID,
-		AccountID: "0x1234567890123456789012345678901234567890",
-		IPAddress: &ipAddress,
-		UserAgent: &userAgent,
-		Result:    models.LoginResultSuccess,
-		ChainID:   &chainID,
-		Domain:    &domain,
-		Timestamp: time.Now(),
-	}
-
-	err := repo.CreateLoginEvent(ctx, event)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if event.ID == uuid.Nil {
-		t.Error("Expected ID to be set")
-	}
-}
-
-func TestLoginEventRepository_CreateLoginEvent_Failed(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	ipAddress := "192.168.1.1"
-	errorMsg := "signature verification failed"
-	chainID := "eip155:1"
-	domain := "localhost"
-
-	event := &models.LoginEvent{
-		ID:           uuid.New(), // SQLite doesn't auto-generate UUIDs
-		AccountID:    "0x1234567890123456789012345678901234567890",
-		IPAddress:    &ipAddress,
-		Result:       models.LoginResultInvalidSignature,
-		ErrorMessage: &errorMsg,
-		ChainID:      &chainID,
-		Domain:       &domain,
-		Timestamp:    time.Now(),
-	}
-
-	err := repo.CreateLoginEvent(ctx, event)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if event.ID == uuid.Nil {
-		t.Error("Expected ID to be set")
-	}
-}
-
-func TestLoginEventRepository_GetLoginEventsByUserID(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	userID := uuid.New()
-	ipAddress := "192.168.1.1"
-
-	// Create multiple login events
-	for i := 0; i < 5; i++ {
-		event := &models.LoginEvent{
-			ID:        uuid.New(),
-			UserID:    &userID,
-			AccountID: "0x1234567890123456789012345678901234567890",
-			IPAddress: &ipAddress,
-			Result:    models.LoginResultSuccess,
-			Timestamp: time.Now().Add(time.Duration(i) * time.Minute),
-		}
-		err := repo.CreateLoginEvent(ctx, event)
-		if err != nil {
-			t.Fatalf("Failed to create event: %v", err)
-		}
-	}
-
-	// Retrieve events
-	events, err := repo.GetLoginEventsByUserID(ctx, userID, 10)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if len(events) != 5 {
-		t.Errorf("Expected 5 events, got %d", len(events))
-	}
-
-	// Verify events are ordered by timestamp DESC
-	for i := 0; i < len(events)-1; i++ {
-		if events[i].Timestamp.Before(events[i+1].Timestamp) {
-			t.Error("Expected events to be ordered by timestamp DESC")
-		}
-	}
-}
-
-func TestLoginEventRepository_GetLoginEventsByAccountID(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	accountID := "0x1234567890123456789012345678901234567890"
-	ipAddress := "192.168.1.1"
-
-	// Create events
-	for i := 0; i < 3; i++ {
-		event := &models.LoginEvent{
-			ID:        uuid.New(),
-			AccountID: accountID,
-			IPAddress: &ipAddress,
-			Result:    models.LoginResultSuccess,
-			Timestamp: time.Now(),
-		}
-		err := repo.CreateLoginEvent(ctx, event)
-		if err != nil {
-			t.Fatalf("Failed to create event: %v", err)
-		}
-	}
-
-	// Retrieve events
-	events, err := repo.GetLoginEventsByAccountID(ctx, accountID, 10)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if len(events) != 3 {
-		t.Errorf("Expected 3 events, got %d", len(events))
-	}
-
-	// Verify all events have the same account ID
-	for _, event := range events {
-		if event.AccountID != accountID {
-			t.Errorf("Expected account ID %s, got %s", accountID, event.AccountID)
-		}
-	}
-}
-
-func TestLoginEventRepository_GetLoginEventsByIPAddress(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	ipAddress := "192.168.1.100"
-
-	// Create events
-	for i := 0; i < 2; i++ {
-		event := &models.LoginEvent{
-			ID:        uuid.New(),
-			AccountID: "0x1234567890123456789012345678901234567890",
-			IPAddress: &ipAddress,
-			Result:    models.LoginResultSuccess,
-			Timestamp: time.Now(),
-		}
-		err := repo.CreateLoginEvent(ctx, event)
-		if err != nil {
-			t.Fatalf("Failed to create event: %v", err)
-		}
-	}
-
-	// Retrieve events
-	events, err := repo.GetLoginEventsByIPAddress(ctx, ipAddress, 10)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if len(events) != 2 {
-		t.Errorf("Expected 2 events, got %d", len(events))
-	}
-}
-
-func TestLoginEventRepository_GetRecentFailedAttempts(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	accountID := "0x1234567890123456789012345678901234567890"
-	ipAddress := "192.168.1.1"
-
-	// Create successful login
-	successEvent := &models.LoginEvent{
-		ID:        uuid.New(),
-		AccountID: accountID,
-		IPAddress: &ipAddress,
-		Result:    models.LoginResultSuccess,
-		Timestamp: time.Now(),
-	}
-	repo.CreateLoginEvent(ctx, successEvent)
-
-	// Create failed logins
-	for i := 0; i < 3; i++ {
-		errorMsg := "signature verification failed"
-		event := &models.LoginEvent{
-			ID:           uuid.New(),
-			AccountID:    accountID,
-			IPAddress:    &ipAddress,
-			Result:       models.LoginResultInvalidSignature,
-			ErrorMessage: &errorMsg,
-			Timestamp:    time.Now().Add(time.Duration(i) * time.Second),
-		}
-		err := repo.CreateLoginEvent(ctx, event)
-		if err != nil {
-			t.Fatalf("Failed to create event: %v", err)
-		}
-	}
-
-	// Retrieve failed attempts from the last 5 minutes
-	since := time.Now().Add(-5 * time.Minute)
-	events, err := repo.GetRecentFailedAttempts(ctx, accountID, since)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	// Should only get the 3 failed attempts, not the successful one
-	if len(events) != 3 {
-		t.Errorf("Expected 3 failed attempts, got %d", len(events))
-	}
-
-	// Verify all are failures
-	for _, event := range events {
-		if event.Result == models.LoginResultSuccess {
-			t.Error("Expected only failed login attempts")
-		}
-	}
-}
-
-func TestLoginEventRepository_CountFailedAttempts(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	accountID := "0x1234567890123456789012345678901234567890"
-	ipAddress := "192.168.1.1"
-
-	// Create failed logins
-	for i := 0; i < 5; i++ {
-		errorMsg := "invalid nonce"
-		event := &models.LoginEvent{
-			ID:           uuid.New(),
-			AccountID:    accountID,
-			IPAddress:    &ipAddress,
-			Result:       models.LoginResultInvalidNonce,
-			ErrorMessage: &errorMsg,
-			Timestamp:    time.Now().Add(time.Duration(-i) * time.Minute),
-		}
-		err := repo.CreateLoginEvent(ctx, event)
-		if err != nil {
-			t.Fatalf("Failed to create event: %v", err)
-		}
-	}
-
-	// Count failed attempts in the last 10 minutes
-	since := time.Now().Add(-10 * time.Minute)
-	count, err := repo.CountFailedAttempts(ctx, accountID, &ipAddress, since)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if count != 5 {
-		t.Errorf("Expected 5 failed attempts, got %d", count)
-	}
-
-	// Count with only account ID (no IP filter)
-	count, err = repo.CountFailedAttempts(ctx, accountID, nil, since)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if count != 5 {
-		t.Errorf("Expected 5 failed attempts, got %d", count)
-	}
-}
-
-func TestLoginEventRepository_CountFailedAttempts_TimeWindow(t *testing.T) {
-	db := setupTestDB(t)
-	repo := NewLoginEventRepository(db)
-	ctx := context.Background()
-
-	accountID := "0x1234567890123456789012345678901234567890"
-	ipAddress := "192.168.1.1"
-
-	// Create old failed login (outside time window)
-	oldEvent := &models.LoginEvent{
-		ID:        uuid.New(),
-		AccountID: accountID,
-		IPAddress: &ipAddress,
-		Result:    models.LoginResultInvalidSignature,
-		Timestamp: time.Now().Add(-20 * time.Minute),
-	}
-	repo.CreateLoginEvent(ctx, oldEvent)
-
-	// Create recent failed login (inside time window)
-	recentEvent := &models.LoginEvent{
-		ID:        uuid.New(),
-		AccountID: accountID,
-		IPAddress: &ipAddress,
-		Result:    models.LoginResultInvalidSignature,
-		Timestamp: time.Now().Add(-2 * time.Minute),
-	}
-	repo.CreateLoginEvent(ctx, recentEvent)
-
-	// Count only recent attempts (last 5 minutes)
-	since := time.Now().Add(-5 * time.Minute)
-	count, err := repo.CountFailedAttempts(ctx, accountID, &ipAddress, since)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	// Should only count the recent one, not the old one
-	if count != 1 {
-		t.Errorf("Expected 1 failed attempt in time window, got %d", count)
-	}
-}
-</file>
-
-<file path="services/auth-service/internal/repository/login_event_repository.go">
-package repository
-
-import (
-	"context"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
-	"gorm.io/gorm"
-)
-
-// LoginEventRepository handles login event audit logging operations
-type LoginEventRepository interface {
-	// CreateLoginEvent creates a new login event audit log
-	CreateLoginEvent(ctx context.Context, event *models.LoginEvent) error
-
-	// GetLoginEventsByUserID retrieves login events for a user
-	GetLoginEventsByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*models.LoginEvent, error)
-
-	// GetLoginEventsByAccountID retrieves login events for an account
-	GetLoginEventsByAccountID(ctx context.Context, accountID string, limit int) ([]*models.LoginEvent, error)
-
-	// GetLoginEventsByIPAddress retrieves login events for an IP address
-	GetLoginEventsByIPAddress(ctx context.Context, ipAddress string, limit int) ([]*models.LoginEvent, error)
-
-	// GetRecentFailedAttempts retrieves recent failed login attempts
-	GetRecentFailedAttempts(ctx context.Context, accountID string, since time.Time) ([]*models.LoginEvent, error)
-
-	// CountFailedAttempts counts failed login attempts within a time window
-	CountFailedAttempts(ctx context.Context, accountID string, ipAddress *string, since time.Time) (int64, error)
-
-	// CleanupOldEvents removes login events older than retention period (uses DB function)
-	CleanupOldEvents(ctx context.Context, retentionDays int) (int64, error)
-}
-
-type loginEventRepository struct {
-	db *gorm.DB
-}
-
-// NewLoginEventRepository creates a new login event repository
-func NewLoginEventRepository(db *gorm.DB) LoginEventRepository {
-	return &loginEventRepository{db: db}
-}
-
-// CreateLoginEvent creates a new login event audit log
-func (r *loginEventRepository) CreateLoginEvent(ctx context.Context, event *models.LoginEvent) error {
-	return r.db.WithContext(ctx).Create(event).Error
-}
-
-// GetLoginEventsByUserID retrieves login events for a user
-func (r *loginEventRepository) GetLoginEventsByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*models.LoginEvent, error) {
-	var events []*models.LoginEvent
-	err := r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("timestamp DESC").
-		Limit(limit).
-		Find(&events).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
-// GetLoginEventsByAccountID retrieves login events for an account
-func (r *loginEventRepository) GetLoginEventsByAccountID(ctx context.Context, accountID string, limit int) ([]*models.LoginEvent, error) {
-	var events []*models.LoginEvent
-	err := r.db.WithContext(ctx).
-		Where("account_id = ?", accountID).
-		Order("timestamp DESC").
-		Limit(limit).
-		Find(&events).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
-// GetLoginEventsByIPAddress retrieves login events for an IP address
-func (r *loginEventRepository) GetLoginEventsByIPAddress(ctx context.Context, ipAddress string, limit int) ([]*models.LoginEvent, error) {
-	var events []*models.LoginEvent
-	err := r.db.WithContext(ctx).
-		Where("ip_address = ?", ipAddress).
-		Order("timestamp DESC").
-		Limit(limit).
-		Find(&events).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
-// GetRecentFailedAttempts retrieves recent failed login attempts
-func (r *loginEventRepository) GetRecentFailedAttempts(ctx context.Context, accountID string, since time.Time) ([]*models.LoginEvent, error) {
-	var events []*models.LoginEvent
-	err := r.db.WithContext(ctx).
-		Where("account_id = ? AND result != ? AND timestamp >= ?", accountID, models.LoginResultSuccess, since).
-		Order("timestamp DESC").
-		Find(&events).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
-// CountFailedAttempts counts failed login attempts within a time window
-func (r *loginEventRepository) CountFailedAttempts(ctx context.Context, accountID string, ipAddress *string, since time.Time) (int64, error) {
-	var count int64
-	query := r.db.WithContext(ctx).
-		Model(&models.LoginEvent{}).
-		Where("result != ? AND timestamp >= ?", models.LoginResultSuccess, since)
-
-	if accountID != "" {
-		query = query.Where("account_id = ?", accountID)
-	}
-
-	if ipAddress != nil && *ipAddress != "" {
-		query = query.Where("ip_address = ?", *ipAddress)
-	}
-
-	err := query.Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-// CleanupOldEvents removes login events older than retention period using DB function
-func (r *loginEventRepository) CleanupOldEvents(ctx context.Context, retentionDays int) (int64, error) {
-	var deletedCount int64
-
-	err := r.db.WithContext(ctx).
-		Raw("SELECT cleanup_old_login_events(?)", retentionDays).
-		Scan(&deletedCount).Error
-
-	if err != nil {
-		return 0, err
-	}
-
-	return deletedCount, nil
-}
-</file>
-
-<file path="services/auth-service/internal/repository/nonce_repository.go">
-package repository
-
-import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"errors"
-	"time"
-
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
-	"gorm.io/gorm"
-)
-
-var (
-	ErrNonceNotFound = errors.New("nonce not found")
-	ErrNonceExpired  = errors.New("nonce has expired")
-	ErrNonceUsed     = errors.New("nonce already used")
-	ErrNonceInvalid  = errors.New("nonce is invalid")
-)
-
-// NonceRepository handles nonce persistence operations
-type NonceRepository interface {
-	// CreateNonce generates and stores a new nonce
-	CreateNonce(ctx context.Context, accountID, domain, chainID string, ttl time.Duration) (*models.AuthNonce, error)
-
-	// GetNonce retrieves a nonce by its value
-	GetNonce(ctx context.Context, nonce string) (*models.AuthNonce, error)
-
-	// ValidateAndConsumeNonce atomically validates and marks a nonce as used
-	ValidateAndConsumeNonce(ctx context.Context, nonce, accountID, chainID, domain string) error
-
-	// CleanupExpired removes expired nonces (older than retention period)
-	CleanupExpired(ctx context.Context, retentionPeriod time.Duration) (int64, error)
-}
-
-type nonceRepository struct {
-	db *gorm.DB
-}
-
-// NewNonceRepository creates a new nonce repository
-func NewNonceRepository(db *gorm.DB) NonceRepository {
-	return &nonceRepository{db: db}
-}
-
-// CreateNonce generates a cryptographically secure nonce and stores it
-func (r *nonceRepository) CreateNonce(ctx context.Context, accountID, domain, chainID string, ttl time.Duration) (*models.AuthNonce, error) {
-	// Generate cryptographically secure random nonce (32 bytes = 64 hex chars)
-	nonceBytes := make([]byte, 32)
-	if _, err := rand.Read(nonceBytes); err != nil {
-		return nil, err
-	}
-	nonceValue := hex.EncodeToString(nonceBytes)
-
-	now := time.Now()
-	nonce := &models.AuthNonce{
-		Nonce:     nonceValue,
-		AccountID: accountID,
-		Domain:    domain,
-		ChainID:   chainID,
-		IssuedAt:  now,
-		ExpiresAt: now.Add(ttl),
-		Used:      false,
-		CreatedAt: now,
-	}
-
-	if err := r.db.WithContext(ctx).Create(nonce).Error; err != nil {
-		return nil, err
-	}
-
-	return nonce, nil
-}
-
-// GetNonce retrieves a nonce by its value
-func (r *nonceRepository) GetNonce(ctx context.Context, nonce string) (*models.AuthNonce, error) {
-	var authNonce models.AuthNonce
-	err := r.db.WithContext(ctx).
-		Where("nonce = ?", nonce).
-		First(&authNonce).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNonceNotFound
-		}
-		return nil, err
-	}
-
-	return &authNonce, nil
-}
-
-// ValidateAndConsumeNonce uses the database function try_use_nonce for atomic consume
-func (r *nonceRepository) ValidateAndConsumeNonce(ctx context.Context, nonce, accountID, chainID, domain string) error {
-	var success bool
-
-	// Call the PostgreSQL function try_use_nonce
-	err := r.db.WithContext(ctx).
-		Raw("SELECT try_use_nonce(?, ?, ?, ?)", nonce, accountID, chainID, domain).
-		Scan(&success).Error
-
-	if err != nil {
-		return err
-	}
-
-	if !success {
-		// Nonce was not consumed - need to check why
-		existingNonce, err := r.GetNonce(ctx, nonce)
-		if err != nil {
-			if errors.Is(err, ErrNonceNotFound) {
-				return ErrNonceInvalid
-			}
-			return err
-		}
-
-		if existingNonce.Used {
-			return ErrNonceUsed
-		}
-
-		if existingNonce.IsExpired() {
-			return ErrNonceExpired
-		}
-
-		// Nonce exists but parameters don't match
-		return ErrNonceInvalid
-	}
-
-	return nil
-}
-
-// CleanupExpired removes expired nonces using the database function
-func (r *nonceRepository) CleanupExpired(ctx context.Context, retentionPeriod time.Duration) (int64, error) {
-	var deletedCount int64
-
-	err := r.db.WithContext(ctx).
-		Raw("SELECT cleanup_expired_nonces()").
-		Scan(&deletedCount).Error
-
-	if err != nil {
-		return 0, err
-	}
-
-	return deletedCount, nil
-}
-</file>
-
-<file path="services/auth-service/internal/repository/session_repository.go">
-package repository
-
-import (
-	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
-	"gorm.io/gorm"
-)
-
-var (
-	ErrSessionNotFound = errors.New("session not found")
-	ErrSessionRevoked  = errors.New("session has been revoked")
-	ErrSessionExpired  = errors.New("session has expired")
-)
-
-// SessionRepository handles session persistence operations
-type SessionRepository interface {
-	// CreateSession creates a new session
-	CreateSession(ctx context.Context, session *models.Session) error
-
-	// GetByRefreshToken retrieves a session by refresh token hash
-	GetByRefreshToken(ctx context.Context, refreshTokenHash string) (*models.Session, error)
-
-	// GetByID retrieves a session by ID
-	GetByID(ctx context.Context, sessionID uuid.UUID) (*models.Session, error)
-
-	// UpdateSession updates a session
-	UpdateSession(ctx context.Context, session *models.Session) error
-
-	// RevokeSession revokes a session
-	RevokeSession(ctx context.Context, sessionID uuid.UUID, reason string) error
-
-	// RevokeByRefreshToken revokes a session by refresh token
-	RevokeByRefreshToken(ctx context.Context, refreshTokenHash, reason string) error
-
-	// RevokeTokenFamily revokes all sessions in a token family (for replay attack detection)
-	RevokeTokenFamily(ctx context.Context, familyID uuid.UUID, reason string) error
-
-	// GetActiveSessions retrieves all active sessions for a user
-	GetActiveSessions(ctx context.Context, userID uuid.UUID) ([]*models.Session, error)
-
-	// CleanupExpired marks expired sessions as revoked
-	CleanupExpired(ctx context.Context) (int64, error)
-}
-
-type sessionRepository struct {
-	db *gorm.DB
-}
-
-// NewSessionRepository creates a new session repository
-func NewSessionRepository(db *gorm.DB) SessionRepository {
-	return &sessionRepository{db: db}
-}
-
-// HashRefreshToken creates a SHA-256 hash of the refresh token
-func HashRefreshToken(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(hash[:])
-}
-
-// CreateSession creates a new session
-func (r *sessionRepository) CreateSession(ctx context.Context, session *models.Session) error {
-	return r.db.WithContext(ctx).Create(session).Error
-}
-
-// GetByRefreshToken retrieves a session by refresh token hash
-func (r *sessionRepository) GetByRefreshToken(ctx context.Context, refreshTokenHash string) (*models.Session, error) {
-	var session models.Session
-	err := r.db.WithContext(ctx).
-		Where("refresh_hash = ?", refreshTokenHash).
-		First(&session).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrSessionNotFound
-		}
-		return nil, err
-	}
-
-	return &session, nil
-}
-
-// GetByID retrieves a session by ID
-func (r *sessionRepository) GetByID(ctx context.Context, sessionID uuid.UUID) (*models.Session, error) {
-	var session models.Session
-	err := r.db.WithContext(ctx).
-		Where("session_id = ?", sessionID).
-		First(&session).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrSessionNotFound
-		}
-		return nil, err
-	}
-
-	return &session, nil
-}
-
-// UpdateSession updates a session
-func (r *sessionRepository) UpdateSession(ctx context.Context, session *models.Session) error {
-	return r.db.WithContext(ctx).Save(session).Error
-}
-
-// RevokeSession revokes a session by ID
-func (r *sessionRepository) RevokeSession(ctx context.Context, sessionID uuid.UUID, reason string) error {
-	now := time.Now()
-	result := r.db.WithContext(ctx).
-		Model(&models.Session{}).
-		Where("session_id = ? AND revoked_at IS NULL", sessionID).
-		Updates(map[string]interface{}{
-			"revoked_at":     now,
-			"revoked_reason": reason,
-		})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return ErrSessionNotFound
-	}
-
-	return nil
-}
-
-// RevokeByRefreshToken revokes a session by refresh token hash
-func (r *sessionRepository) RevokeByRefreshToken(ctx context.Context, refreshTokenHash, reason string) error {
-	now := time.Now()
-	result := r.db.WithContext(ctx).
-		Model(&models.Session{}).
-		Where("refresh_hash = ? AND revoked_at IS NULL", refreshTokenHash).
-		Updates(map[string]interface{}{
-			"revoked_at":     now,
-			"revoked_reason": reason,
-		})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return ErrSessionNotFound
-	}
-
-	return nil
-}
-
-// RevokeTokenFamily revokes all sessions in a token family
-func (r *sessionRepository) RevokeTokenFamily(ctx context.Context, familyID uuid.UUID, reason string) error {
-	now := time.Now()
-	return r.db.WithContext(ctx).
-		Model(&models.Session{}).
-		Where("token_family_id = ? AND revoked_at IS NULL", familyID).
-		Updates(map[string]interface{}{
-			"revoked_at":     now,
-			"revoked_reason": reason,
-		}).Error
-}
-
-// GetActiveSessions retrieves all active sessions for a user
-func (r *sessionRepository) GetActiveSessions(ctx context.Context, userID uuid.UUID) ([]*models.Session, error) {
-	var sessions []*models.Session
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND revoked_at IS NULL AND expires_at > ?", userID, time.Now()).
-		Order("created_at DESC").
-		Find(&sessions).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return sessions, nil
-}
-
-// CleanupExpired calls the database function to mark expired sessions as revoked
-func (r *sessionRepository) CleanupExpired(ctx context.Context) (int64, error) {
-	var updatedCount int64
-
-	err := r.db.WithContext(ctx).
-		Raw("SELECT cleanup_expired_sessions()").
-		Scan(&updatedCount).Error
-
-	if err != nil {
-		return 0, err
-	}
-
-	return updatedCount, nil
-}
-</file>
-
 <file path="services/auth-service/internal/service/jwt_service_test.go">
 package service
 
@@ -5689,84 +4977,6 @@ Structured logging with levels:
 MIT
 </file>
 
-<file path="services/graphql-gateway/graph/helpers.go">
-package graph
-
-import (
-	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
-	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
-)
-
-// Helper functions for converting between proto and GraphQL models
-
-func stringPtrToValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
-func valueToStringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-func profileFromProto(p *pb.Profile) *model.Profile {
-	if p == nil {
-		return nil
-	}
-	return &model.Profile{
-		UserID:      p.UserId,
-		Username:    valueToStringPtr(p.Username),
-		DisplayName: valueToStringPtr(p.DisplayName),
-		AvatarURL:   valueToStringPtr(p.AvatarUrl),
-		BannerURL:   valueToStringPtr(p.BannerUrl),
-		Bio:         valueToStringPtr(p.Bio),
-		Locale:      valueToStringPtr(p.Locale),
-		Timezone:    valueToStringPtr(p.Timezone),
-		SocialsJSON: valueToStringPtr(p.SocialsJson),
-		UpdatedAt:   valueToStringPtr(p.UpdatedAt),
-	}
-}
-
-func walletLinkFromProto(w *pb.WalletLink) *model.WalletLink {
-	if w == nil {
-		return nil
-	}
-	return &model.WalletLink{
-		ID:         w.Id,
-		UserID:     w.UserId,
-		AccountID:  w.AccountId,
-		Address:    w.Address,
-		ChainID:    w.ChainId,
-		IsPrimary:  w.IsPrimary,
-		VerifiedAt: valueToStringPtr(w.VerifiedAt.String()),
-		CreatedAt:  w.CreatedAt.String(),
-		UpdatedAt:  w.UpdatedAt.String(),
-	}
-}
-</file>
-
-<file path="services/graphql-gateway/graph/resolver.go">
-package graph
-
-import (
-	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
-)
-
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require here.
-
-type Resolver struct {
-	AuthClient   pb.AuthServiceClient
-	UserClient   pb.UserServiceClient
-	WalletClient pb.WalletServiceClient
-}
-</file>
-
 <file path="services/graphql-gateway/graph/schemas/auth.graphqls">
 # ============================================
 # Auth Types & Operations
@@ -5969,90 +5179,6 @@ extend type Mutation {
   Link a new wallet to the authenticated user.
   """
   linkWallet(input: LinkWalletInput!): WalletLink!
-}
-</file>
-
-<file path="services/graphql-gateway/internal/config/config.go">
-package config
-
-import (
-	"github.com/zunokit/zuno-marketplace-api/shared/env"
-)
-
-// Config holds all configuration for the GraphQL gateway
-type Config struct {
-	Server   ServerConfig
-	JWT      JWTConfig
-	Services ServicesConfig
-	Features FeatureConfig
-}
-
-// ServerConfig holds HTTP server configuration
-type ServerConfig struct {
-	HTTPAddr string
-}
-
-// JWTConfig holds JWT authentication configuration
-type JWTConfig struct {
-	AccessSecret string
-}
-
-// ServicesConfig holds URLs for backend gRPC services
-type ServicesConfig struct {
-	AuthServiceURL   string
-	UserServiceURL   string
-	WalletServiceURL string
-}
-
-// FeatureConfig holds feature flags
-type FeatureConfig struct {
-	PlaygroundEnabled bool
-}
-
-// Load loads configuration from environment variables
-func Load() *Config {
-	return &Config{
-		Server: ServerConfig{
-			HTTPAddr: env.GetString("GATEWAY_HTTP_ADDR", ":8081"),
-		},
-		JWT: JWTConfig{
-			AccessSecret: env.GetString("JWT_ACCESS_SECRET", ""),
-		},
-		Services: ServicesConfig{
-			AuthServiceURL:   env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
-			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
-			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
-		},
-		Features: FeatureConfig{
-			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
-		},
-	}
-}
-
-// Validate checks if required configuration is present
-func (c *Config) Validate() error {
-	if c.JWT.AccessSecret == "" {
-		return ErrMissingJWTSecret
-	}
-	return nil
-}
-
-// Common configuration errors
-var (
-	ErrMissingJWTSecret = NewConfigError("JWT_ACCESS_SECRET environment variable is required")
-)
-
-// ConfigError represents a configuration validation error
-type ConfigError struct {
-	message string
-}
-
-func NewConfigError(message string) error {
-	return &ConfigError{message: message}
-}
-
-func (e *ConfigError) Error() string {
-	return e.message
 }
 </file>
 
@@ -9312,77 +8438,6 @@ With Tilt, when you edit code:
 **For most development, use `make dev` instead!**
 </file>
 
-<file path=".gitignore">
-tmp
-.env
-.envrc
-bin/
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Tilt build
-build/
-
-# Cursor
-.cursorrules
-
-# Secrets
-secrets.yaml
-!infra/development/build/
-!infra\development\build\*.bat
-
-.quoder
-zuno-marketplace-contracts
-</file>
-
 <file path="db/migrations/000001_init_schema.up.sql">
 BEGIN;
 
@@ -10071,37 +9126,869 @@ service WalletService {
 }
 </file>
 
-<file path="services/auth-service/internal/client/grpc_clients.go">
-package client
+<file path="services/auth-service/internal/repository/login_event_repository_test.go">
+package repository
 
 import (
-	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"context"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-type ServiceClients struct {
-	UserClient   pb.UserServiceClient
-	WalletClient pb.WalletServiceClient
+func setupTestDB(t *testing.T) *gorm.DB {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+
+	// Create the login_events table
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS login_events (
+			id TEXT PRIMARY KEY,
+			user_id TEXT,
+			account_id TEXT NOT NULL,
+			ip_address TEXT,
+			user_agent TEXT,
+			result TEXT NOT NULL,
+			error_message TEXT,
+			chain_id TEXT,
+			domain TEXT,
+			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`).Error
+	if err != nil {
+		t.Fatalf("Failed to create table: %v", err)
+	}
+
+	// Create indexes
+	db.Exec("CREATE INDEX idx_login_events_user_id ON login_events(user_id)")
+	db.Exec("CREATE INDEX idx_login_events_account_id ON login_events(account_id)")
+	db.Exec("CREATE INDEX idx_login_events_timestamp ON login_events(timestamp)")
+	db.Exec("CREATE INDEX idx_login_events_result ON login_events(result)")
+	db.Exec("CREATE INDEX idx_login_events_ip_address ON login_events(ip_address)")
+
+	return db
 }
 
-func NewServiceClients(userURL, walletURL string) (*ServiceClients, error) {
-	// Connect to user service
-	userConn, err := grpc.Dial(userURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func TestLoginEventRepository_CreateLoginEvent(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	userID := uuid.New()
+	ipAddress := "192.168.1.1"
+	userAgent := "Mozilla/5.0"
+	chainID := "eip155:1"
+	domain := "localhost"
+
+	event := &models.LoginEvent{
+		ID:        uuid.New(), // SQLite doesn't auto-generate UUIDs
+		UserID:    &userID,
+		AccountID: "0x1234567890123456789012345678901234567890",
+		IPAddress: &ipAddress,
+		UserAgent: &userAgent,
+		Result:    models.LoginResultSuccess,
+		ChainID:   &chainID,
+		Domain:    &domain,
+		Timestamp: time.Now(),
+	}
+
+	err := repo.CreateLoginEvent(ctx, event)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if event.ID == uuid.Nil {
+		t.Error("Expected ID to be set")
+	}
+}
+
+func TestLoginEventRepository_CreateLoginEvent_Failed(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	ipAddress := "192.168.1.1"
+	errorMsg := "signature verification failed"
+	chainID := "eip155:1"
+	domain := "localhost"
+
+	event := &models.LoginEvent{
+		ID:           uuid.New(), // SQLite doesn't auto-generate UUIDs
+		AccountID:    "0x1234567890123456789012345678901234567890",
+		IPAddress:    &ipAddress,
+		Result:       models.LoginResultInvalidSignature,
+		ErrorMessage: &errorMsg,
+		ChainID:      &chainID,
+		Domain:       &domain,
+		Timestamp:    time.Now(),
+	}
+
+	err := repo.CreateLoginEvent(ctx, event)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if event.ID == uuid.Nil {
+		t.Error("Expected ID to be set")
+	}
+}
+
+func TestLoginEventRepository_GetLoginEventsByUserID(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	userID := uuid.New()
+	ipAddress := "192.168.1.1"
+
+	// Create multiple login events
+	for i := 0; i < 5; i++ {
+		event := &models.LoginEvent{
+			ID:        uuid.New(),
+			UserID:    &userID,
+			AccountID: "0x1234567890123456789012345678901234567890",
+			IPAddress: &ipAddress,
+			Result:    models.LoginResultSuccess,
+			Timestamp: time.Now().Add(time.Duration(i) * time.Minute),
+		}
+		err := repo.CreateLoginEvent(ctx, event)
+		if err != nil {
+			t.Fatalf("Failed to create event: %v", err)
+		}
+	}
+
+	// Retrieve events
+	events, err := repo.GetLoginEventsByUserID(ctx, userID, 10)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(events) != 5 {
+		t.Errorf("Expected 5 events, got %d", len(events))
+	}
+
+	// Verify events are ordered by timestamp DESC
+	for i := 0; i < len(events)-1; i++ {
+		if events[i].Timestamp.Before(events[i+1].Timestamp) {
+			t.Error("Expected events to be ordered by timestamp DESC")
+		}
+	}
+}
+
+func TestLoginEventRepository_GetLoginEventsByAccountID(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	accountID := "0x1234567890123456789012345678901234567890"
+	ipAddress := "192.168.1.1"
+
+	// Create events
+	for i := 0; i < 3; i++ {
+		event := &models.LoginEvent{
+			ID:        uuid.New(),
+			AccountID: accountID,
+			IPAddress: &ipAddress,
+			Result:    models.LoginResultSuccess,
+			Timestamp: time.Now(),
+		}
+		err := repo.CreateLoginEvent(ctx, event)
+		if err != nil {
+			t.Fatalf("Failed to create event: %v", err)
+		}
+	}
+
+	// Retrieve events
+	events, err := repo.GetLoginEventsByAccountID(ctx, accountID, 10)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(events) != 3 {
+		t.Errorf("Expected 3 events, got %d", len(events))
+	}
+
+	// Verify all events have the same account ID
+	for _, event := range events {
+		if event.AccountID != accountID {
+			t.Errorf("Expected account ID %s, got %s", accountID, event.AccountID)
+		}
+	}
+}
+
+func TestLoginEventRepository_GetLoginEventsByIPAddress(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	ipAddress := "192.168.1.100"
+
+	// Create events
+	for i := 0; i < 2; i++ {
+		event := &models.LoginEvent{
+			ID:        uuid.New(),
+			AccountID: "0x1234567890123456789012345678901234567890",
+			IPAddress: &ipAddress,
+			Result:    models.LoginResultSuccess,
+			Timestamp: time.Now(),
+		}
+		err := repo.CreateLoginEvent(ctx, event)
+		if err != nil {
+			t.Fatalf("Failed to create event: %v", err)
+		}
+	}
+
+	// Retrieve events
+	events, err := repo.GetLoginEventsByIPAddress(ctx, ipAddress, 10)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(events) != 2 {
+		t.Errorf("Expected 2 events, got %d", len(events))
+	}
+}
+
+func TestLoginEventRepository_GetRecentFailedAttempts(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	accountID := "0x1234567890123456789012345678901234567890"
+	ipAddress := "192.168.1.1"
+
+	// Create successful login
+	successEvent := &models.LoginEvent{
+		ID:        uuid.New(),
+		AccountID: accountID,
+		IPAddress: &ipAddress,
+		Result:    models.LoginResultSuccess,
+		Timestamp: time.Now(),
+	}
+	repo.CreateLoginEvent(ctx, successEvent)
+
+	// Create failed logins
+	for i := 0; i < 3; i++ {
+		errorMsg := "signature verification failed"
+		event := &models.LoginEvent{
+			ID:           uuid.New(),
+			AccountID:    accountID,
+			IPAddress:    &ipAddress,
+			Result:       models.LoginResultInvalidSignature,
+			ErrorMessage: &errorMsg,
+			Timestamp:    time.Now().Add(time.Duration(i) * time.Second),
+		}
+		err := repo.CreateLoginEvent(ctx, event)
+		if err != nil {
+			t.Fatalf("Failed to create event: %v", err)
+		}
+	}
+
+	// Retrieve failed attempts from the last 5 minutes
+	since := time.Now().Add(-5 * time.Minute)
+	events, err := repo.GetRecentFailedAttempts(ctx, accountID, since)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Should only get the 3 failed attempts, not the successful one
+	if len(events) != 3 {
+		t.Errorf("Expected 3 failed attempts, got %d", len(events))
+	}
+
+	// Verify all are failures
+	for _, event := range events {
+		if event.Result == models.LoginResultSuccess {
+			t.Error("Expected only failed login attempts")
+		}
+	}
+}
+
+func TestLoginEventRepository_CountFailedAttempts(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	accountID := "0x1234567890123456789012345678901234567890"
+	ipAddress := "192.168.1.1"
+
+	// Create failed logins
+	for i := 0; i < 5; i++ {
+		errorMsg := "invalid nonce"
+		event := &models.LoginEvent{
+			ID:           uuid.New(),
+			AccountID:    accountID,
+			IPAddress:    &ipAddress,
+			Result:       models.LoginResultInvalidNonce,
+			ErrorMessage: &errorMsg,
+			Timestamp:    time.Now().Add(time.Duration(-i) * time.Minute),
+		}
+		err := repo.CreateLoginEvent(ctx, event)
+		if err != nil {
+			t.Fatalf("Failed to create event: %v", err)
+		}
+	}
+
+	// Count failed attempts in the last 10 minutes
+	since := time.Now().Add(-10 * time.Minute)
+	count, err := repo.CountFailedAttempts(ctx, accountID, &ipAddress, since)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if count != 5 {
+		t.Errorf("Expected 5 failed attempts, got %d", count)
+	}
+
+	// Count with only account ID (no IP filter)
+	count, err = repo.CountFailedAttempts(ctx, accountID, nil, since)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if count != 5 {
+		t.Errorf("Expected 5 failed attempts, got %d", count)
+	}
+}
+
+func TestLoginEventRepository_CountFailedAttempts_TimeWindow(t *testing.T) {
+	db := setupTestDB(t)
+	repo := NewLoginEventRepository(db)
+	ctx := context.Background()
+
+	accountID := "0x1234567890123456789012345678901234567890"
+	ipAddress := "192.168.1.1"
+
+	// Create old failed login (outside time window)
+	oldEvent := &models.LoginEvent{
+		ID:        uuid.New(),
+		AccountID: accountID,
+		IPAddress: &ipAddress,
+		Result:    models.LoginResultInvalidSignature,
+		Timestamp: time.Now().Add(-20 * time.Minute),
+	}
+	repo.CreateLoginEvent(ctx, oldEvent)
+
+	// Create recent failed login (inside time window)
+	recentEvent := &models.LoginEvent{
+		ID:        uuid.New(),
+		AccountID: accountID,
+		IPAddress: &ipAddress,
+		Result:    models.LoginResultInvalidSignature,
+		Timestamp: time.Now().Add(-2 * time.Minute),
+	}
+	repo.CreateLoginEvent(ctx, recentEvent)
+
+	// Count only recent attempts (last 5 minutes)
+	since := time.Now().Add(-5 * time.Minute)
+	count, err := repo.CountFailedAttempts(ctx, accountID, &ipAddress, since)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Should only count the recent one, not the old one
+	if count != 1 {
+		t.Errorf("Expected 1 failed attempt in time window, got %d", count)
+	}
+}
+</file>
+
+<file path="services/auth-service/internal/repository/login_event_repository.go">
+package repository
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
+	"gorm.io/gorm"
+)
+
+// LoginEventRepository handles login event audit logging operations
+type LoginEventRepository interface {
+	// CreateLoginEvent creates a new login event audit log
+	CreateLoginEvent(ctx context.Context, event *models.LoginEvent) error
+
+	// GetLoginEventsByUserID retrieves login events for a user
+	GetLoginEventsByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*models.LoginEvent, error)
+
+	// GetLoginEventsByAccountID retrieves login events for an account
+	GetLoginEventsByAccountID(ctx context.Context, accountID string, limit int) ([]*models.LoginEvent, error)
+
+	// GetLoginEventsByIPAddress retrieves login events for an IP address
+	GetLoginEventsByIPAddress(ctx context.Context, ipAddress string, limit int) ([]*models.LoginEvent, error)
+
+	// GetRecentFailedAttempts retrieves recent failed login attempts
+	GetRecentFailedAttempts(ctx context.Context, accountID string, since time.Time) ([]*models.LoginEvent, error)
+
+	// CountFailedAttempts counts failed login attempts within a time window
+	CountFailedAttempts(ctx context.Context, accountID string, ipAddress *string, since time.Time) (int64, error)
+
+	// CleanupOldEvents removes login events older than retention period (uses DB function)
+	CleanupOldEvents(ctx context.Context, retentionDays int) (int64, error)
+}
+
+type loginEventRepository struct {
+	db *gorm.DB
+}
+
+// NewLoginEventRepository creates a new login event repository
+func NewLoginEventRepository(db *gorm.DB) LoginEventRepository {
+	return &loginEventRepository{db: db}
+}
+
+// CreateLoginEvent creates a new login event audit log
+func (r *loginEventRepository) CreateLoginEvent(ctx context.Context, event *models.LoginEvent) error {
+	return r.db.WithContext(ctx).Create(event).Error
+}
+
+// GetLoginEventsByUserID retrieves login events for a user
+func (r *loginEventRepository) GetLoginEventsByUserID(ctx context.Context, userID uuid.UUID, limit int) ([]*models.LoginEvent, error) {
+	var events []*models.LoginEvent
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("timestamp DESC").
+		Limit(limit).
+		Find(&events).Error
+
 	if err != nil {
 		return nil, err
 	}
 
-	// Connect to wallet service
-	walletConn, err := grpc.Dial(walletURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	return events, nil
+}
+
+// GetLoginEventsByAccountID retrieves login events for an account
+func (r *loginEventRepository) GetLoginEventsByAccountID(ctx context.Context, accountID string, limit int) ([]*models.LoginEvent, error) {
+	var events []*models.LoginEvent
+	err := r.db.WithContext(ctx).
+		Where("account_id = ?", accountID).
+		Order("timestamp DESC").
+		Limit(limit).
+		Find(&events).Error
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &ServiceClients{
-		UserClient:   pb.NewUserServiceClient(userConn),
-		WalletClient: pb.NewWalletServiceClient(walletConn),
-	}, nil
+	return events, nil
+}
+
+// GetLoginEventsByIPAddress retrieves login events for an IP address
+func (r *loginEventRepository) GetLoginEventsByIPAddress(ctx context.Context, ipAddress string, limit int) ([]*models.LoginEvent, error) {
+	var events []*models.LoginEvent
+	err := r.db.WithContext(ctx).
+		Where("ip_address = ?", ipAddress).
+		Order("timestamp DESC").
+		Limit(limit).
+		Find(&events).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+// GetRecentFailedAttempts retrieves recent failed login attempts
+func (r *loginEventRepository) GetRecentFailedAttempts(ctx context.Context, accountID string, since time.Time) ([]*models.LoginEvent, error) {
+	var events []*models.LoginEvent
+	err := r.db.WithContext(ctx).
+		Where("account_id = ? AND result != ? AND timestamp >= ?", accountID, models.LoginResultSuccess, since).
+		Order("timestamp DESC").
+		Find(&events).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+// CountFailedAttempts counts failed login attempts within a time window
+func (r *loginEventRepository) CountFailedAttempts(ctx context.Context, accountID string, ipAddress *string, since time.Time) (int64, error) {
+	var count int64
+	query := r.db.WithContext(ctx).
+		Model(&models.LoginEvent{}).
+		Where("result != ? AND timestamp >= ?", models.LoginResultSuccess, since)
+
+	if accountID != "" {
+		query = query.Where("account_id = ?", accountID)
+	}
+
+	if ipAddress != nil && *ipAddress != "" {
+		query = query.Where("ip_address = ?", *ipAddress)
+	}
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// CleanupOldEvents removes login events older than retention period using DB function
+func (r *loginEventRepository) CleanupOldEvents(ctx context.Context, retentionDays int) (int64, error) {
+	var deletedCount int64
+
+	err := r.db.WithContext(ctx).
+		Raw("SELECT cleanup_old_login_events(?)", retentionDays).
+		Scan(&deletedCount).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return deletedCount, nil
+}
+</file>
+
+<file path="services/auth-service/internal/repository/nonce_repository.go">
+package repository
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"time"
+
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
+	"gorm.io/gorm"
+)
+
+var (
+	ErrNonceNotFound = errors.New("nonce not found")
+	ErrNonceExpired  = errors.New("nonce has expired")
+	ErrNonceUsed     = errors.New("nonce already used")
+	ErrNonceInvalid  = errors.New("nonce is invalid")
+)
+
+// NonceRepository handles nonce persistence operations
+type NonceRepository interface {
+	// CreateNonce generates and stores a new nonce
+	CreateNonce(ctx context.Context, accountID, domain, chainID string, ttl time.Duration) (*models.AuthNonce, error)
+
+	// GetNonce retrieves a nonce by its value
+	GetNonce(ctx context.Context, nonce string) (*models.AuthNonce, error)
+
+	// ValidateAndConsumeNonce atomically validates and marks a nonce as used
+	ValidateAndConsumeNonce(ctx context.Context, nonce, accountID, chainID, domain string) error
+
+	// CleanupExpired removes expired nonces (older than retention period)
+	CleanupExpired(ctx context.Context, retentionPeriod time.Duration) (int64, error)
+}
+
+type nonceRepository struct {
+	db *gorm.DB
+}
+
+// NewNonceRepository creates a new nonce repository
+func NewNonceRepository(db *gorm.DB) NonceRepository {
+	return &nonceRepository{db: db}
+}
+
+// CreateNonce generates a cryptographically secure nonce and stores it
+func (r *nonceRepository) CreateNonce(ctx context.Context, accountID, domain, chainID string, ttl time.Duration) (*models.AuthNonce, error) {
+	// Generate cryptographically secure random nonce (32 bytes = 64 hex chars)
+	nonceBytes := make([]byte, 32)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return nil, err
+	}
+	nonceValue := hex.EncodeToString(nonceBytes)
+
+	now := time.Now()
+	nonce := &models.AuthNonce{
+		Nonce:     nonceValue,
+		AccountID: accountID,
+		Domain:    domain,
+		ChainID:   chainID,
+		IssuedAt:  now,
+		ExpiresAt: now.Add(ttl),
+		Used:      false,
+		CreatedAt: now,
+	}
+
+	if err := r.db.WithContext(ctx).Create(nonce).Error; err != nil {
+		return nil, err
+	}
+
+	return nonce, nil
+}
+
+// GetNonce retrieves a nonce by its value
+func (r *nonceRepository) GetNonce(ctx context.Context, nonce string) (*models.AuthNonce, error) {
+	var authNonce models.AuthNonce
+	err := r.db.WithContext(ctx).
+		Where("nonce = ?", nonce).
+		First(&authNonce).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNonceNotFound
+		}
+		return nil, err
+	}
+
+	return &authNonce, nil
+}
+
+// ValidateAndConsumeNonce uses the database function try_use_nonce for atomic consume
+func (r *nonceRepository) ValidateAndConsumeNonce(ctx context.Context, nonce, accountID, chainID, domain string) error {
+	var success bool
+
+	// Call the PostgreSQL function try_use_nonce
+	err := r.db.WithContext(ctx).
+		Raw("SELECT try_use_nonce(?, ?, ?, ?)", nonce, accountID, chainID, domain).
+		Scan(&success).Error
+
+	if err != nil {
+		return err
+	}
+
+	if !success {
+		// Nonce was not consumed - need to check why
+		existingNonce, err := r.GetNonce(ctx, nonce)
+		if err != nil {
+			if errors.Is(err, ErrNonceNotFound) {
+				return ErrNonceInvalid
+			}
+			return err
+		}
+
+		if existingNonce.Used {
+			return ErrNonceUsed
+		}
+
+		if existingNonce.IsExpired() {
+			return ErrNonceExpired
+		}
+
+		// Nonce exists but parameters don't match
+		return ErrNonceInvalid
+	}
+
+	return nil
+}
+
+// CleanupExpired removes expired nonces using the database function
+func (r *nonceRepository) CleanupExpired(ctx context.Context, retentionPeriod time.Duration) (int64, error) {
+	var deletedCount int64
+
+	err := r.db.WithContext(ctx).
+		Raw("SELECT cleanup_expired_nonces()").
+		Scan(&deletedCount).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return deletedCount, nil
+}
+</file>
+
+<file path="services/auth-service/internal/repository/session_repository.go">
+package repository
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
+	"gorm.io/gorm"
+)
+
+var (
+	ErrSessionNotFound = errors.New("session not found")
+	ErrSessionRevoked  = errors.New("session has been revoked")
+	ErrSessionExpired  = errors.New("session has expired")
+)
+
+// SessionRepository handles session persistence operations
+type SessionRepository interface {
+	// CreateSession creates a new session
+	CreateSession(ctx context.Context, session *models.Session) error
+
+	// GetByRefreshToken retrieves a session by refresh token hash
+	GetByRefreshToken(ctx context.Context, refreshTokenHash string) (*models.Session, error)
+
+	// GetByID retrieves a session by ID
+	GetByID(ctx context.Context, sessionID uuid.UUID) (*models.Session, error)
+
+	// UpdateSession updates a session
+	UpdateSession(ctx context.Context, session *models.Session) error
+
+	// RevokeSession revokes a session
+	RevokeSession(ctx context.Context, sessionID uuid.UUID, reason string) error
+
+	// RevokeByRefreshToken revokes a session by refresh token
+	RevokeByRefreshToken(ctx context.Context, refreshTokenHash, reason string) error
+
+	// RevokeTokenFamily revokes all sessions in a token family (for replay attack detection)
+	RevokeTokenFamily(ctx context.Context, familyID uuid.UUID, reason string) error
+
+	// GetActiveSessions retrieves all active sessions for a user
+	GetActiveSessions(ctx context.Context, userID uuid.UUID) ([]*models.Session, error)
+
+	// CleanupExpired marks expired sessions as revoked
+	CleanupExpired(ctx context.Context) (int64, error)
+}
+
+type sessionRepository struct {
+	db *gorm.DB
+}
+
+// NewSessionRepository creates a new session repository
+func NewSessionRepository(db *gorm.DB) SessionRepository {
+	return &sessionRepository{db: db}
+}
+
+// HashRefreshToken creates a SHA-256 hash of the refresh token
+func HashRefreshToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
+
+// CreateSession creates a new session
+func (r *sessionRepository) CreateSession(ctx context.Context, session *models.Session) error {
+	return r.db.WithContext(ctx).Create(session).Error
+}
+
+// GetByRefreshToken retrieves a session by refresh token hash
+func (r *sessionRepository) GetByRefreshToken(ctx context.Context, refreshTokenHash string) (*models.Session, error) {
+	var session models.Session
+	err := r.db.WithContext(ctx).
+		Where("refresh_hash = ?", refreshTokenHash).
+		First(&session).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+// GetByID retrieves a session by ID
+func (r *sessionRepository) GetByID(ctx context.Context, sessionID uuid.UUID) (*models.Session, error) {
+	var session models.Session
+	err := r.db.WithContext(ctx).
+		Where("session_id = ?", sessionID).
+		First(&session).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	return &session, nil
+}
+
+// UpdateSession updates a session
+func (r *sessionRepository) UpdateSession(ctx context.Context, session *models.Session) error {
+	return r.db.WithContext(ctx).Save(session).Error
+}
+
+// RevokeSession revokes a session by ID
+func (r *sessionRepository) RevokeSession(ctx context.Context, sessionID uuid.UUID, reason string) error {
+	now := time.Now()
+	result := r.db.WithContext(ctx).
+		Model(&models.Session{}).
+		Where("session_id = ? AND revoked_at IS NULL", sessionID).
+		Updates(map[string]interface{}{
+			"revoked_at":     now,
+			"revoked_reason": reason,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrSessionNotFound
+	}
+
+	return nil
+}
+
+// RevokeByRefreshToken revokes a session by refresh token hash
+func (r *sessionRepository) RevokeByRefreshToken(ctx context.Context, refreshTokenHash, reason string) error {
+	now := time.Now()
+	result := r.db.WithContext(ctx).
+		Model(&models.Session{}).
+		Where("refresh_hash = ? AND revoked_at IS NULL", refreshTokenHash).
+		Updates(map[string]interface{}{
+			"revoked_at":     now,
+			"revoked_reason": reason,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrSessionNotFound
+	}
+
+	return nil
+}
+
+// RevokeTokenFamily revokes all sessions in a token family
+func (r *sessionRepository) RevokeTokenFamily(ctx context.Context, familyID uuid.UUID, reason string) error {
+	now := time.Now()
+	return r.db.WithContext(ctx).
+		Model(&models.Session{}).
+		Where("token_family_id = ? AND revoked_at IS NULL", familyID).
+		Updates(map[string]interface{}{
+			"revoked_at":     now,
+			"revoked_reason": reason,
+		}).Error
+}
+
+// GetActiveSessions retrieves all active sessions for a user
+func (r *sessionRepository) GetActiveSessions(ctx context.Context, userID uuid.UUID) ([]*models.Session, error) {
+	var sessions []*models.Session
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND revoked_at IS NULL AND expires_at > ?", userID, time.Now()).
+		Order("created_at DESC").
+		Find(&sessions).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sessions, nil
+}
+
+// CleanupExpired calls the database function to mark expired sessions as revoked
+func (r *sessionRepository) CleanupExpired(ctx context.Context) (int64, error) {
+	var updatedCount int64
+
+	err := r.db.WithContext(ctx).
+		Raw("SELECT cleanup_expired_sessions()").
+		Scan(&updatedCount).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	return updatedCount, nil
 }
 </file>
 
@@ -10229,6 +10116,653 @@ func (s *SIWEService) ValidateSIWEMessage(message *siwe.Message, expectedDomain,
 }
 </file>
 
+<file path="services/graphql-gateway/graph/helpers.go">
+package graph
+
+import (
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+)
+
+// Helper functions for converting between proto and GraphQL models
+
+func stringPtrToValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func valueToStringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func profileFromProto(p *pb.Profile) *model.Profile {
+	if p == nil {
+		return nil
+	}
+	return &model.Profile{
+		UserID:      p.UserId,
+		Username:    valueToStringPtr(p.Username),
+		DisplayName: valueToStringPtr(p.DisplayName),
+		AvatarURL:   valueToStringPtr(p.AvatarUrl),
+		BannerURL:   valueToStringPtr(p.BannerUrl),
+		Bio:         valueToStringPtr(p.Bio),
+		Locale:      valueToStringPtr(p.Locale),
+		Timezone:    valueToStringPtr(p.Timezone),
+		SocialsJSON: valueToStringPtr(p.SocialsJson),
+		UpdatedAt:   valueToStringPtr(p.UpdatedAt),
+	}
+}
+
+func walletLinkFromProto(w *pb.WalletLink) *model.WalletLink {
+	if w == nil {
+		return nil
+	}
+	return &model.WalletLink{
+		ID:         w.Id,
+		UserID:     w.UserId,
+		AccountID:  w.AccountId,
+		Address:    w.Address,
+		ChainID:    w.ChainId,
+		IsPrimary:  w.IsPrimary,
+		VerifiedAt: valueToStringPtr(w.VerifiedAt.String()),
+		CreatedAt:  w.CreatedAt.String(),
+		UpdatedAt:  w.UpdatedAt.String(),
+	}
+}
+</file>
+
+<file path="services/graphql-gateway/graph/model/models_gen.go">
+// Code generated by github.com/99designs/gqlgen, DO NOT EDIT.
+
+package model
+
+// Response from SIWE verification.
+// Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
+type AuthResponse struct {
+	AccessToken string `json:"accessToken"`
+	ExpiresAt   string `json:"expiresAt"`
+	UserID      string `json:"userId"`
+	Address     string `json:"address"`
+	ChainID     string `json:"chainId"`
+}
+
+type LinkWalletInput struct {
+	AccountID string  `json:"accountId"`
+	Address   string  `json:"address"`
+	ChainID   string  `json:"chainId"`
+	IsPrimary bool    `json:"isPrimary"`
+	Type      *string `json:"type,omitempty"`
+	Connector *string `json:"connector,omitempty"`
+	Label     *string `json:"label,omitempty"`
+}
+
+type Mutation struct {
+}
+
+type Nonce struct {
+	Nonce     string `json:"nonce"`
+	ExpiresAt string `json:"expiresAt"`
+}
+
+type Profile struct {
+	UserID      string  `json:"userId"`
+	Username    *string `json:"username,omitempty"`
+	DisplayName *string `json:"displayName,omitempty"`
+	AvatarURL   *string `json:"avatarUrl,omitempty"`
+	BannerURL   *string `json:"bannerUrl,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Locale      *string `json:"locale,omitempty"`
+	Timezone    *string `json:"timezone,omitempty"`
+	SocialsJSON *string `json:"socialsJson,omitempty"`
+	UpdatedAt   *string `json:"updatedAt,omitempty"`
+}
+
+type Query struct {
+}
+
+// Response from session refresh.
+// Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
+type RefreshResponse struct {
+	AccessToken string `json:"accessToken"`
+	ExpiresAt   string `json:"expiresAt"`
+	UserID      string `json:"userId"`
+}
+
+type UpdateProfileInput struct {
+	Username    *string `json:"username,omitempty"`
+	DisplayName *string `json:"displayName,omitempty"`
+	AvatarURL   *string `json:"avatarUrl,omitempty"`
+	BannerURL   *string `json:"bannerUrl,omitempty"`
+	Bio         *string `json:"bio,omitempty"`
+	Locale      *string `json:"locale,omitempty"`
+	Timezone    *string `json:"timezone,omitempty"`
+	SocialsJSON *string `json:"socialsJson,omitempty"`
+}
+
+type User struct {
+	ID        string   `json:"id"`
+	Status    string   `json:"status"`
+	CreatedAt string   `json:"createdAt"`
+	Profile   *Profile `json:"profile,omitempty"`
+}
+
+type WalletLink struct {
+	ID         string  `json:"id"`
+	UserID     string  `json:"userId"`
+	AccountID  string  `json:"accountId"`
+	Address    string  `json:"address"`
+	ChainID    string  `json:"chainId"`
+	IsPrimary  bool    `json:"isPrimary"`
+	VerifiedAt *string `json:"verifiedAt,omitempty"`
+	CreatedAt  string  `json:"createdAt"`
+	UpdatedAt  string  `json:"updatedAt"`
+}
+</file>
+
+<file path="services/graphql-gateway/graph/resolver.go">
+package graph
+
+import (
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+)
+
+// This file will not be regenerated automatically.
+//
+// It serves as dependency injection for your app, add any dependencies you require here.
+
+type Resolver struct {
+	AuthClient   pb.AuthServiceClient
+	UserClient   pb.UserServiceClient
+	WalletClient pb.WalletServiceClient
+}
+</file>
+
+<file path="services/graphql-gateway/internal/config/config.go">
+package config
+
+import (
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
+)
+
+// Config holds all configuration for the GraphQL gateway
+type Config struct {
+	Server   ServerConfig
+	JWT      JWTConfig
+	Services ServicesConfig
+	Features FeatureConfig
+}
+
+// ServerConfig holds HTTP server configuration
+type ServerConfig struct {
+	HTTPAddr string
+}
+
+// JWTConfig holds JWT authentication configuration
+type JWTConfig struct {
+	AccessSecret string
+}
+
+// ServicesConfig holds URLs for backend gRPC services
+type ServicesConfig struct {
+	AuthServiceURL   string
+	UserServiceURL   string
+	WalletServiceURL string
+}
+
+// FeatureConfig holds feature flags
+type FeatureConfig struct {
+	PlaygroundEnabled bool
+}
+
+// Load loads configuration from environment variables
+func Load() *Config {
+	return &Config{
+		Server: ServerConfig{
+			HTTPAddr: env.GetString("GATEWAY_HTTP_ADDR", ":8081"),
+		},
+		JWT: JWTConfig{
+			AccessSecret: env.GetString("JWT_ACCESS_SECRET", ""),
+		},
+		Services: ServicesConfig{
+			AuthServiceURL:   env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
+			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
+			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+		},
+		Features: FeatureConfig{
+			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
+		},
+	}
+}
+
+// Validate checks if required configuration is present
+func (c *Config) Validate() error {
+	if c.JWT.AccessSecret == "" {
+		return ErrMissingJWTSecret
+	}
+	return nil
+}
+
+// Common configuration errors
+var (
+	ErrMissingJWTSecret = NewConfigError("JWT_ACCESS_SECRET environment variable is required")
+)
+
+// ConfigError represents a configuration validation error
+type ConfigError struct {
+	message string
+}
+
+func NewConfigError(message string) error {
+	return &ConfigError{message: message}
+}
+
+func (e *ConfigError) Error() string {
+	return e.message
+}
+</file>
+
+<file path="services/graphql-gateway/internal/cookie/cookie.go">
+package cookie
+
+import (
+	"net/http"
+	"os"
+	"time"
+)
+
+const (
+	RefreshTokenCookie = "refresh_token"
+	MaxAge             = 30 * 24 * 60 * 60 // 30 days in seconds
+)
+
+// SetRefreshTokenCookie sets an HTTP-only secure cookie for the refresh token
+func SetRefreshTokenCookie(w http.ResponseWriter, token string, maxAge int) {
+	// Use Secure cookies in production (HTTPS), allow HTTP in development
+	secure := os.Getenv("ENVIRONMENT") != "development"
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     RefreshTokenCookie,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,                    // Prevents JavaScript access - CRITICAL for XSS protection
+		Secure:   secure,                  // true in production (HTTPS only), false in dev for localhost
+		SameSite: http.SameSiteStrictMode, // Strict CSRF protection - only same-site requests
+	})
+}
+
+// GetRefreshTokenFromCookie extracts the refresh token from the request cookie
+func GetRefreshTokenFromCookie(r *http.Request) (string, error) {
+	cookie, err := r.Cookie(RefreshTokenCookie)
+	if err != nil {
+		return "", err
+	}
+	return cookie.Value, nil
+}
+
+// ClearRefreshTokenCookie removes the refresh token cookie
+func ClearRefreshTokenCookie(w http.ResponseWriter) {
+	// Use same security settings as SetRefreshTokenCookie for consistency
+	secure := os.Getenv("ENVIRONMENT") != "development"
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     RefreshTokenCookie,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1, // Delete immediately
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Unix(0, 0),
+	})
+}
+</file>
+
+<file path="services/graphql-gateway/internal/middleware/auth.go">
+package middleware
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
+)
+
+type contextKey string
+
+const (
+	UserClaimsKey contextKey = "user_claims"
+)
+
+// UserClaims represents the JWT claims for an authenticated user
+type UserClaims struct {
+	UserID    string `json:"user_id"`
+	SessionID string `json:"session_id"`
+	jwt.RegisteredClaims
+}
+
+// AuthMiddleware validates JWT tokens from the Authorization header
+func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
+			// Extract token from Authorization header
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				// Expected format: "Bearer <token>"
+				parts := strings.Split(authHeader, " ")
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+					tokenStr := strings.TrimSpace(parts[1])
+
+					// Skip empty tokens
+					if tokenStr == "" {
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+
+					// Validate the token
+					claims, err := validateAccessToken(tokenStr, jwtSecret)
+					if err == nil {
+						// Add claims to context
+						ctx = context.WithValue(ctx, UserClaimsKey, claims)
+					}
+					// Note: We don't return an error here because not all GraphQL queries require auth
+					// Individual resolvers will check if auth is required
+				}
+			}
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// validateAccessToken validates a JWT access token and returns the claims
+func validateAccessToken(tokenStr string, jwtSecret string) (*UserClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
+}
+
+// GetUserClaims retrieves the user claims from context
+func GetUserClaims(ctx context.Context) (*UserClaims, bool) {
+	claims, ok := ctx.Value(UserClaimsKey).(*UserClaims)
+	return claims, ok
+}
+
+// RequireAuth returns an error if the user is not authenticated
+func RequireAuth(ctx context.Context) (*UserClaims, error) {
+	claims, ok := GetUserClaims(ctx)
+	if !ok {
+		return nil, fmt.Errorf("authentication required")
+	}
+	return claims, nil
+}
+</file>
+
+<file path="shared/env/env.go">
+/*
+Package env provides a simple way to get environment variables.
+*/
+package env
+
+import (
+	"os"
+	"strconv"
+)
+
+func GetString(key, fallback string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	return val
+}
+
+func GetInt(key string, fallback int) int {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	valAsInt, err := strconv.Atoi(val)
+	if err != nil {
+		return fallback
+	}
+
+	return valAsInt
+}
+
+func GetBool(key string, fallback bool) bool {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	boolVal, err := strconv.ParseBool(val)
+	if err != nil {
+		return fallback
+	}
+
+	return boolVal
+}
+</file>
+
+<file path=".gitignore">
+tmp
+.env
+.envrc
+.env.development
+.env.production
+.env.local
+bin/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tilt build
+build/
+
+# Cursor
+.cursorrules
+
+# Secrets
+secrets.yaml
+!infra/development/build/
+!infra\development\build\*.bat
+
+.quoder
+zuno-marketplace-contracts
+.sensity
+</file>
+
+<file path="infra/development/k8s/graph-gateway-deployment.yaml">
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphql-gateway
+  namespace: dev
+spec:
+  ports:
+    - port: 8081
+      targetPort: 8081
+  selector:
+    app: graphql-gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-gateway
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphql-gateway
+  template:
+    metadata:
+      labels:
+        app: graphql-gateway
+    spec:
+      containers:
+        - name: graphql-gateway
+          image: graphql-gateway
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: GATEWAY_HTTP_ADDR
+              value: ":8081"
+            - name: AUTH_SERVICE_URL
+              value: "auth-service:50051"
+            - name: USER_SERVICE_URL
+              value: "user-service:50052"
+            - name: WALLET_SERVICE_URL
+              value: "wallet-service:50053"
+            - name: MEDIA_SERVICE_URL
+              value: "media-service:50055"
+            - name: CHAIN_REGISTRY_SERVICE_URL
+              value: "chain-registry-service:50056"
+            - name: ORCHESTRATOR_SERVICE_URL
+              value: "orchestrator-service:50054"
+            - name: CATALOG_SERVICE_URL
+              value: "catalog-service:50057"
+            - name: INDEXER_SERVICE_URL
+              value: "indexer-service:50058"
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_EXCHANGE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: RABBITMQ_EXCHANGE
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET
+</file>
+
+<file path="services/auth-service/internal/client/grpc_clients.go">
+package client
+
+import (
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+type ServiceClients struct {
+	UserClient   pb.UserServiceClient
+	WalletClient pb.WalletServiceClient
+}
+
+func NewServiceClients(userURL, walletURL string) (*ServiceClients, error) {
+	// Connect to user service
+	userConn, err := grpc.Dial(userURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	// Connect to wallet service
+	walletConn, err := grpc.Dial(walletURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	return &ServiceClients{
+		UserClient:   pb.NewUserServiceClient(userConn),
+		WalletClient: pb.NewWalletServiceClient(walletConn),
+	}, nil
+}
+</file>
+
 <file path="services/graphql-gateway/graph/generated.go">
 // Code generated by github.com/99designs/gqlgen, DO NOT EDIT.
 
@@ -10245,9 +10779,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -15969,248 +16503,6 @@ func (ec *executionContext) marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgen�
 // endregion ***************************** type.gotpl *****************************
 </file>
 
-<file path="services/graphql-gateway/graph/model/models_gen.go">
-// Code generated by github.com/99designs/gqlgen, DO NOT EDIT.
-
-package model
-
-// Response from SIWE verification.
-// Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
-type AuthResponse struct {
-	AccessToken string `json:"accessToken"`
-	ExpiresAt   string `json:"expiresAt"`
-	UserID      string `json:"userId"`
-	Address     string `json:"address"`
-	ChainID     string `json:"chainId"`
-}
-
-type LinkWalletInput struct {
-	AccountID string  `json:"accountId"`
-	Address   string  `json:"address"`
-	ChainID   string  `json:"chainId"`
-	IsPrimary bool    `json:"isPrimary"`
-	Type      *string `json:"type,omitempty"`
-	Connector *string `json:"connector,omitempty"`
-	Label     *string `json:"label,omitempty"`
-}
-
-type Mutation struct {
-}
-
-type Nonce struct {
-	Nonce     string `json:"nonce"`
-	ExpiresAt string `json:"expiresAt"`
-}
-
-type Profile struct {
-	UserID      string  `json:"userId"`
-	Username    *string `json:"username,omitempty"`
-	DisplayName *string `json:"displayName,omitempty"`
-	AvatarURL   *string `json:"avatarUrl,omitempty"`
-	BannerURL   *string `json:"bannerUrl,omitempty"`
-	Bio         *string `json:"bio,omitempty"`
-	Locale      *string `json:"locale,omitempty"`
-	Timezone    *string `json:"timezone,omitempty"`
-	SocialsJSON *string `json:"socialsJson,omitempty"`
-	UpdatedAt   *string `json:"updatedAt,omitempty"`
-}
-
-type Query struct {
-}
-
-// Response from session refresh.
-// Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
-type RefreshResponse struct {
-	AccessToken string `json:"accessToken"`
-	ExpiresAt   string `json:"expiresAt"`
-	UserID      string `json:"userId"`
-}
-
-type UpdateProfileInput struct {
-	Username    *string `json:"username,omitempty"`
-	DisplayName *string `json:"displayName,omitempty"`
-	AvatarURL   *string `json:"avatarUrl,omitempty"`
-	BannerURL   *string `json:"bannerUrl,omitempty"`
-	Bio         *string `json:"bio,omitempty"`
-	Locale      *string `json:"locale,omitempty"`
-	Timezone    *string `json:"timezone,omitempty"`
-	SocialsJSON *string `json:"socialsJson,omitempty"`
-}
-
-type User struct {
-	ID        string   `json:"id"`
-	Status    string   `json:"status"`
-	CreatedAt string   `json:"createdAt"`
-	Profile   *Profile `json:"profile,omitempty"`
-}
-
-type WalletLink struct {
-	ID         string  `json:"id"`
-	UserID     string  `json:"userId"`
-	AccountID  string  `json:"accountId"`
-	Address    string  `json:"address"`
-	ChainID    string  `json:"chainId"`
-	IsPrimary  bool    `json:"isPrimary"`
-	VerifiedAt *string `json:"verifiedAt,omitempty"`
-	CreatedAt  string  `json:"createdAt"`
-	UpdatedAt  string  `json:"updatedAt"`
-}
-</file>
-
-<file path="services/graphql-gateway/internal/cookie/cookie.go">
-package cookie
-
-import (
-	"net/http"
-	"os"
-	"time"
-)
-
-const (
-	RefreshTokenCookie = "refresh_token"
-	MaxAge             = 30 * 24 * 60 * 60 // 30 days in seconds
-)
-
-// SetRefreshTokenCookie sets an HTTP-only secure cookie for the refresh token
-func SetRefreshTokenCookie(w http.ResponseWriter, token string, maxAge int) {
-	// Use Secure cookies in production (HTTPS), allow HTTP in development
-	secure := os.Getenv("ENVIRONMENT") != "development"
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     RefreshTokenCookie,
-		Value:    token,
-		Path:     "/",
-		MaxAge:   maxAge,
-		HttpOnly: true,                    // Prevents JavaScript access - CRITICAL for XSS protection
-		Secure:   secure,                  // true in production (HTTPS only), false in dev for localhost
-		SameSite: http.SameSiteStrictMode, // Strict CSRF protection - only same-site requests
-	})
-}
-
-// GetRefreshTokenFromCookie extracts the refresh token from the request cookie
-func GetRefreshTokenFromCookie(r *http.Request) (string, error) {
-	cookie, err := r.Cookie(RefreshTokenCookie)
-	if err != nil {
-		return "", err
-	}
-	return cookie.Value, nil
-}
-
-// ClearRefreshTokenCookie removes the refresh token cookie
-func ClearRefreshTokenCookie(w http.ResponseWriter) {
-	// Use same security settings as SetRefreshTokenCookie for consistency
-	secure := os.Getenv("ENVIRONMENT") != "development"
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     RefreshTokenCookie,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1, // Delete immediately
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Unix(0, 0),
-	})
-}
-</file>
-
-<file path="services/graphql-gateway/internal/middleware/auth.go">
-package middleware
-
-import (
-	"context"
-	"fmt"
-	"net/http"
-	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
-)
-
-type contextKey string
-
-const (
-	UserClaimsKey contextKey = "user_claims"
-)
-
-// UserClaims represents the JWT claims for an authenticated user
-type UserClaims struct {
-	UserID    string `json:"user_id"`
-	SessionID string `json:"session_id"`
-	jwt.RegisteredClaims
-}
-
-// AuthMiddleware validates JWT tokens from the Authorization header
-func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-
-			// Extract token from Authorization header
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" {
-				// Expected format: "Bearer <token>"
-				parts := strings.Split(authHeader, " ")
-				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-					tokenStr := strings.TrimSpace(parts[1])
-
-					// Skip empty tokens
-					if tokenStr == "" {
-						next.ServeHTTP(w, r.WithContext(ctx))
-						return
-					}
-
-					// Validate the token
-					claims, err := validateAccessToken(tokenStr, jwtSecret)
-					if err == nil {
-						// Add claims to context
-						ctx = context.WithValue(ctx, UserClaimsKey, claims)
-					}
-					// Note: We don't return an error here because not all GraphQL queries require auth
-					// Individual resolvers will check if auth is required
-				}
-			}
-
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-// validateAccessToken validates a JWT access token and returns the claims
-func validateAccessToken(tokenStr string, jwtSecret string) (*UserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(jwtSecret), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
-		return claims, nil
-	}
-
-	return nil, fmt.Errorf("invalid token")
-}
-
-// GetUserClaims retrieves the user claims from context
-func GetUserClaims(ctx context.Context) (*UserClaims, bool) {
-	claims, ok := ctx.Value(UserClaimsKey).(*UserClaims)
-	return claims, ok
-}
-
-// RequireAuth returns an error if the user is not authenticated
-func RequireAuth(ctx context.Context) (*UserClaims, error) {
-	claims, ok := GetUserClaims(ctx)
-	if !ok {
-		return nil, fmt.Errorf("authentication required")
-	}
-	return claims, nil
-}
-</file>
-
 <file path="services/user-service/internal/repository/user_repository.go">
 package repository
 
@@ -16907,157 +17199,82 @@ func (s *WalletServer) GetWallets(ctx context.Context, req *pb.GetWalletsRequest
 }
 </file>
 
-<file path="shared/env/env.go">
-/*
-Package env provides a simple way to get environment variables.
-*/
-package env
-
-import (
-	"os"
-	"strconv"
-)
-
-func GetString(key, fallback string) string {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-
-	return val
-}
-
-func GetInt(key string, fallback int) int {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-
-	valAsInt, err := strconv.Atoi(val)
-	if err != nil {
-		return fallback
-	}
-
-	return valAsInt
-}
-
-func GetBool(key string, fallback bool) bool {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return fallback
-	}
-
-	boolVal, err := strconv.ParseBool(val)
-	if err != nil {
-		return fallback
-	}
-
-	return boolVal
-}
-</file>
-
-<file path=".env.example">
-# ============================================
-# CORE APPLICATION
-# ============================================
-ENVIRONMENT=development
-PORT=8080
-
-# ============================================
-# AUTHENTICATION
-# ============================================
-JWT_SECRET=CHANGE_THIS_super_secret_jwt_key_min_32_chars_required
-REFRESH_SECRET=CHANGE_THIS_super_secret_refresh_key_min_32_chars_required
-
-# ============================================
-# DATABASE
-# ============================================
-# PostgreSQL (Primary DB)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=CHANGE_IN_PRODUCTION
-POSTGRES_DATABASE=nft_marketplace
-
-# Redis (Cache)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# ============================================
-# MESSAGE QUEUE
-# ============================================
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=CHANGE_IN_PRODUCTION
-RABBITMQ_EXCHANGE=nft-marketplace
-
-# ============================================
-# SERVICES PORTS (gRPC)
-# ============================================
-# Active microservices
-AUTH_GRPC_PORT=50051
-USER_GRPC_PORT=50052
-WALLET_GRPC_PORT=50053
-
-# GraphQL Gateway
-GATEWAY_HTTP_ADDR=8081
-
-</file>
-
-<file path="infra/development/k8s/graph-gateway-deployment.yaml">
+<file path="infra/development/k8s/auth-service-deployment.yaml">
 apiVersion: v1
 kind: Service
 metadata:
-  name: graphql-gateway
+  name: auth-service
   namespace: dev
 spec:
   ports:
-    - port: 8081
-      targetPort: 8081
+    - port: 50051
+      targetPort: 50051
   selector:
-    app: graphql-gateway
+    app: auth-service
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: graphql-gateway
+  name: auth-service
   namespace: dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: graphql-gateway
+      app: auth-service
   template:
     metadata:
       labels:
-        app: graphql-gateway
+        app: auth-service
     spec:
       containers:
-        - name: graphql-gateway
-          image: graphql-gateway
+        - name: auth-service
+          image: zuno-marketplace-api-auth-service:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 8081
+            - containerPort: 50051
           env:
-            - name: GATEWAY_HTTP_ADDR
-              value: ":8081"
-            - name: AUTH_SERVICE_URL
-              value: "auth-service:50051"
+            - name: AUTH_GRPC_PORT
+              value: ":50051"
             - name: USER_SERVICE_URL
               value: "user-service:50052"
             - name: WALLET_SERVICE_URL
               value: "wallet-service:50053"
-            - name: MEDIA_SERVICE_URL
-              value: "media-service:50055"
-            - name: CHAIN_REGISTRY_SERVICE_URL
-              value: "chain-registry-service:50056"
-            - name: ORCHESTRATOR_SERVICE_URL
-              value: "orchestrator-service:50054"
-            - name: CATALOG_SERVICE_URL
-              value: "catalog-service:50057"
-            - name: INDEXER_SERVICE_URL
-              value: "indexer-service:50058"
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_DATABASE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_PORT
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
@@ -17083,11 +17300,108 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: RABBITMQ_EXCHANGE
-            - name: JWT_ACCESS_SECRET
+            - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
                   key: JWT_SECRET
+            - name: REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: REFRESH_SECRET
+</file>
+
+<file path="infra/development/k8s/postgres.yaml">
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: dev
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_DATABASE
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U postgres
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U postgres
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
+</file>
+
+<file path="infra/development/k8s/secrets.yaml.example">
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: dev
+type: Opaque
+stringData:
+  # Authentication Secrets
+  JWT_SECRET: "your-jwt-secret-change-in-production"
+  REFRESH_SECRET: "your-refresh-secret-change-in-production"
+
+  # Database Credentials
+  POSTGRES_PASSWORD: "postgres"
+  RABBITMQ_PASSWORD: "guest"
 </file>
 
 <file path="services/auth-service/internal/config/config.go">
@@ -17193,7 +17507,6 @@ resolver:
   dir: graph
   package: graph
   filename_template: "{name}.resolvers.go"
-
 # Optional: turn on to not generate the automatic bind
 # autobind:
 #  - "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
@@ -17625,211 +17938,6 @@ func (c *DatabaseConfig) GetDSN() string {
 }
 </file>
 
-<file path="infra/development/k8s/auth-service-deployment.yaml">
-apiVersion: v1
-kind: Service
-metadata:
-  name: auth-service
-  namespace: dev
-spec:
-  ports:
-    - port: 50051
-      targetPort: 50051
-  selector:
-    app: auth-service
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: auth-service
-  namespace: dev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: auth-service
-  template:
-    metadata:
-      labels:
-        app: auth-service
-    spec:
-      containers:
-        - name: auth-service
-          image: zuno-marketplace-api-auth-service:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 50051
-          env:
-            - name: AUTH_GRPC_PORT
-              value: ":50051"
-            - name: USER_SERVICE_URL
-              value: "user-service:50052"
-            - name: WALLET_SERVICE_URL
-              value: "wallet-service:50053"
-            - name: POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_HOST
-            - name: POSTGRES_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_PORT
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_DATABASE
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_DATABASE
-            - name: REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: REDIS_HOST
-            - name: REDIS_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: REDIS_PORT
-            - name: RABBITMQ_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: RABBITMQ_HOST
-            - name: RABBITMQ_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: RABBITMQ_PORT
-            - name: RABBITMQ_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: RABBITMQ_USER
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: RABBITMQ_PASSWORD
-            - name: RABBITMQ_EXCHANGE
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: RABBITMQ_EXCHANGE
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: JWT_SECRET
-            - name: REFRESH_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: REFRESH_SECRET
-</file>
-
-<file path="infra/development/k8s/postgres.yaml">
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: dev
-spec:
-  ports:
-    - port: 5432
-      targetPort: 5432
-  selector:
-    app: postgres
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: dev
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:15-alpine
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_DATABASE
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: POSTGRES_PASSWORD
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - pg_isready -U postgres
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 3
-          livenessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - pg_isready -U postgres
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 3
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-data
-          emptyDir: {}
-</file>
-
-<file path="infra/development/k8s/secrets.yaml.example">
-apiVersion: v1
-kind: Secret
-metadata:
-  name: app-secrets
-  namespace: dev
-type: Opaque
-stringData:
-  # Authentication Secrets
-  JWT_SECRET: "your-jwt-secret-change-in-production"
-  REFRESH_SECRET: "your-refresh-secret-change-in-production"
-
-  # Database Credentials
-  POSTGRES_PASSWORD: "postgres"
-  RABBITMQ_PASSWORD: "guest"
-</file>
-
 <file path="infra/development/k8s/graphql-gateway-deployment.yaml">
 apiVersion: v1
 kind: Service
@@ -18041,295 +18149,6 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: POSTGRES_DATABASE
-</file>
-
-<file path="README.md">
-# Zuno NFT Marketplace API
-
-Clean, production-ready microservices backend for NFT Marketplace with focus on wallet authentication.
-
-## 🎯 Current Status
-
-**Version**: 0.1.0 (Clean Skeleton)
-**Branch**: `develop-claude`
-**Last Cleanup**: Nov 15, 2025
-
-✅ All AI-generated bloat removed (95,819 lines deleted)
-✅ Database schemas tested and working
-✅ Infrastructure services running
-⏳ Ready for feature development with TDD
-
-## 📁 Project Structure
-
-```
-services/
-├── auth-service/           # SIWE Authentication
-│   ├── cmd/.gitkeep       # Empty - ready for development
-│   ├── internal/.gitkeep  # Empty - ready for development
-│   ├── test/.gitkeep      # Empty - ready for tests
-│   ├── db/up.sql          # ✅ Database schema (tested)
-│   └── migrations/        # ✅ Migration files
-├── user-service/          # User Profiles & Management
-│   ├── cmd/.gitkeep
-│   ├── internal/.gitkeep
-│   ├── test/.gitkeep
-│   └── db/up.sql          # ✅ Database schema (tested)
-├── wallet-service/        # Wallet Management
-│   ├── cmd/.gitkeep
-│   ├── internal/.gitkeep
-│   ├── test/.gitkeep
-│   └── db/up.sql          # ✅ Database schema (tested)
-└── graphql-gateway/       # GraphQL BFF API
-    ├── graphql/.gitkeep
-    └── internal/.gitkeep
-```
-
-## 🗄️ Database Schema (Tested & Working)
-
-**PostgreSQL Tables** (11 total):
-
-**Auth Service** (`auth_nonces`, `sessions`, `login_events`)
-- SIWE nonce management
-- Session tracking with device fingerprinting
-- Login event history
-
-**User Service** (`users`, `profiles`, `user_follows`, `user_preferences`, `user_stats`)
-- User account management
-- Social features (follows)
-- User preferences and statistics
-
-**Wallet Service** (`wallet_links`, `wallet_verifications`, `wallet_activity`)
-- Multi-wallet support per user
-- Wallet verification (SIWE)
-- Wallet activity tracking
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker Desktop
-- Go 1.21+
-- Make (optional but recommended)
-- Tilt (optional, for hot reload)
-
-### Option 1: Docker Compose (Simple)
-
-```bash
-# Start infrastructure services
-make dev
-# or
-docker compose up -d
-
-# Check services status
-docker compose ps
-
-# View logs
-make dev-logs
-```
-
-### Option 2: Tilt (Hot Reload - Recommended)
-
-```bash
-# Start Tilt (requires Kubernetes enabled in Docker Desktop)
-make tilt-up
-# or
-tilt up
-
-# Open Tilt UI: http://localhost:10350
-
-# Stop Tilt
-make tilt-down
-```
-
-### Common Commands
-
-```bash
-# Show all available commands
-make help
-
-# Run tests
-make test
-
-# Build services
-make build
-
-# Generate protobuf code
-make proto
-
-# Run linter
-make lint
-
-# Format code
-make format
-
-# Run CI pipeline locally
-make ci
-```
-
-**📖 For detailed development guide, see [DEVELOPMENT.md](DEVELOPMENT.md)**
-
-### Environment Variables
-
-Copy `.env.example` to `.env`:
-
-```env
-# Database
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DATABASE=nft_marketplace
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# RabbitMQ
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-RABBITMQ_EXCHANGE=nft_events
-
-# JWT Secrets (Change in production!)
-JWT_SECRET=your-256-bit-secret-key-here
-REFRESH_SECRET=your-256-bit-refresh-secret-key-here
-```
-
-## 📊 Infrastructure Test Results
-
-✅ **PostgreSQL**: Running on port 5432
-- Database: `nft_marketplace`
-- User: `postgres`
-- 11 tables loaded successfully
-- Schemas from: auth-service, user-service, wallet-service
-
-✅ **Redis**: Running on port 6379
-- Status: PONG
-- Ready for session caching
-
-✅ **RabbitMQ**: Running on ports 5672, 15672
-- Management UI: http://localhost:15672 (guest/guest)
-- Status: Ping succeeded
-- Ready for event messaging
-
-## 🎯 Next Steps
-
-### Feature Development Workflow
-
-1. **Create feature branch** from `develop-claude`:
-   ```bash
-   git checkout develop-claude
-   git pull origin develop-claude
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Follow TDD** (Test-Driven Development):
-   - 🔴 RED: Write failing tests first
-   - 🟢 GREEN: Write minimal code to pass tests
-   - 🔵 REFACTOR: Improve code while keeping tests green
-
-3. **Commit and merge**:
-   ```bash
-   git add .
-   git commit -m "feat(scope): your feature description"
-   git push origin feature/your-feature-name
-   # Merge to develop-claude when done
-   ```
-
-### First Feature: Wallet Authentication
-
-Recommended implementation order:
-
-1. **Proto Definitions** (gRPC interfaces)
-2. **Auth Service** (SIWE authentication)
-3. **Wallet Service** (Wallet management)
-4. **User Service** (User profiles)
-5. **GraphQL Gateway** (BFF API)
-6. **Integration Tests** (E2E flows)
-
-## 🧪 Testing Strategy
-
-- **Unit Tests**: Test individual functions/methods
-- **Integration Tests**: Test with real databases (testcontainers)
-- **E2E Tests**: Test complete user flows
-- **Minimum Coverage**: 80% for new code
-
-## 📚 Related Repositories
-
-- `zuno-marketplace-ui`: Next.js frontend
-- `zuno-marketplace-contracts`: Solidity smart contracts (Foundry)
-- `zuno-marketplace-sdk`: TypeScript SDK for ABIs and contracts
-- `zuno-marketplace-abis`: ABI provider service
-- `zuno-marketplace-metadata`: NFT metadata storage
-- `zuno-marketplace-mini`: Quick contract testing mini-app
-
-## 🔧 Development Tools
-
-**Makefile** - Comprehensive development commands
-```bash
-make help          # Show all commands
-make dev           # Start development environment
-make test          # Run tests
-make build         # Build all services
-make lint          # Run linter
-make ci            # Run CI pipeline locally
-```
-
-**Tiltfile** - Hot reload development with Kubernetes
-- 🔥 Automatic rebuilds on code changes
-- 📊 Real-time logs and resource monitoring
-- 🎯 Interactive UI at http://localhost:10350
-
-**GitHub Actions** - CI/CD Pipeline
-- ✅ Automated linting and testing
-- 🐳 Docker image builds
-- 🔒 Security scanning with gosec
-- 📊 Test coverage reports
-
-See [DEVELOPMENT.md](DEVELOPMENT.md) for complete guide.
-
-## 📝 Commit Message Format
-
-Follow conventional commits:
-
-```
-<type>(<scope>): <description>
-
-<body> (min 100 characters)
-
-<footer>
-```
-
-**Types**: feat, fix, docs, style, refactor, perf, test, chore
-**Scopes**: auth, user, wallet, gateway, database, infra
-
-## 🏗️ Architecture
-
-**Pattern**: GraphQL Gateway + gRPC Microservices
-
-```
-Frontend → GraphQL Gateway (HTTP/WS) → gRPC Services
-                                      ↓
-                                  RabbitMQ Events
-```
-
-**Why This Stack?**
-- **gRPC**: Fast, typed internal communication
-- **GraphQL**: Flexible API for frontend
-- **RabbitMQ**: Reliable event messaging
-- **PostgreSQL**: ACID compliance for critical data
-- **Redis**: Fast session/cache storage
-
-## 📄 License
-
-MIT
-
----
-
-**Status**: 🟢 Clean skeleton ready for development
-**Last Updated**: 2025-11-15
-**Maintainer**: Zuno Team
 </file>
 
 <file path="services/auth-service/internal/server/auth_server.go">
@@ -18950,111 +18769,6 @@ func main() {
 }
 </file>
 
-<file path="services/auth-service/cmd/main.go">
-package main
-
-import (
-	"log"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/client"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/config"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/repository"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/server"
-	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/service"
-	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/reflection"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-)
-
-func main() {
-	log.Println("Starting Auth Service...")
-
-	// Load configuration
-	cfg := config.Load()
-
-	// Initialize database
-	dsn := cfg.Database.GetDSN()
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	log.Println("Database connected successfully")
-
-	// Initialize repositories
-	nonceRepo := repository.NewNonceRepository(db)
-	sessionRepo := repository.NewSessionRepository(db)
-	loginEventRepo := repository.NewLoginEventRepository(db)
-
-	// Initialize services
-	siweService := service.NewSIWEService()
-	jwtService := service.NewJWTService(
-		cfg.JWT.Secret,
-		cfg.JWT.RefreshSecret,
-		cfg.JWT.AccessExpiration,
-		cfg.JWT.RefreshExpiration,
-	)
-
-	// Initialize gRPC clients
-	clients, err := client.NewServiceClients(cfg.Services.UserServiceURL, cfg.Services.WalletServiceURL)
-	if err != nil {
-		log.Fatalf("Failed to initialize gRPC clients: %v", err)
-	}
-	log.Println("gRPC clients initialized")
-
-	// Create gRPC server
-	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(10*1024*1024),
-		grpc.MaxSendMsgSize(10*1024*1024),
-	)
-
-	// Register auth service
-	authServer := server.NewAuthServer(nonceRepo, sessionRepo, loginEventRepo, siweService, jwtService, clients)
-	pb.RegisterAuthServiceServer(grpcServer, authServer)
-
-	// Register health check
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
-	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
-
-	// Register reflection
-	reflection.Register(grpcServer)
-
-	// Start gRPC server
-	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
-	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
-	}
-
-	log.Printf("Auth Service listening on %s", cfg.Server.GRPCPort)
-
-	// Graceful shutdown
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-		<-sigChan
-		log.Println("Shutting down Auth Service...")
-		grpcServer.GracefulStop()
-		log.Println("Auth Service stopped")
-	}()
-
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
-}
-</file>
-
 <file path="Tiltfile">
 # Tiltfile for Zuno NFT Marketplace API
 # Hot reload development environment with Kubernetes
@@ -19290,48 +19004,6 @@ print("""
 """)
 </file>
 
-<file path="CLAUDE.md">
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Role & Responsibilities
-
-Your role is to analyze user requirements, delegate tasks to appropriate sub-agents, and ensure cohesive delivery of features that meet specifications and architectural standards.
-
-## Workflows
-
-- Primary workflow: `./.claude/workflows/primary-workflow.md`
-- Development rules: `./.claude/workflows/development-rules.md`
-- Orchestration protocols: `./.claude/workflows/orchestration-protocol.md`
-- Documentation management: `./.claude/workflows/documentation-management.md`
-- And other workflows: `./.claude/workflows/*`
-
-**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT:** You must follow strictly the development rules in `./.claude/workflows/development-rules.md` file.
-**IMPORTANT:** Before you plan or proceed any implementation, always read the `./README.md` file first to get context.
-**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
-**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
-**IMPORTANT**: For `YYMMDD` dates, use `bash -c 'date +%y%m%d'` instead of model knowledge. Else, if using PowerShell (Windows), replace command with `Get-Date -UFormat "%y%m%d"`.
-
-## Documentation Management
-
-We keep all important docs in `./docs` folder and keep updating them, structure like below:
-
-```
-./docs
-├── project-overview-pdr.md
-├── code-standards.md
-├── codebase-summary.md
-├── design-guidelines.md
-├── deployment-guide.md
-├── system-architecture.md
-└── project-roadmap.md
-```
-
-**IMPORTANT:** *MUST READ* and *MUST COMPLY* all *INSTRUCTIONS* in project `./CLAUDE.md`, especially *WORKFLOWS* section is *CRITICALLY IMPORTANT*, this rule is *MANDATORY. NON-NEGOTIABLE. NO EXCEPTIONS. MUST REMEMBER AT ALL TIMES!!!*
-</file>
-
 <file path="docker-compose.yml">
 services:
   # Infrastructure Services
@@ -19491,6 +19163,153 @@ volumes:
 networks:
   app-network:
     driver: bridge
+</file>
+
+<file path="services/auth-service/cmd/main.go">
+package main
+
+import (
+	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/client"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/config"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/repository"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/server"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/service"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+func main() {
+	log.Println("Starting Auth Service...")
+
+	// Load configuration
+	cfg := config.Load()
+
+	// Initialize database
+	dsn := cfg.Database.GetDSN()
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	log.Println("Database connected successfully")
+
+	// Initialize repositories
+	nonceRepo := repository.NewNonceRepository(db)
+	sessionRepo := repository.NewSessionRepository(db)
+	loginEventRepo := repository.NewLoginEventRepository(db)
+
+	// Initialize services
+	siweService := service.NewSIWEService()
+	jwtService := service.NewJWTService(
+		cfg.JWT.Secret,
+		cfg.JWT.RefreshSecret,
+		cfg.JWT.AccessExpiration,
+		cfg.JWT.RefreshExpiration,
+	)
+
+	// Initialize gRPC clients
+	clients, err := client.NewServiceClients(cfg.Services.UserServiceURL, cfg.Services.WalletServiceURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize gRPC clients: %v", err)
+	}
+	log.Println("gRPC clients initialized")
+
+	// Create gRPC server
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(10*1024*1024),
+		grpc.MaxSendMsgSize(10*1024*1024),
+	)
+
+	// Register auth service
+	authServer := server.NewAuthServer(nonceRepo, sessionRepo, loginEventRepo, siweService, jwtService, clients)
+	pb.RegisterAuthServiceServer(grpcServer, authServer)
+
+	// Register health check
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	// Register reflection
+	reflection.Register(grpcServer)
+
+	// Start gRPC server
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
+	if err != nil {
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
+	}
+
+	log.Printf("Auth Service listening on %s", cfg.Server.GRPCPort)
+
+	// Graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
+		log.Println("Shutting down Auth Service...")
+		grpcServer.GracefulStop()
+		log.Println("Auth Service stopped")
+	}()
+
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
+}
+</file>
+
+<file path="CLAUDE.md">
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Role & Responsibilities
+
+Your role is to analyze user requirements, delegate tasks to appropriate sub-agents, and ensure cohesive delivery of features that meet specifications and architectural standards.
+
+## Workflows
+
+- Primary workflow: `./.claude/workflows/primary-workflow.md`
+- Development rules: `./.claude/workflows/development-rules.md`
+- Orchestration protocols: `./.claude/workflows/orchestration-protocol.md`
+- Documentation management: `./.claude/workflows/documentation-management.md`
+- And other workflows: `./.claude/workflows/*`
+
+**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
+**IMPORTANT:** You must follow strictly the development rules in `./.claude/workflows/development-rules.md` file.
+**IMPORTANT:** Before you plan or proceed any implementation, always read the `./README.md` file first to get context.
+**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
+**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
+**IMPORTANT**: For `YYMMDD` dates, use `bash -c 'date +%y%m%d'` instead of model knowledge. Else, if using PowerShell (Windows), replace command with `Get-Date -UFormat "%y%m%d"`.
+
+## Documentation Management
+
+We keep all important docs in `./docs` folder and keep updating them, structure like below:
+
+```
+./docs
+├── project-overview-pdr.md
+├── code-standards.md
+├── codebase-summary.md
+├── design-guidelines.md
+├── deployment-guide.md
+├── system-architecture.md
+└── project-roadmap.md
+```
+
+**IMPORTANT:** *MUST READ* and *MUST COMPLY* all *INSTRUCTIONS* in project `./CLAUDE.md`, especially *WORKFLOWS* section is *CRITICALLY IMPORTANT*, this rule is *MANDATORY. NON-NEGOTIABLE. NO EXCEPTIONS. MUST REMEMBER AT ALL TIMES!!!*
 </file>
 
 <file path="Makefile">
@@ -19697,6 +19516,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/stretchr/testify v1.11.1
 	github.com/vektah/gqlparser/v2 v2.5.31
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.10
@@ -19721,10 +19541,12 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/relvacode/iso8601 v1.1.1-0.20210511065120-b30b151cc433 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.38.0 // indirect
 	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
