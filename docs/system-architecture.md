@@ -649,7 +649,7 @@ CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
 - Monitoring stack
 - Logging aggregation
 
-### Infrastructure Mode Switching (Phase 2 Complete)
+### Infrastructure Mode Switching (Phase 3 Complete)
 
 The application supports switching between Docker and Serverless modes via environment configuration:
 
@@ -666,6 +666,7 @@ The application supports switching between Docker and Serverless modes via envir
 cp .env.production.example .env
 
 # Uses local infrastructure
+INFRA_MODE=docker
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 REDIS_HOST=localhost
@@ -682,12 +683,68 @@ RABBITMQ_PORT=5672
 cp .env.development.example .env
 
 # Uses cloud infrastructure
+INFRA_MODE=serverless
 DATABASE_URL=postgresql://...
 REDIS_URL=redis://...
 CLOUDAMQP_URL=amqp://...
 
 # No Docker required
 ```
+
+**Application Configuration (Phase 3)**:
+
+All services support mode-aware configuration loading:
+
+```go
+// Config structs include Mode field and URL field for serverless
+type DatabaseConfig struct {
+    Mode     string // "docker" or "serverless"
+    Host     string
+    Port     string
+    User     string
+    Password string
+    Database string
+    SSLMode  string
+    URL      string // Full connection URL for serverless mode
+}
+
+// Load() detects INFRA_MODE and populates appropriate fields
+func Load() *Config {
+    mode := env.GetString("INFRA_MODE", "docker")
+
+    dbConfig := DatabaseConfig{Mode: mode}
+    if mode == "serverless" {
+        dbConfig.URL = env.GetString("DATABASE_URL", "")
+    } else {
+        dbConfig.Host = env.GetString("POSTGRES_HOST", "localhost")
+        dbConfig.Port = env.GetString("POSTGRES_PORT", "5432")
+        // ... individual fields
+    }
+}
+
+// GetDSN() returns appropriate connection string based on mode
+func (c *DatabaseConfig) GetDSN() string {
+    if c.Mode == "serverless" && c.URL != "" {
+        return c.URL
+    }
+    return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
+        " password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
+}
+```
+
+**Test Coverage (Phase 3)**:
+
+All services have comprehensive config tests covering:
+- Docker mode configuration loading
+- Serverless mode configuration loading
+- Default mode (docker) behavior
+- GetDSN(), GetAddr(), GetURL() methods for both modes
+
+Test files added:
+- `services/auth-service/internal/config/config_test.go`
+- `services/user-service/internal/config/config_test.go`
+- `services/wallet-service/internal/config/config_test.go`
+- `services/graphql-gateway/internal/config/config_test.go`
 
 ## Monitoring & Observability (Future)
 
@@ -775,7 +832,7 @@ CLOUDAMQP_URL=amqp://...
 
 ---
 
-**Version**: 1.2
+**Version**: 1.3
 **Last Updated**: 2025-12-29
 **Diagram Format**: ASCII (future: Mermaid diagrams)
-**Phase 2 Complete**: Environment Configuration (Serverless + Docker modes)
+**Phase 3 Complete**: Application Configuration (INFRA_MODE support, URL-based config, comprehensive tests)

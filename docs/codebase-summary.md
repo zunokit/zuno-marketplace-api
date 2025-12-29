@@ -6,7 +6,7 @@
 **Repository Size**: 138 tracked files
 **Primary Language**: Go 1.21+
 **Architecture**: Microservices (gRPC) + GraphQL Gateway BFF
-**Infrastructure**: Docker Compose + Kubernetes/Tilt + Serverless (Supabase/Upstash/CloudAMQP) - Phase 2 Complete
+**Infrastructure**: Docker Compose + Kubernetes/Tilt + Serverless (Supabase/Upstash/CloudAMQP) - Phase 3 Complete
 
 ## Directory Structure
 
@@ -72,6 +72,7 @@ zuno-marketplace-api/
 - `internal/repository/session_repository.go` - Session persistence
 
 **Test Coverage**: 6+ test files with table-driven tests
+- `internal/config/config_test.go` - Configuration loading (Docker + Serverless modes)
 - `internal/service/jwt_service_test.go` - Token validation
 - `internal/service/siwe_service_test.go` - SIWE verification (incomplete)
 - `internal/repository/login_event_repository_test.go` - Event logging
@@ -98,6 +99,7 @@ zuno-marketplace-api/
 **Key Files**:
 - `internal/models/user.go` - User domain model with UUID v5 generation
 - `internal/repository/user_repository.go` - User CRUD + deterministic ID generation
+- `internal/config/config_test.go` - Configuration loading (Docker + Serverless modes)
 
 **Database Tables**: 5
 - `users` - Core user accounts
@@ -123,6 +125,7 @@ zuno-marketplace-api/
 **Key Files**:
 - `internal/models/wallet_link.go` - Wallet linking with CAIP-10 support
 - `internal/repository/wallet_repository.go` - Wallet CRUD operations
+- `internal/config/config_test.go` - Configuration loading (Docker + Serverless modes)
 
 **Database Tables**: 3
 - `wallet_links` - Multi-wallet associations
@@ -158,7 +161,8 @@ zuno-marketplace-api/
 - `internal/middleware/auth.go` - JWT verification middleware
 - `internal/health/checker.go` - Health endpoint
 
-**Test Coverage**: 3+ test files
+**Test Coverage**: 4+ test files
+- `internal/config/config_test.go` - Configuration loading (Docker + Serverless modes)
 - `internal/middleware/auth_test.go` - Auth middleware
 - `internal/health/checker_test.go` - Health check
 
@@ -512,4 +516,4 @@ tests := []struct {
 **Generated**: 2025-12-04
 **Last Updated**: 2025-12-29
 **Source**: repomix output analysis
-**Phase 2 Complete**: Environment Configuration (Serverless + Docker modes)
+**Phase 3 Complete**: Application Configuration (INFRA_MODE support, URL-based config, comprehensive tests)

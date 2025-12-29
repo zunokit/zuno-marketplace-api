@@ -1,8 +1,9 @@
 # Phase 3: Application Configuration
 
 **Priority**: P1
-**Status**: Pending
+**Status**: Done (2025-12-29)
 **Effort**: 2 hours
+**Code Review**: `plans/reports/code-reviewer-251229-2222-phase-3-app-config.md`
 
 ## Context Links
 
@@ -278,21 +279,39 @@ if err != nil {
 
 ## Todo List
 
-- [ ] Update auth-service config with URL support
-- [ ] Update auth-service main.go to use new config
-- [ ] Update user-service config with URL support
-- [ ] Update wallet-service config with URL support
-- [ ] Update graphql-gateway config with URL support
-- [ ] Add connection tests for serverless mode
-- [ ] Test docker mode still works
-- [ ] Run existing tests to ensure no breakage
+- [x] Update auth-service config with URL support
+- [x] Update auth-service main.go to use new config
+- [x] Update user-service config with URL support
+- [x] Update wallet-service config with URL support
+- [x] Update graphql-gateway config with URL support
+- [x] Add connection tests for serverless mode
+- [x] Test docker mode still works
+- [x] Run existing tests to ensure no breakage
 
 ## Success Criteria
 
-- [ ] Services start with `INFRA_MODE=docker` (existing behavior)
-- [ ] Services start with `INFRA_MODE=serverless` (new behavior)
-- [ ] All existing tests pass
-- [ ] No breaking changes to existing deployments
+- [x] Services start with `INFRA_MODE=docker` (existing behavior)
+- [x] Services start with `INFRA_MODE=serverless` (new behavior)
+- [x] All existing tests pass (27 new tests added)
+- [x] No breaking changes to existing deployments
+
+## Implementation Notes
+
+**Completed**: All 4 services updated with URL support for Database, Redis, RabbitMQ.
+- Auth service: Database + Redis + RabbitMQ
+- User service: Database
+- Wallet service: Database
+- GraphQL Gateway: Redis + RabbitMQ
+
+**Tests Added**:
+- `auth-service/internal/config/config_test.go` - 9 tests
+- `user-service/internal/config/config_test.go` - 5 tests
+- `wallet-service/internal/config/config_test.go` - 5 tests
+- `graphql-gateway/internal/config/config_test.go` - 8 tests
+
+**Code Review Findings**:
+- One recommended fix: Add URL validation for serverless mode (non-blocking)
+- Security verified: No credential logging in codebase
 
 ## Risk Assessment
 

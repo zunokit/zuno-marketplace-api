@@ -156,7 +156,7 @@ func main() {
 
 ## Configuration Loading
 
-### Infrastructure Mode Selection (Phase 2 Complete)
+### Infrastructure Mode Selection (Phase 3 Complete)
 
 The application supports two infrastructure modes with automated setup:
 
@@ -169,16 +169,20 @@ Or manually select via environment variables:
 
 **Docker Mode** (default - local development):
 ```bash
-INFRA_MODE=docker  # Optional, default when serverless vars not set
+INFRA_MODE=docker  # Optional, defaults to docker
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=CHANGE_IN_PRODUCTION
 POSTGRES_DATABASE=nft_marketplace
+POSTGRES_SSL_MODE=disable
 REDIS_HOST=localhost
 REDIS_PORT=6379
 RABBITMQ_HOST=localhost
 RABBITMQ_PORT=5672
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+RABBITMQ_EXCHANGE=nft_events
 ```
 
 **Serverless Mode** (cloud infrastructure - no Docker required):
@@ -193,72 +197,81 @@ REDIS_URL=redis://default:[PASSWORD]@xxx.upstash.io:6379
 CLOUDAMQP_URL=amqp://user:password@xxx.rmq.cloudamqp.com/vhost
 ```
 
-**Detection Priority**:
-1. If `DATABASE_URL` contains "supabase" or `INFRA_MODE=serverless` → Serverless mode
-2. Otherwise → Docker mode (uses localhost defaults)
+**Configuration Pattern (Phase 3)**:
+
+Each service's config package implements mode-aware configuration loading:
+
+```go
+package config
+
+import "github.com/zunokit/zuno-marketplace-api/shared/env"
+
+// DatabaseConfig supports both Docker and Serverless modes
+type DatabaseConfig struct {
+    Mode     string // "docker" or "serverless"
+    Host     string // For docker mode
+    Port     string // For docker mode
+    User     string // For docker mode
+    Password string // For docker mode
+    Database string // For docker mode
+    SSLMode  string // For docker mode
+    URL      string // Full URL for serverless mode
+}
+
+// Load() detects INFRA_MODE and populates appropriate fields
+func Load() *Config {
+    mode := env.GetString("INFRA_MODE", "docker")
+
+    dbConfig := DatabaseConfig{Mode: mode}
+    if mode == "serverless" {
+        dbConfig.URL = env.GetString("DATABASE_URL", "")
+    } else {
+        dbConfig.Host = env.GetString("POSTGRES_HOST", "localhost")
+        dbConfig.Port = env.GetString("POSTGRES_PORT", "5432")
+        dbConfig.User = env.GetString("POSTGRES_USER", "postgres")
+        dbConfig.Password = env.GetString("POSTGRES_PASSWORD", "postgres")
+        dbConfig.Database = env.GetString("POSTGRES_DATABASE", "nft_marketplace")
+        dbConfig.SSLMode = env.GetString("POSTGRES_SSL_MODE", "disable")
+    }
+    // ... similar pattern for Redis and RabbitMQ
+    return &Config{Database: dbConfig}
+}
+
+// GetDSN() returns appropriate connection string based on mode
+func (c *DatabaseConfig) GetDSN() string {
+    if c.Mode == "serverless" && c.URL != "" {
+        return c.URL
+    }
+    return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
+        " password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
+}
+```
+
+**Test Coverage (Phase 3)**:
+
+All services include comprehensive config tests:
+
+```go
+func TestConfig_Load_ServerlessMode(t *testing.T) {
+    os.Setenv("INFRA_MODE", "serverless")
+    os.Setenv("DATABASE_URL", "postgresql://user:pass@host:5432/db")
+    defer os.Unsetenv("INFRA_MODE")
+
+    cfg := Load()
+
+    if cfg.Database.Mode != "serverless" {
+        t.Errorf("Expected Mode=serverless, got %s", cfg.Database.Mode)
+    }
+    if cfg.Database.URL != "postgresql://user:pass@host:5432/db" {
+        t.Errorf("Expected URL to match")
+    }
+}
+```
 
 **Quick Setup Guides**:
 - **Supabase**: https://supabase.com/docs/guides/getting-started
 - **Upstash**: https://upstash.com/docs/redis/quickstart/redis
 - **CloudAMQP**: https://www.cloudamqp.com/docs/how-to-connection-url.html
-
-### Pattern
-
-Type-safe environment loading in `internal/config/config.go`:
-
-```go
-package config
-
-import "github.com/yourusername/shared/env"
-
-type Config struct {
-  // Database
-  DatabaseURL  string
-  DatabaseHost string
-  DatabasePort int
-  DatabaseUser string
-
-  // JWT
-  JWTSecret    string
-  RefreshSecret string
-
-  // Service
-  Port int
-  Env  string
-}
-
-func LoadConfig() *Config {
-  return &Config{
-    DatabaseURL: env.GetString("DATABASE_URL", ""),
-    DatabasePort: env.GetInt("POSTGRES_PORT", 5432),
-    JWTSecret: env.GetString("JWT_SECRET", ""),
-    Port: env.GetInt("PORT", 50051),
-    Env: env.GetString("ENV", "development"),
-
-    // Serverless infrastructure detection
-    InfraMode:     env.GetString("INFRA_MODE", "docker"),
-    SupabaseURL:   env.GetString("SUPABASE_DATABASE_URL", ""),
-    UpstashURL:    env.GetString("UPSTASH_REDIS_REST_URL", ""),
-    UpstashToken:  env.GetString("UPSTASH_REDIS_REST_TOKEN", ""),
-    CloudAMQPURL:  env.GetString("CLOUDAMQP_URL", ""),
-  }
-}
-
-// IsServerless returns true if using cloud infrastructure
-func (c *Config) IsServerless() bool {
-  return c.DatabaseURL != "" && (strings.Contains(c.DatabaseURL, "supabase") || c.InfraMode == "serverless")
-}
-
-// GetDatabaseURL returns the appropriate database URL based on mode
-func (c *Config) GetDatabaseURL() string {
-  if c.IsServerless() && c.DatabaseURL != "" {
-    return c.DatabaseURL
-  }
-  // Build from Docker defaults
-  return fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
-    c.DatabaseUser, c.DatabasePassword, c.DatabaseHost, c.DatabasePort, c.DatabaseName)
-}
-```
 
 ### Best Practices
 
@@ -268,9 +281,11 @@ func (c *Config) GetDatabaseURL() string {
 - Validate critical values at startup
 - Never commit secrets; use `.env.development.example` or `.env.production.example`
 - Support both Docker and Serverless modes
-- Detect infrastructure mode automatically
+- Use `INFRA_MODE` to explicitly set infrastructure mode
+- Implement `GetDSN()`, `GetAddr()`, `GetURL()` methods for connection strings
 - Run `./scripts/setup-env.sh` for interactive setup
 - Use `.env.local` for local overrides (gitignored)
+- Add comprehensive tests for both modes
 
 ## Error Handling
 
@@ -882,7 +897,7 @@ func (s *AuthService) VerifySignature(ctx context.Context, message, signature st
 
 ---
 
-**Version**: 1.2
+**Version**: 1.3
 **Last Updated**: 2025-12-29
 **Applies To**: All Go services in the project
-**Phase 2 Complete**: Environment Configuration (Serverless + Docker modes)
+**Phase 3 Complete**: Application Configuration (INFRA_MODE support, URL-based config, comprehensive tests)
