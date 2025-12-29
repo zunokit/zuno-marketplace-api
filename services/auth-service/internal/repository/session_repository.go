@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
 	"gorm.io/gorm"
 )
 

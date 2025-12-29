@@ -13,9 +13,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
 )
 
 // region    ************************** generated!.gotpl **************************
