@@ -222,12 +222,18 @@ Core Features (Phase 3)
 
 ## Unresolved Questions
 
-1. **Sentry Sampling Rate**: What production trace sampling rate? (current: 0.2 = 20%)
-2. **Panic Recovery**: Should middleware recover from panics or let them crash?
-3. **gRPC Error Context**: How much request detail in Sentry events?
-4. **Performance Budget**: Target transaction duration thresholds?
-5. **Session Token TTL**: Current 15min access / 7d refresh - confirm?
-6. **Wallet Verification**: Mandatory or optional for multi-wallet?
+1. **Panic Recovery**: Should middleware recover from panics or let them crash?
+2. **gRPC Error Context**: How much request detail in Sentry events?
+3. **Performance Budget**: Target transaction duration thresholds?
+4. **Session Token TTL**: Current 15min access / 7d refresh - confirm?
+5. **Wallet Verification**: Mandatory or optional for multi-wallet?
+
+## Resolved Decisions (2025-12-29)
+
+**Sentry Configuration**:
+1. **Sentry Project Strategy**: Share one project for all services (current), future scaling to per-service projects
+2. **Trace Sampling Rate**: 0.2 (20%) for production - approved
+3. **Custom Tags**: Add `user_id` and `wallet_hash` (SHA256) tags for user context
 
 ---
 

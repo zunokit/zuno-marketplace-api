@@ -668,6 +668,23 @@ SENTRY_RELEASE=v1.0.0
 SENTRY_TRACES_SAMPLE_RATE=0.2
 ```
 
+**Configuration Decisions**:
+- **Sentry Project Strategy**: Share one Sentry project for all services (current), with future scaling to allow per-service projects
+- **Trace Sampling Rate**: 0.2 (20%) for production - balances detail vs cost
+- **Custom Tags**: Add `user_id` and `wallet_hash` tags for user context (wallet address SHA256 hashed)
+
+**Recommended Tag Usage**:
+```go
+// Add user context with hashed wallet
+import "crypto/sha256"
+
+walletHash := sha256.Sum256([]byte(walletAddress))
+sentry.ConfigureScope(func(scope *sentry.Scope) {
+    scope.SetTag("user_id", userID)
+    scope.SetTag("wallet_hash", hex.EncodeToString(walletHash[:])[:16]) // First 16 chars
+})
+```
+
 ### Health Checks
 
 **Implemented**:
