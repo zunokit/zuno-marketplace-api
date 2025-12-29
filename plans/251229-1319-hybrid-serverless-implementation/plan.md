@@ -26,7 +26,7 @@ Replace Docker-based infrastructure (PostgreSQL, Redis, RabbitMQ) with FREE tier
 | # | Phase | Status | Effort | Link |
 |---|-------|--------|--------|------|
 | 1 | Account Setup & Configuration | Pending | 1h | [phase-01](./phase-01-account-setup.md) |
-| 2 | Environment Configuration | Pending | 1h | [phase-02-environment-config.md) |
+| 2 | Environment Configuration | Pending | 1h | [phase-02](./phase-02-environment-config.md) |
 | 3 | Application Configuration | Pending | 2h | [phase-03-application-config.md) |
 | 4 | Documentation & Scripts | Pending | 2h | [phase-04-documentation-scripts.md) |
 | 5 | Testing & Validation | Pending | 2h | [phase-05](./phase-05-testing-validation.md) |
