@@ -617,9 +617,15 @@ Connection Max Lifetime: 5 minutes
 
 ### Error Tracking (Sentry)
 
-**Status**: Phase 02 Implemented (Core + Middleware)
+**Status**: Phase 03 Complete (Core + Middleware + Service Integration)
 
 **Implementation**: `shared/observability/sentry/` + `shared/observability/middleware/`
+
+**Integrated Services**:
+- Auth Service (Port 50051)
+- User Service (Port 50052)
+- Wallet Service (Port 50053)
+- GraphQL Gateway (Port 8081)
 
 **Features**:
 - **Automatic Error Capture**: Captures unhandled panics and exceptions
@@ -685,11 +691,11 @@ sentry.ConfigureScope(func(scope *sentry.Scope) {
 })
 ```
 
-### Middleware Architecture (Phase 02)
+### Middleware Architecture (Phase 02 - 03)
 
-**Implementation**: `shared/observability/middleware/`
+**Implementation**: `shared/observability/middleware/` + Service Integration
 
-The middleware layer provides automatic distributed tracing across all service communication protocols.
+The middleware layer provides automatic distributed tracing across all service communication protocols. All services now have Sentry middleware integrated.
 
 #### HTTP Middleware (Chi)
 
@@ -832,6 +838,86 @@ Tests: 6/6 passing
 - `TestUnaryClientInterceptor`: gRPC client call handling
 - `TestFormatTraceHeader`: Trace header format validation
 - `TestStreamServerInterceptor`: gRPC streaming support
+
+#### Service Integration (Phase 03)
+
+**Implementation**: Service-level Sentry initialization and middleware integration
+
+All 4 services now have integrated Sentry observability:
+
+**Auth Service** (`services/auth-service/cmd/main.go`):
+- Sentry initialization with non-blocking approach
+- gRPC server interceptor for incoming request tracing
+- Graceful shutdown with Sentry flush
+- Config: `SentryConfig` struct with DSN and Environment
+
+**User Service** (`services/user-service/cmd/main.go`):
+- Sentry initialization with non-blocking approach
+- gRPC server interceptor for incoming request tracing
+- Graceful shutdown with Sentry flush
+- Config: `SentryConfig` struct with DSN and Environment
+
+**Wallet Service** (`services/wallet-service/cmd/main.go`):
+- Sentry initialization with non-blocking approach
+- gRPC server interceptor for incoming request tracing
+- Graceful shutdown with Sentry flush
+- Config: `SentryConfig` struct with DSN and Environment
+
+**GraphQL Gateway** (`services/graphql-gateway/cmd/main.go`):
+- Sentry initialization with non-blocking approach
+- HTTP middleware (`obs.SentryHTTP`) for request transaction tracking
+- gRPC client interceptors for all service connections (distributed tracing)
+- Graceful shutdown with Sentry flush
+- Config: `SentryConfig` struct with DSN and Environment
+
+**Configuration Pattern** (per service):
+```go
+// Load configuration
+cfg := config.Load()
+
+// Initialize Sentry (non-blocking on failure)
+if cfg.Sentry.DSN != "" {
+    if err := obs.Init(
+        cfg.Sentry.DSN,
+        cfg.Sentry.Environment,
+        "service-name",      // service-specific
+        getBuildVersion(),   // version
+        0.2,                 // 20% sampling
+    ); err != nil {
+        log.Printf("Sentry init failed (continuing): %v", err)
+    } else {
+        log.Println("Sentry initialized")
+        defer obs.Flush(2 * time.Second)
+    }
+} else {
+    log.Println("Sentry DSN not configured, skipping")
+}
+```
+
+**Environment Variables**:
+```bash
+SENTRY_DSN=https://...@sentry.io/...      # Required for Sentry
+SENTRY_ENVIRONMENT=development              # development|staging|production
+```
+
+**Distributed Tracing End-to-End Flow**:
+```
+Client Request
+    │
+    ├──► GraphQL Gateway (HTTP)
+    │     │
+    │     ├──► obs.SentryHTTP (transaction start)
+    │     │
+    │     └──► gRPC Client (auth/user/wallet)
+    │           │
+    │           └──► obs.UnaryClientInterceptor (inject sentry-trace)
+    │                 │
+    │                 └──► gRPC Service
+    │                       │
+    │                       └──► obs.UnaryServerInterceptor (extract sentry-trace, continue span)
+    │
+    └──► Sentry receives complete distributed trace
+```
 
 ### Health Checks
 

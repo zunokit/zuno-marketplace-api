@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds gRPC server configuration
@@ -25,6 +26,12 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -38,6 +45,10 @@ func Load() *Config {
 			Password: env.GetString("POSTGRES_PASSWORD", "postgres"),
 			Database: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
 			SSLMode:  env.GetString("POSTGRES_SSL_MODE", "disable"),
+		},
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
 		},
 	}
 }

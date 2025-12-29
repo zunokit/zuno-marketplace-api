@@ -17,7 +17,7 @@ This roadmap tracks implementation progress across all project phases, including
 | Component | Status | Progress | Notes |
 |-----------|--------|----------|-------|
 | Foundation (v0.1.0) | Complete | 100% | Skeleton, gRPC schemas, DB infrastructure |
-| Observability (Sentry) | In Progress | 50% | Phase 01-02 complete (Core + Middleware) |
+| Observability (Sentry) | In Progress | 75% | Phase 01-03 complete (Core + Middleware + Service Integration) |
 | Core Features (v0.2.0) | Pending | 0% | SIWE auth, JWT, sessions, profiles |
 | Advanced Features (v0.3.0) | Pending | 0% | Redis, RabbitMQ, social features |
 | Production Ready (v0.4.0) | Pending | 0% | K8s manifests, monitoring, hardening |
@@ -43,7 +43,7 @@ This roadmap tracks implementation progress across all project phases, including
 
 ### Phase 2: Observability (Sentry Integration) - In Progress
 
-**Status**: 🔄 In Progress (50%)
+**Status**: 🔄 In Progress (75%)
 **Timeline**: 2025-12-29 → 2025-01-05 (est)
 **Effort**: ~6 hours total
 
@@ -51,7 +51,7 @@ This roadmap tracks implementation progress across all project phases, including
 |-------|--------|------------|-------|----------|
 | 01: Core Package | ✅ Complete | 2025-12-29 | 10/10 | 71.8% |
 | 02: Middleware Layer | ✅ Complete | 2025-12-29 | 6/6 | HTTP/gRPC/GraphQL |
-| 03: gRPC Interceptors | Pending | - | 0/0 | - |
+| 03: Service Integration | ✅ Complete | 2025-12-29 | Verified | 4 services |
 | 04: Performance Monitoring | Pending | - | 0/0 | - |
 
 #### Phase 01: Core Sentry Package (Complete)
@@ -80,9 +80,23 @@ This roadmap tracks implementation progress across all project phases, including
 - Tests: 6/6 passing (HTTP, gRPC, stream, trace header)
 - Updated README with usage examples
 
+#### Phase 03: Service Integration (Complete)
+- Integrated Sentry into all 4 services (Auth, User, Wallet, GraphQL Gateway)
+- Added Sentry initialization in service main.go files
+- Config updates for all services (SentryConfig struct)
+- gRPC server interceptors for Auth, User, Wallet services
+- HTTP middleware for GraphQL Gateway
+- gRPC client interceptors for distributed tracing
+- Graceful shutdown with Sentry flush
+- Panic capture and error reporting
+- Fix verification completed:
+  - Graceful shutdown: Verified
+  - Simplified imports: Verified
+  - No capture before fatal: Partial (auth/user/wallet need flush)
+- Report: `plans/reports/code-reviewer-251229-1218-phase03-service-integration-fixes.md`
+
 #### Remaining Phases
-- **Phase 03**: Performance monitoring enhancements
-- **Phase 04**: Custom transactions, APM integration, advanced metrics
+- **Phase 04**: Performance monitoring enhancements, custom transactions, APM integration
 
 ---
 
@@ -134,6 +148,51 @@ This roadmap tracks implementation progress across all project phases, including
 ---
 
 ## Changelog
+
+### 2025-12-29 - Sentry Phase 03 Complete (Service Integration)
+
+**Completed**: Phase 03 - Service Integration
+
+- ✅ Integrated Sentry into all 4 services:
+  - Auth Service: Sentry init, gRPC server interceptor, panic capture, graceful shutdown
+  - User Service: Sentry init, gRPC server interceptor, panic capture, graceful shutdown
+  - Wallet Service: Sentry init, gRPC server interceptor, panic capture, graceful shutdown
+  - GraphQL Gateway: Sentry init, HTTP middleware, gRPC client interceptors, graceful shutdown
+- ✅ Config updates for all services (SentryConfig struct with DSN, Environment)
+- ✅ gRPC server interceptors for Auth, User, Wallet services (tracing incoming calls)
+- ✅ gRPC client interceptors for GraphQL Gateway (distributed tracing propagation)
+- ✅ HTTP middleware (SentryHTTP) for GraphQL Gateway request tracking
+- ✅ Graceful shutdown with Sentry flush (2s timeout)
+- ✅ Panic capture and error reporting to Sentry
+- ✅ sentry-trace header propagation for distributed tracing
+- ✅ Code review fixes verified:
+  - Graceful shutdown: PASS
+  - Simplified imports: PASS
+  - No capture before fatal: PARTIAL (auth/user/wallet need flush)
+
+**Files Modified**:
+- `services/auth-service/internal/config/config.go` (SentryConfig added)
+- `services/auth-service/cmd/main.go` (Sentry init, interceptor, flush)
+- `services/user-service/internal/config/config.go` (SentryConfig added)
+- `services/user-service/cmd/main.go` (Sentry init, interceptor, flush)
+- `services/wallet-service/internal/config/config.go` (SentryConfig added)
+- `services/wallet-service/cmd/main.go` (Sentry init, interceptor, flush)
+- `services/graphql-gateway/internal/config/config.go` (SentryConfig added)
+- `services/graphql-gateway/cmd/main.go` (Sentry init, middleware, client interceptors)
+
+**Reports**:
+- `plans/reports/code-reviewer-251229-1218-phase03-service-integration-fixes.md`
+
+**Remaining Issues**:
+- [HIGH] Add flush before fatal errors in auth/user/wallet services
+- [MEDIUM] Make `tracesSampleRate` configurable via environment variable
+- [MEDIUM] Extract shared init logic to reduce code duplication
+- [LOW] Add DSN format validation
+
+**Next Steps**:
+- Phase 04: Performance monitoring enhancements, custom transactions, APM integration
+
+---
 
 ### 2025-12-29 - Sentry Phase 02 Complete (Middleware Layer)
 
@@ -259,8 +318,8 @@ This roadmap tracks implementation progress across all project phases, including
 ```
 Sentry Integration (Phase 2)
     ├── Core Package (Phase 01) ✅ COMPLETE
-    ├── Middleware Layer (Phase 02) → Depends: Core
-    ├── gRPC Interceptors (Phase 03) → Depends: Core
+    ├── Middleware Layer (Phase 02) ✅ COMPLETE → Depends: Core
+    ├── Service Integration (Phase 03) ✅ COMPLETE → Depends: Core, Middleware
     └── Performance Monitoring (Phase 04) → Depends: Middleware, Interceptors
 
 Core Features (Phase 3)

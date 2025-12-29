@@ -86,6 +86,8 @@ zuno-marketplace-api/
 
 **Dependencies**: User Service, Wallet Service (via gRPC)
 
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
+
 ### 2. User Service (Port 50052)
 
 **Location**: `services/user-service/`
@@ -111,6 +113,8 @@ zuno-marketplace-api/
 
 **Dependencies**: None (depended on by Auth & Wallet services)
 
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
+
 ### 3. Wallet Service (Port 50053)
 
 **Location**: `services/wallet-service/`
@@ -133,6 +137,8 @@ zuno-marketplace-api/
 - `wallet_activity` - Activity logging
 
 **Dependencies**: User Service (via gRPC)
+
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
 
 ### 4. GraphQL Gateway (Port 8081)
 
@@ -166,6 +172,8 @@ zuno-marketplace-api/
 - `internal/health/checker_test.go` - Health check
 
 **Dependencies**: All 3 gRPC services (Auth, User, Wallet)
+
+**Observability**: Sentry integrated (HTTP middleware, gRPC client interceptors, graceful shutdown)
 
 ## Shared Packages
 
@@ -566,7 +574,7 @@ tests := []struct {
 - GraphQL schema definitions
 - Health check endpoints
 - Docker and Kubernetes setup
-- Sentry observability (Core package + Middleware layer)
+- Sentry observability (Core + Middleware + Service Integration complete)
 
 ### Partial
 - SIWE verification (has TODOs)

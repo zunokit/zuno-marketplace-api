@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Services ServicesConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds gRPC server configuration
@@ -43,6 +44,12 @@ type ServicesConfig struct {
 	WalletServiceURL string
 }
 
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -66,6 +73,10 @@ func Load() *Config {
 		Services: ServicesConfig{
 			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
 			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+		},
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
 		},
 	}
 }

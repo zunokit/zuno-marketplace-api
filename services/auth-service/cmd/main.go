@@ -6,6 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	grpcMiddleware "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+	obs "github.com/quangdang46/NFT-Marketplace/shared/observability/sentry"
 
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/client"
 	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/config"
@@ -27,6 +31,24 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize Sentry (non-blocking on failure)
+	if cfg.Sentry.DSN != "" {
+		if err := obs.Init(
+			cfg.Sentry.DSN,
+			cfg.Sentry.Environment,
+			"auth-service",
+			getBuildVersion(),
+			0.2, // 20% sampling for staging
+		); err != nil {
+			log.Printf("Sentry init failed (continuing): %v", err)
+		} else {
+			log.Println("Sentry initialized")
+			defer obs.Flush(2 * time.Second)
+		}
+	} else {
+		log.Println("Sentry DSN not configured, skipping")
+	}
 
 	// Initialize database
 	dsn := cfg.Database.GetDSN()
@@ -60,10 +82,13 @@ func main() {
 	}
 	log.Println("gRPC clients initialized")
 
-	// Create gRPC server
+	// Create gRPC server with Sentry interceptor
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(10*1024*1024),
 		grpc.MaxSendMsgSize(10*1024*1024),
+		grpc.ChainUnaryInterceptor(
+			grpcMiddleware.UnaryServerInterceptor(),
+		),
 	)
 
 	// Register auth service
@@ -92,6 +117,13 @@ func main() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 		log.Println("Shutting down Auth Service...")
+
+		// Flush Sentry before shutdown
+		if cfg.Sentry.DSN != "" {
+			log.Println("Flushing Sentry events...")
+			obs.Flush(2 * time.Second)
+		}
+
 		grpcServer.GracefulStop()
 		log.Println("Auth Service stopped")
 	}()
@@ -99,4 +131,9 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
+}
+
+// getBuildVersion returns the version from build info or git
+func getBuildVersion() string {
+	return "v0.1.0" // Placeholder
 }
