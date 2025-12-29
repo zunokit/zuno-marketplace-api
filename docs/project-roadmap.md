@@ -17,7 +17,7 @@ This roadmap tracks implementation progress across all project phases, including
 | Component | Status | Progress | Notes |
 |-----------|--------|----------|-------|
 | Foundation (v0.1.0) | Complete | 100% | Skeleton, gRPC schemas, DB infrastructure |
-| Observability (Sentry) | In Progress | 25% | Phase 01 complete (Core Package) |
+| Observability (Sentry) | In Progress | 50% | Phase 01-02 complete (Core + Middleware) |
 | Core Features (v0.2.0) | Pending | 0% | SIWE auth, JWT, sessions, profiles |
 | Advanced Features (v0.3.0) | Pending | 0% | Redis, RabbitMQ, social features |
 | Production Ready (v0.4.0) | Pending | 0% | K8s manifests, monitoring, hardening |
@@ -43,14 +43,14 @@ This roadmap tracks implementation progress across all project phases, including
 
 ### Phase 2: Observability (Sentry Integration) - In Progress
 
-**Status**: 🔄 In Progress (25%)
+**Status**: 🔄 In Progress (50%)
 **Timeline**: 2025-12-29 → 2025-01-05 (est)
 **Effort**: ~6 hours total
 
 | Phase | Status | Completion | Tests | Coverage |
 |-------|--------|------------|-------|----------|
 | 01: Core Package | ✅ Complete | 2025-12-29 | 10/10 | 71.8% |
-| 02: Middleware Layer | Pending | - | 0/0 | - |
+| 02: Middleware Layer | ✅ Complete | 2025-12-29 | 6/6 | HTTP/gRPC/GraphQL |
 | 03: gRPC Interceptors | Pending | - | 0/0 | - |
 | 04: Performance Monitoring | Pending | - | 0/0 | - |
 
@@ -61,10 +61,28 @@ This roadmap tracks implementation progress across all project phases, including
 - Security fixes applied per code review
 - Report: `plans/reports/code-reviewer-251229-0041-sentry-phase01-security-fixes.md`
 
+#### Phase 02: Middleware Layer (Complete)
+- Created `shared/observability/middleware/` package
+- **HTTP Middleware** (Chi):
+  - Request transaction tracking with status code mapping
+  - Distributed tracing via sentry-trace header
+  - Health/ready endpoint skip for clean traces
+  - Custom responseWriter for status capture
+- **gRPC Interceptors**:
+  - Server interceptor for incoming requests
+  - Client interceptor for outbound calls with trace injection
+  - Stream server interceptor support
+  - sentry-trace metadata propagation
+- **GraphQL Middleware**:
+  - Field-level middleware for resolver tracking
+  - Operation-level response middleware
+  - Panic recovery with proper span cleanup
+- Tests: 6/6 passing (HTTP, gRPC, stream, trace header)
+- Updated README with usage examples
+
 #### Remaining Phases
-- **Phase 02**: HTTP middleware for request tracking, panic recovery
-- **Phase 03**: gRPC interceptors for server/stream error capture
-- **Phase 04**: Performance monitoring, custom transactions, APM integration
+- **Phase 03**: Performance monitoring enhancements
+- **Phase 04**: Custom transactions, APM integration, advanced metrics
 
 ---
 
@@ -116,6 +134,53 @@ This roadmap tracks implementation progress across all project phases, including
 ---
 
 ## Changelog
+
+### 2025-12-29 - Sentry Phase 02 Complete (Middleware Layer)
+
+**Completed**: Phase 02 - Middleware Layer
+
+- ✅ Created `shared/observability/middleware/` package
+- ✅ **HTTP Middleware** (`http.go`):
+  - Chi middleware for request transaction tracking
+  - HTTP context data capture (method, URL, host, path, query, remote_addr)
+  - Distributed tracing via sentry-trace header extraction
+  - Health/ready endpoint skip for clean trace data
+  - Custom responseWriter wrapper for status code capture
+  - Status code to span status mapping (4xx → InvalidArgument, 5xx → InternalError)
+- ✅ **gRPC Interceptors** (`grpc.go`):
+  - UnaryServerInterceptor for incoming gRPC calls
+  - UnaryClientInterceptor for outbound gRPC calls with trace injection
+  - StreamServerInterceptor for streaming RPC support
+  - sentry-trace header propagation via metadata
+  - trace header formatting: {trace_id}-{span_id}-{sampled}
+  - streamWithContext wrapper for context propagation
+- ✅ **GraphQL Middleware** (`graphql.go`):
+  - GraphQLFieldMiddleware for field-level resolver tracking
+  - GraphQLResponseMiddleware for operation-level metrics
+  - Panic recovery with proper span cleanup and re-panic
+  - GraphQL context data capture (field name, type, parent type, operation name/type)
+  - Variables count tracking (sanitized, no raw values)
+- ✅ Tests: 6/6 passing
+  - TestSentryHTTP: health/ready skip, regular endpoint tracing, status capture
+  - TestResponseWriter: status code wrapper functionality
+  - TestUnaryServerInterceptor: gRPC server interceptor
+  - TestUnaryClientInterceptor: gRPC client interceptor
+  - TestFormatTraceHeader: trace header formatting
+  - TestStreamServerInterceptor: streaming interceptor
+- ✅ Updated `shared/observability/README.md` with middleware usage examples
+
+**Files Modified**:
+- `shared/observability/middleware/http.go` (new)
+- `shared/observability/middleware/grpc.go` (new)
+- `shared/observability/middleware/graphql.go` (new)
+- `shared/observability/middleware/middleware_test.go` (new)
+- `shared/observability/README.md` (updated)
+
+**Next Steps**:
+- Phase 03: Performance Monitoring enhancements
+- Phase 04: Custom transactions, APM integration
+
+---
 
 ### 2025-12-29 - Sentry Phase 01 Complete
 

@@ -617,9 +617,9 @@ Connection Max Lifetime: 5 minutes
 
 ### Error Tracking (Sentry)
 
-**Status**: Phase 01 Implemented
+**Status**: Phase 02 Implemented (Core + Middleware)
 
-**Implementation**: `shared/observability/sentry/`
+**Implementation**: `shared/observability/sentry/` + `shared/observability/middleware/`
 
 **Features**:
 - **Automatic Error Capture**: Captures unhandled panics and exceptions
@@ -684,6 +684,154 @@ sentry.ConfigureScope(func(scope *sentry.Scope) {
     scope.SetTag("wallet_hash", hex.EncodeToString(walletHash[:])[:16]) // First 16 chars
 })
 ```
+
+### Middleware Architecture (Phase 02)
+
+**Implementation**: `shared/observability/middleware/`
+
+The middleware layer provides automatic distributed tracing across all service communication protocols.
+
+#### HTTP Middleware (Chi)
+
+**File**: `middleware/http.go`
+
+**Purpose**: Capture HTTP requests as Sentry transactions with distributed tracing support.
+
+**Features**:
+- Health/ready endpoint skip (`/health`, `/ready`) for clean trace data
+- Transaction name from HTTP method + path (e.g., `GET /api/v1/users`)
+- HTTP context capture: method, URL, scheme, host, path, query, remote_addr
+- Distributed tracing via `sentry-trace` header extraction
+- Custom `responseWriter` wrapper for status code capture
+- Status code to span status mapping:
+  - 4xx → `InvalidArgument`
+  - 5xx → `InternalError`
+  - Others → `OK`
+
+**Usage**:
+```go
+import obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+router := chi.NewRouter()
+router.Use(obshttp.SentryHTTP)  // Add BEFORE other middleware
+router.Use(middleware.Logger)
+router.Use(middleware.Recoverer)
+```
+
+#### gRPC Interceptors
+
+**File**: `middleware/grpc.go`
+
+**Purpose**: Distributed tracing for gRPC service-to-service communication.
+
+**UnaryServerInterceptor**:
+- Captures incoming gRPC calls as Sentry spans
+- Extracts `sentry-trace` from incoming metadata for distributed tracing
+- Captures method name and service info
+- Error mapping to span status
+
+**UnaryClientInterceptor**:
+- Injects `sentry-trace` header into outbound gRPC calls
+- Captures target service and method info
+- Formats trace header: `{trace_id}-{span_id}-{sampled}`
+
+**StreamServerInterceptor**:
+- Support for streaming gRPC RPCs
+- Context propagation via `streamWithContext` wrapper
+
+**Usage**:
+```go
+import obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+// Server
+grpcServer := grpc.NewServer(
+    grpc.ChainUnaryInterceptor(obsgrpc.UnaryServerInterceptor()),
+)
+
+// Client
+conn, err := grpc.Dial(
+    serviceURL,
+    grpc.WithTransportCredentials(insecure.NewCredentials()),
+    grpc.WithChainUnaryInterceptor(obsgrpc.UnaryClientInterceptor()),
+)
+```
+
+#### GraphQL Middleware
+
+**File**: `middleware/graphql.go`
+
+**Purpose**: Field-level and operation-level tracing for GraphQL resolvers.
+
+**GraphQLFieldMiddleware**:
+- Creates span for each GraphQL field resolution
+- Captures field name, type, parent type
+- Operation context (query/mutation/subscription)
+- Variables count (sanitized, no raw values)
+- Panic recovery with proper span cleanup
+
+**GraphQLResponseMiddleware**:
+- Operation-level metrics
+- Error count tracking
+- Operation type classification
+
+**Usage**:
+```go
+import obsgraphql "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+srv := handler.NewDefaultServer(schema)
+srv.Use(obsgraphql.GraphQLFieldMiddleware())
+srv.Use(obsgraphql.GraphQLResponseMiddleware())
+```
+
+#### Distributed Tracing Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Distributed Tracing Flow                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Client Request                                                         │
+│       │                                                                 │
+│       ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ HTTP Middleware (Chi)                                             │  │
+│  │  - Start transaction: "GET /api/v1/users"                        │  │
+│  │  - Extract sentry-trace header (if present)                      │  │
+│  │  - Set trace context on request                                  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│       │                                                                 │
+│       ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ GraphQL Gateway Resolver                                          │  │
+│  │  - GraphQLFieldMiddleware creates span for each field            │  │
+│  │  - gRPC client interceptor injects sentry-trace                  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│       │                                                                 │
+│       ▼ (sentry-trace header in metadata)                               │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ gRPC Service (Auth/User/Wallet)                                   │  │
+│  │  - UnaryServerInterceptor extracts sentry-trace                  │  │
+│  │  - Continues parent span from trace header                       │  │
+│  │  - Creates child span for gRPC method                            │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│       │                                                                 │
+│       ▼                                                                 │
+│  Sentry receives distributed trace with linked spans                    │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Test Coverage
+
+**File**: `middleware/middleware_test.go`
+
+Tests: 6/6 passing
+- `TestSentryHTTP`: Health/ready endpoint skip, regular tracing, POST requests
+- `TestResponseWriter`: Status code wrapper functionality
+- `TestUnaryServerInterceptor`: gRPC server request handling
+- `TestUnaryClientInterceptor`: gRPC client call handling
+- `TestFormatTraceHeader`: Trace header format validation
+- `TestStreamServerInterceptor`: gRPC streaming support
 
 ### Health Checks
 

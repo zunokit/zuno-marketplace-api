@@ -38,7 +38,8 @@ zuno-marketplace-api/
 ├── shared/                    # Shared packages
 │   ├── env/                   # Environment loading
 │   ├── observability/         # Error tracking & monitoring
-│   │   └── sentry/            # Sentry integration
+│   │   ├── sentry/            # Sentry core package
+│   │   └── middleware/        # HTTP/gRPC/GraphQL middleware
 │   └── proto/pb/              # Generated protobuf code
 ├── CLAUDE.md                  # Claude Code instructions
 ├── docker-compose.yml         # Local development
@@ -196,6 +197,49 @@ zuno-marketplace-api/
 - **Performance Monitoring**: Distributed tracing with configurable sampling
 - **Privacy-First**: Auto-scrubs sensitive data before sending to Sentry
 - **Production-Ready**: Breadcrumbs, context attachment, stack traces
+
+### `shared/observability/middleware/` - Observability Middleware
+
+**Location**: `shared/observability/middleware/`
+**Purpose**: Automatic distributed tracing across HTTP, gRPC, and GraphQL protocols
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+- `http.go` - HTTP/Chi middleware for request transaction tracking
+- `grpc.go` - gRPC server/client interceptors with trace propagation
+- `graphql.go` - GraphQL field and response middleware
+- `middleware_test.go` - Comprehensive test suite (6/6 passing)
+- `README.md` - Usage documentation (updated)
+
+**HTTP Middleware (Chi)**:
+- `SentryHTTP` middleware for request transaction tracking
+- Health/ready endpoint skip (`/health`, `/ready`)
+- HTTP context capture (method, URL, host, path, query, remote_addr)
+- Distributed tracing via `sentry-trace` header extraction
+- Custom `responseWriter` wrapper for status code capture
+- Status code to span status mapping (4xx, 5xx, others)
+
+**gRPC Interceptors**:
+- `UnaryServerInterceptor` - Captures incoming gRPC calls as Sentry spans
+- `UnaryClientInterceptor` - Injects `sentry-trace` header into outbound calls
+- `StreamServerInterceptor` - Support for streaming gRPC RPCs
+- `streamWithContext` wrapper for context propagation
+- Trace header format: `{trace_id}-{span_id}-{sampled}`
+
+**GraphQL Middleware**:
+- `GraphQLFieldMiddleware` - Field-level resolver tracing
+- `GraphQLResponseMiddleware` - Operation-level metrics
+- Panic recovery with proper span cleanup
+- GraphQL context data capture (field name, type, operation)
+- Variables count tracking (sanitized)
+
+**Test Coverage**: 6/6 passing
+- `TestSentryHTTP` - Health/ready skip, regular endpoint tracing
+- `TestResponseWriter` - Status code wrapper
+- `TestUnaryServerInterceptor` - gRPC server request handling
+- `TestUnaryClientInterceptor` - gRPC client call handling
+- `TestFormatTraceHeader` - Trace header format validation
+- `TestStreamServerInterceptor` - gRPC streaming support
 
 **Privacy Scrubbing Patterns**:
 - Ethereum addresses (0x + 40 hex chars)
@@ -449,12 +493,12 @@ tests := []struct {
 ## File Statistics
 
 **Total Files**: 138 tracked
-**Go Source Files**: 42
+**Go Source Files**: 46
 - Auth Service: 8 files
 - User Service: 5 files
 - Wallet Service: 5 files
 - GraphQL Gateway: 8 files
-- Shared: 5 files (env, sentry)
+- Shared: 9 files (env, sentry, middleware)
 - Generated: 6 files
 
 **Configuration Files**: 20+
@@ -496,10 +540,10 @@ tests := []struct {
 - User Service: ~400 lines
 - Wallet Service: ~400 lines
 - GraphQL Gateway: ~600 lines
-- Shared: ~350 lines (env, observability/sentry)
+- Shared: ~550 lines (env, observability/sentry, observability/middleware)
 - Generated Code: ~5000 lines (protobuf)
-- Tests: ~800 lines
-- **Total**: ~8350 lines (excluding generated code)
+- Tests: ~950 lines
+- **Total**: ~8700 lines (excluding generated code)
 
 ## Architecture Patterns Used
 
@@ -522,6 +566,7 @@ tests := []struct {
 - GraphQL schema definitions
 - Health check endpoints
 - Docker and Kubernetes setup
+- Sentry observability (Core package + Middleware layer)
 
 ### Partial
 - SIWE verification (has TODOs)

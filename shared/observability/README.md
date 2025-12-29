@@ -55,3 +55,53 @@ The following patterns are automatically scrubbed:
 - Private keys
 - CAIP-10 account IDs
 - Sensitive HTTP headers (Authorization, Cookie, etc.)
+
+---
+
+## Middleware Usage
+
+### HTTP Middleware (Chi)
+
+```go
+import obshttp "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+router := chi.NewRouter()
+router.Use(obshttp.SentryHTTP)  // Add BEFORE other middleware
+router.Use(middleware.Logger)
+router.Use(middleware.Recoverer)
+```
+
+### gRPC Server Interceptor
+
+```go
+import obsgrpc "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+grpcServer := grpc.NewServer(
+    grpc.ChainUnaryInterceptor(
+        obsgrpc.UnaryServerInterceptor(),
+    ),
+)
+```
+
+### gRPC Client Interceptor
+
+```go
+conn, err := grpc.Dial(
+    serviceURL,
+    grpc.WithTransportCredentials(insecure.NewCredentials()),
+    grpc.WithChainUnaryInterceptor(
+        obsgrpc.UnaryClientInterceptor(),
+    ),
+)
+```
+
+### GraphQL Middleware
+
+```go
+import obsgraphql "github.com/quangdang46/NFT-Marketplace/shared/observability/middleware"
+
+// In GraphQL server setup
+srv := handler.NewDefaultServer(schema)
+srv.Use(obsgraphql.GraphQLFieldMiddleware())
+srv.Use(obsgraphql.GraphQLResponseMiddleware())
+```
