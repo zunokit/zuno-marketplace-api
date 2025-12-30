@@ -338,7 +338,6 @@ make ci            # Run CI pipeline locally
 **GitHub Actions** - CI/CD Pipeline
 - ✅ Automated linting and testing
 - 🐳 Docker image builds
-- 🔒 Security scanning with gosec
 - 📊 Test coverage reports
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for complete guide.

@@ -664,21 +664,6 @@ go vet ./...  # Run in repo root
 - Build constraints
 - Unused variables
 
-### Security Scanning
-
-**Tool**: gosec
-**Runs in CI**: Yes
-
-```bash
-gosec ./...  # Run locally
-```
-
-**Checks**:
-- SQL injection risks
-- Hardcoded secrets
-- Weak cryptography
-- Insecure temp files
-
 ## Development Workflow: TDD
 
 ### The Three Phases

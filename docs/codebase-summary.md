@@ -428,6 +428,10 @@ DATABASE_URL      # Supabase connection string
 REDIS_URL         # Upstash connection string
 CLOUDAMQP_URL     # CloudAMQP connection string
 ```
+- Lint (golangci-lint)
+- Test (go test with coverage)
+- Build (Docker image builds)
+- PR Validation (coverage threshold 80%)
 
 ## Development Tools
 

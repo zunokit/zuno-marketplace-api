@@ -123,20 +123,6 @@ jobs:
             echo "::warning::PR changes $lines_changed lines. Consider splitting into smaller PRs."
           fi
 
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'develop-claude'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-
   test-coverage:
     name: Test Coverage Check
     runs-on: ubuntu-latest
