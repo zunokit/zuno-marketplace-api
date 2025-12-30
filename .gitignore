@@ -56,13 +56,10 @@ dist-ssr
 # Tilt build
 build/
 
-# Cursor
-.cursorrules
 
 # Secrets
 secrets.yaml
 !infra/development/build/
 !infra\development\build\*.bat
 
-.quoder
-zuno-marketplace-contracts
+.sensity
