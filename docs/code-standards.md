@@ -437,6 +437,130 @@ func TestAuthServiceLogin(t *testing.T) {
 - Unit tests for business logic
 - Integration tests for database operations
 
+### Hybrid Infrastructure Testing (Phase 5)
+
+**Mode-Aware Testing**:
+
+Tests must support both Docker and Serverless infrastructure modes:
+
+```go
+func TestConfig_Load_ServerlessMode(t *testing.T) {
+    os.Setenv("INFRA_MODE", "serverless")
+    os.Setenv("DATABASE_URL", "postgresql://user:pass@host:5432/db")
+    defer os.Unsetenv("INFRA_MODE")
+
+    cfg := Load()
+
+    if cfg.Database.Mode != "serverless" {
+        t.Errorf("Expected Mode=serverless, got %s", cfg.Database.Mode)
+    }
+    if cfg.Database.URL != "postgresql://user:pass@host:5432/db" {
+        t.Errorf("Expected URL to match")
+    }
+}
+
+func TestConfig_Load_DockerMode(t *testing.T) {
+    os.Setenv("INFRA_MODE", "docker")
+    os.Setenv("POSTGRES_HOST", "localhost")
+    defer os.Unsetenv("INFRA_MODE")
+
+    cfg := Load()
+
+    if cfg.Database.Mode != "docker" {
+        t.Errorf("Expected Mode=docker, got %s", cfg.Database.Mode)
+    }
+    if cfg.Database.Host != "localhost" {
+        t.Errorf("Expected Host=localhost")
+    }
+}
+```
+
+**Mode Detection Tests** (`tests/integration/mode_test.go`):
+
+```go
+// TestInfrastructureMode validates INFRA_MODE setting
+func TestInfrastructureMode(t *testing.T) {
+    mode := env.GetString("INFRA_MODE", "docker")
+
+    if mode != "docker" && mode != "serverless" {
+        t.Fatalf("invalid INFRA_MODE: %s", mode)
+    }
+    t.Logf("✅ Infrastructure mode: %s", mode)
+}
+
+// TestServerlessConnectionStrings validates required env vars
+func TestServerlessConnectionStrings(t *testing.T) {
+    mode := env.GetString("INFRA_MODE", "docker")
+
+    if mode != "serverless" {
+        t.Skip("only runs in serverless mode")
+    }
+
+    required := []string{
+        "DATABASE_URL",
+        "REDIS_URL",
+        "CLOUDAMQP_URL",
+    }
+
+    missing := []string{}
+    for _, key := range required {
+        val := os.Getenv(key)
+        if val == "" {
+            missing = append(missing, key)
+        }
+    }
+
+    if len(missing) > 0 {
+        t.Errorf("missing required env vars: %v", missing)
+    }
+}
+```
+
+**Testing Scripts** (Phase 5):
+
+```bash
+# Smoke test - quick validation
+./scripts/test-smoke.sh
+
+# Comprehensive test suite with mode selection
+./scripts/test-all.sh docker       # Docker mode testing
+./scripts/test-all.sh serverless   # Serverless mode testing
+
+# Standard Go test commands
+go test -v ./...                    # All tests
+go test -v -tags=integration ./...  # Integration only
+go test -v -short ./...             # Unit tests only
+```
+
+**Connection String Format Validation**:
+
+```go
+func TestServerlessDatabaseURL(t *testing.T) {
+    mode := env.GetString("INFRA_MODE", "docker")
+
+    if mode != "serverless" {
+        t.Skip("only runs in serverless mode")
+    }
+
+    dbURL := os.Getenv("DATABASE_URL")
+    if dbURL == "" {
+        t.Skip("DATABASE_URL not set")
+    }
+
+    // Check for postgres:// or postgresql:// prefix
+    if len(dbURL) < 11 || (dbURL[:10] != "postgres://" && dbURL[:11] != "postgresql://") {
+        t.Errorf("DATABASE_URL has invalid format")
+    }
+}
+```
+
+**CI/CD Integration**:
+
+GitHub Actions supports dual-mode testing:
+- **Docker tests**: Run on every push/PR with service containers
+- **Serverless tests**: Run on push events only (requires GitHub secrets)
+- Graceful skip if serverless secrets not configured
+
 ## Commit Message Format
 
 ### Conventional Commits
@@ -897,7 +1021,7 @@ func (s *AuthService) VerifySignature(ctx context.Context, message, signature st
 
 ---
 
-**Version**: 1.4
+**Version**: 1.5
 **Last Updated**: 2025-12-30
 **Applies To**: All Go services in the project
-**Phase 4 Complete**: Documentation & Scripts (serverless guide, troubleshooting, health check script, DEVELOPMENT.md)
+**Phase 5 Complete**: Testing & Validation (smoke tests, integration tests, CI/CD serverless support, comprehensive test runner)

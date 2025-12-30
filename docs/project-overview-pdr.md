@@ -10,7 +10,7 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Release Date**: November 15, 2025
 - **Status**: Ready for feature development
 - **Branch**: `feature/hybird-serverless-and-servers-infrastructure`
-- **Phase 3 Complete**: Application Configuration (INFRA_MODE support, URL-based config, comprehensive tests)
+- **Phase 5 Complete**: Testing & Validation (smoke tests, integration tests, CI/CD serverless support, comprehensive test runner)
 
 ## Key Objectives
 
@@ -190,10 +190,13 @@ GraphQL Gateway
 - ✅ Add health check scripts for serverless mode
 - ✅ Create DEVELOPMENT.md with TDD workflow and mode switching guide
 
-### Phase 5: Testing & Validation (v0.1.1)
-- [ ] Integration tests for both modes
-- [ ] CI/CD pipeline updates for dual-mode testing
-- [ ] Performance comparison between modes
+### Phase 5: Testing & Validation (Complete - v0.1.0)
+- ✅ Smoke test script (`scripts/test-smoke.sh`) for quick validation
+- ✅ Comprehensive test runner (`scripts/test-all.sh`) with mode selection
+- ✅ Integration tests for infrastructure mode detection (`tests/integration/mode_test.go`)
+- ✅ CI/CD pipeline updates for dual-mode testing (Docker + Serverless)
+- ✅ Serverless mode tests in GitHub Actions (optional, requires secrets)
+- ✅ Connection string format validation tests
 
 ### Phase 6: Core Features (v0.2.0)
 - [ ] Complete SIWE authentication implementation
@@ -294,4 +297,4 @@ GraphQL Gateway
 **Version**: 0.1.0
 **Last Updated**: 2025-12-30
 **Maintainer**: Zuno Development Team
-**Phase 4 Complete**: Documentation & Scripts (2025-12-30)
+**Phase 5 Complete**: Testing & Validation (2025-12-30)

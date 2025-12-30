@@ -746,6 +746,150 @@ Test files added:
 - `services/wallet-service/internal/config/config_test.go`
 - `services/graphql-gateway/internal/config/config_test.go`
 
+## CI/CD Pipeline (Phase 5)
+
+### GitHub Actions Workflows
+
+**Location**: `.github/workflows/ci.yml`
+
+### Job Structure
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Workflow Trigger                        │
+│  Push (develop-claude, main, feature/*), Pull Request       │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        │                         │
+        ↓                         ↓
+┌──────────────┐          ┌──────────────┐
+│   Lint Job   │          │   Test Job   │
+│  (parallel)  │          │  (Docker)    │
+└──────────────┘          └──────┬───────┘
+                                 │
+                        ┌────────┴────────┐
+                        │                 │
+                        ↓                 ↓
+                ┌──────────────┐  ┌────────────────┐
+                │ Serverless   │  │   Build Job    │
+                │   Test Job   │  │  (multi-arch)  │
+                │  (optional)  │  └────────────────┘
+                └──────────────┘           │
+                                          │
+                               ┌──────────┴──────────┐
+                               ↓                     ↓
+                       ┌──────────────┐    ┌──────────────┐
+                       │  Docker Build│    │Security Scan │
+                       │    Job       │    │   (gosec)    │
+                       └──────────────┘    └──────────────┘
+```
+
+### Jobs Details
+
+**1. Lint Job**
+- **Tool**: golangci-lint
+- **Timeout**: 5 minutes
+- **Purpose**: Code quality checks before tests
+
+**2. Test Job (Docker Mode)**
+- **Runs on**: ubuntu-latest
+- **Services**: PostgreSQL 15, Redis 7, RabbitMQ 3
+- **Commands**: `go test -v -race -coverprofile=coverage.out ./...`
+- **Coverage**: Uploads to Codecov
+
+**3. Test Serverless Job (Phase 5)**
+- **Runs on**: ubuntu-latest
+- **Trigger**: Push events only (not PRs)
+- **Environment Variables**: From GitHub Secrets
+  - `DATABASE_URL` (Supabase)
+  - `REDIS_URL` (Upstash)
+  - `CLOUDAMQP_URL` (CloudAMQP)
+- **Behavior**: Gracefully skips if secrets not configured
+
+**4. Build Job**
+- **Matrix**: auth-service, user-service, wallet-service, graphql-gateway
+- **Output**: Binaries uploaded as artifacts (7-day retention)
+- **Dependency**: Lint and Test jobs must pass
+
+**5. Docker Build Job**
+- **Trigger**: Push events only
+- **Buildx**: Multi-platform support
+- **Caching**: GitHub Actions cache
+- **Tagging**: `{service}:{sha}`
+
+**6. Security Scan Job**
+- **Tool**: gosec
+- **Output**: SARIF format uploaded to GitHub Security
+
+### Serverless CI/CD Configuration (Phase 5)
+
+**GitHub Secrets Setup**:
+
+To enable serverless mode testing in CI/CD, configure these secrets:
+
+```yaml
+# Repository → Settings → Secrets and variables → Actions
+DATABASE_URL      # postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
+REDIS_URL         # redis://default:[PASSWORD]@xxx.upstash.io:6379
+CLOUDAMQP_URL     # amqp://user:password@xxx.rmq.cloudamqp.com/vhost
+```
+
+**Secret Requirements**:
+- Secrets are required for serverless testing
+- Tests gracefully skip if secrets not configured
+- Serverless tests don't block other jobs (optional dependency)
+- Only runs on push events to main/develop branches
+
+### Testing Strategy (Phase 5)
+
+**Smoke Tests** (`scripts/test-smoke.sh`):
+- Quick connectivity validation
+- Tests PostgreSQL, Redis, RabbitMQ
+- Mode-aware (Docker vs Serverless)
+- Used for pre-flight checks
+
+**Integration Tests** (`tests/integration/mode_test.go`):
+- Infrastructure mode validation
+- Connection string format checking
+- Environment variable verification
+- Runs in CI for both modes
+
+**Comprehensive Test Runner** (`scripts/test-all.sh`):
+- Unit tests (all packages)
+- Integration tests (with `-tags=integration`)
+- E2E tests (when available)
+- Mode selection via argument
+
+**Test Execution Flow**:
+
+```
+1. Unit Tests (fast, no dependencies)
+   ├── go test -v -short ./...
+   └── All packages tested
+
+2. Integration Tests (requires infrastructure)
+   ├── Docker mode: Start services if needed
+   ├── Serverless mode: Check URL availability
+   └── go test -v -tags=integration ./...
+
+3. Smoke Tests (pre-validation)
+   ├── Connection validation
+   └── ./scripts/test-smoke.sh
+
+4. CI/CD Execution
+   ├── Lint → Test (Docker) → Build
+   ├── Test (Serverless) - optional
+   └── Security scan
+```
+
+### Coverage Requirements
+
+- **Minimum**: 80% on new code
+- **Enforcement**: CI/CD pipeline
+- **Reporting**: Codecov integration
+- **Failure**: Build fails if threshold not met
+
 ## Monitoring & Observability (Future)
 
 ### Health Checks
@@ -832,7 +976,7 @@ Test files added:
 
 ---
 
-**Version**: 1.4
+**Version**: 1.5
 **Last Updated**: 2025-12-30
 **Diagram Format**: ASCII (future: Mermaid diagrams)
-**Phase 4 Complete**: Documentation & Scripts (serverless guide, troubleshooting, health check script, DEVELOPMENT.md)
+**Phase 5 Complete**: Testing & Validation (smoke tests, integration tests, CI/CD serverless support, comprehensive test runner)

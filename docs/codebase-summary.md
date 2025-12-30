@@ -47,7 +47,9 @@ zuno-marketplace-api/
 ├── Makefile                   # Development commands
 ├── scripts/
 │   ├── health-check.sh        # Infrastructure health check (Phase 4)
-│   └── setup-env.sh           # Environment setup (Phase 2)
+│   ├── setup-env.sh           # Environment setup (Phase 2)
+│   ├── test-smoke.sh          # Quick validation connection test (Phase 5)
+│   └── test-all.sh            # Comprehensive test runner with mode selection (Phase 5)
 ├── Tiltfile                   # Kubernetes hot reload
 └── README.md                  # Project documentation
 ```
@@ -361,6 +363,30 @@ func NewUserService(repo UserRepository) *UserService {
 
 **Coverage Requirement**: 80% minimum on new code (enforced in CI/CD)
 
+### Integration Tests (Phase 5)
+
+**Mode Detection Tests** (`tests/integration/mode_test.go`):
+- `TestInfrastructureMode` - Validates INFRA_MODE is set correctly
+- `TestServerlessConnectionStrings` - Validates required env vars for serverless
+- `TestDockerConnectionVars` - Validates required env vars for Docker
+- `TestServerlessDatabaseURL` - Validates DATABASE_URL format
+- `TestServerlessRedisURL` - Validates REDIS_URL format
+- `TestServerlessCloudAMQPURL` - Validates CLOUDAMQP_URL format
+
+### Testing Scripts (Phase 5)
+
+**Smoke Test** (`scripts/test-smoke.sh`):
+- Quick validation connection test for hybrid infrastructure
+- Tests PostgreSQL, Redis, RabbitMQ connectivity
+- Mode-aware testing (Docker vs Serverless)
+- Usage: `./scripts/test-smoke.sh`
+
+**Comprehensive Test Runner** (`scripts/test-all.sh`):
+- Full test suite with mode selection
+- Unit tests, Integration tests, E2E tests
+- Automatic Docker service startup when needed
+- Usage: `./scripts/test-all.sh [docker|serverless]`
+
 ### Testing Patterns
 
 **Table-Driven Tests**: Standard approach
@@ -377,16 +403,31 @@ tests := []struct {
 
 **In-Memory Database**: testcontainers for integration tests
 
-## CI/CD Pipeline
+## CI/CD Pipeline (Phase 5)
 
-**Location**: `.github/workflows/` (not shown in repomix)
+**Location**: `.github/workflows/ci.yml`
 
 **GitHub Actions Workflows**:
-- Lint (golangci-lint)
-- Test (go test with coverage)
-- Build (Docker image builds)
-- Security Scan (gosec)
-- PR Validation (coverage threshold 80%)
+- **Lint Job** (golangci-lint): Code quality checks
+- **Test Job** (Docker mode):
+  - PostgreSQL, Redis, RabbitMQ service containers
+  - Full test suite with coverage
+  - Coverage upload to Codecov
+- **Test Serverless Job** (Phase 5):
+  - Serverless mode testing (push events only)
+  - Uses GitHub secrets for cloud URLs
+  - Gracefully skips if secrets not configured
+- **Build Job**: Multi-service Docker builds
+- **Docker Build Job**: Multi-stage image builds
+- **Security Scan Job** (gosec): SARIF upload
+
+**Serverless CI/CD Configuration**:
+```yaml
+# GitHub Secrets required for serverless tests
+DATABASE_URL      # Supabase connection string
+REDIS_URL         # Upstash connection string
+CLOUDAMQP_URL     # CloudAMQP connection string
+```
 
 ## Development Tools
 
@@ -437,10 +478,13 @@ tests := []struct {
 - DEVELOPMENT.md (new in Phase 4)
 - docs/serverless-development.md (new in Phase 4)
 - docs/troubleshooting.md (new in Phase 4)
+- docs/codebase-summary.md (this file - updated for Phase 5)
+- docs/code-standards.md (updated for Phase 5)
+- docs/system-architecture.md (updated for Phase 5)
+- docs/project-overview-pdr.md (updated for Phase 5)
 - QUICKSTART.md
 - TILT.md
 - Service READMEs
-- This codebase summary
 
 **Database**: 4 files
 - Migration files
@@ -524,4 +568,4 @@ tests := []struct {
 **Generated**: 2025-12-04
 **Last Updated**: 2025-12-30
 **Source**: repomix output analysis
-**Phase 4 Complete**: Documentation & Scripts (serverless guide, troubleshooting, health check script, DEVELOPMENT.md)
+**Phase 5 Complete**: Testing & Validation (smoke tests, integration tests, CI/CD serverless support, comprehensive test runner)

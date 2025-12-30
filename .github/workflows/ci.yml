@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [develop-claude, main]
+    branches: [develop-claude, main, feature/*]
   pull_request:
     branches: [develop-claude, main]
 
@@ -102,10 +102,51 @@ jobs:
           file: ./coverage.out
           fail_ci_if_error: false
 
+  test-serverless:
+    name: Test (Serverless Mode)
+    runs-on: ubuntu-latest
+    # Only run if secrets are available (push events)
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        env:
+          INFRA_MODE: serverless
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          CLOUDAMQP_URL: ${{ secrets.CLOUDAMQP_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$REDIS_URL" ]; then
+            echo "⚠️  Serverless secrets not configured, skipping tests"
+            echo "💡 To enable serverless tests, add secrets: DATABASE_URL, REDIS_URL, CLOUDAMQP_URL"
+            exit 0
+          fi
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: false
+        if: success()
+
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: [lint, test]
+    # test-serverless is optional, doesn't block build
 
     strategy:
       matrix:
@@ -147,6 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, test]
     if: github.event_name == 'push'
+    # test-serverless is optional, doesn't block docker build
 
     strategy:
       matrix:

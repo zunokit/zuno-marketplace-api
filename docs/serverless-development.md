@@ -98,6 +98,30 @@ cd services/auth-service
 go run cmd/main.go
 ```
 
+### 5. Run Tests (Phase 5)
+
+```bash
+# Quick smoke test - validates connectivity
+./scripts/test-smoke.sh
+
+# Expected output:
+# 🔥 Smoke Test - Quick Validation
+# ✅ Connection successful
+
+# Comprehensive test suite
+./scripts/test-all.sh serverless
+
+# This runs:
+# 1️⃣ Unit Tests (fast)
+# 2️⃣ Integration Tests (requires serverless URLs)
+# 3️⃣ E2E Tests (when available)
+```
+
+**Test Output Explanation**:
+- Unit tests run regardless of serverless configuration
+- Integration tests require valid `DATABASE_URL`, `REDIS_URL`, `CLOUDAMQP_URL`
+- Tests gracefully skip if URLs are not configured
+
 ## Switching Between Modes
 
 ### Docker Mode (Current Production Setup)
@@ -133,6 +157,107 @@ go run ./services/auth-service/cmd/main.go
 | CloudAMQP | RabbitMQ   | 100 queues, 10K messages        |
 
 These limits are sufficient for development. If exceeded, consider upgrading or switching back to Docker mode.
+
+## Testing (Phase 5)
+
+### Test Scripts
+
+**Smoke Test** (`scripts/test-smoke.sh`):
+```bash
+# Quick validation connection test
+./scripts/test-smoke.sh
+
+# Output:
+# 🔥 Smoke Test - Quick Validation
+# 📋 Mode: serverless
+#
+# 🐘 Testing PostgreSQL...
+#    ✅ Connection successful
+#
+# 🔴 Testing Redis...
+#    ✅ Connection successful
+#
+# 🐰 Testing RabbitMQ...
+#    💡 CLOUDAMQP_URL is set: amqp://xxx...
+#
+# ✅ Smoke test passed!
+```
+
+**Comprehensive Test Runner** (`scripts/test-all.sh`):
+```bash
+# Run all tests in serverless mode
+./scripts/test-all.sh serverless
+
+# Output:
+# 🧪 Running Tests - Mode: serverless
+#
+# 1️⃣ Unit Tests...
+# PASS: TestInfrastructureMode
+# PASS: TestConfig_Load
+#
+# 2️⃣ Integration Tests...
+# PASS: TestServerlessConnectionStrings
+# PASS: TestServerlessDatabaseURL
+# PASS: TestServerlessRedisURL
+# PASS: TestServerlessCloudAMQPURL
+#
+# 3️⃣ E2E Tests...
+# ⚠️  Skipping (requires full service deployment)
+#
+# ✅ Tests complete!
+```
+
+### Integration Tests (Phase 5)
+
+**Mode Detection Tests** (`tests/integration/mode_test.go`):
+
+The test suite validates:
+- `INFRA_MODE` is set correctly (docker or serverless)
+- Serverless connection strings are properly formatted
+- All required environment variables are present
+- URL prefixes are correct (postgres://, redis://, amqp://)
+
+```go
+// These tests run automatically with: go test -tags=integration ./...
+func TestInfrastructureMode(t *testing.T)
+func TestServerlessConnectionStrings(t *testing.T)
+func TestServerlessDatabaseURL(t *testing.T)
+func TestServerlessRedisURL(t *testing.T)
+func TestServerlessCloudAMQPURL(t *testing.T)
+```
+
+### CI/CD Testing (Phase 5)
+
+**GitHub Actions Serverless Tests**:
+
+The CI/CD pipeline includes an optional serverless test job:
+
+```yaml
+# .github/workflows/ci.yml
+test-serverless:
+  name: Test (Serverless Mode)
+  runs-on: ubuntu-latest
+  if: github.event_name == 'push'  # Only on push, not PRs
+  steps:
+    - name: Run tests
+      env:
+        INFRA_MODE: serverless
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        REDIS_URL: ${{ secrets.REDIS_URL }}
+        CLOUDAMQP_URL: ${{ secrets.CLOUDAMQP_URL }}
+      run: go test -v -race ./...
+```
+
+**Setting up GitHub Secrets for CI/CD**:
+
+1. Go to Repository → Settings → Secrets and variables → Actions
+2. Add the following secrets:
+   - `DATABASE_URL` - Your Supabase connection string
+   - `REDIS_URL` - Your Upstash connection string
+   - `CLOUDAMQP_URL` - Your CloudAMQP connection string
+3. Serverless tests will run on pushes to main/develop branches
+
+**Note**: Serverless CI/CD tests gracefully skip if secrets are not configured. They don't block other jobs.
 
 ## Troubleshooting
 
