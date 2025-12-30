@@ -2,8 +2,8 @@ package server
 
 import (
 	"github.com/google/uuid"
-	"github.com/quangdang46/NFT-Marketplace/services/collection-service/internal/models"
-	"github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

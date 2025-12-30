@@ -1,8 +1,8 @@
 package config
 
 import (
-	sharedConfig "github.com/quangdang46/NFT-Marketplace/shared/config"
-	"github.com/quangdang46/NFT-Marketplace/shared/env"
+	sharedConfig "github.com/zunokit/zuno-marketplace-api/shared/config"
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
 // Config holds all configuration for the GraphQL gateway

@@ -73,10 +73,10 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Standards**: CAIP-10 account identifiers
 
 ### CI/CD & Quality
-- **Automation**: GitHub Actions (lint, test, build, security)
+- **Automation**: GitHub Actions (lint, test, build)
 - **Coverage**: 80% minimum threshold
 - **Linting**: golangci-lint
-- **Security**: gosec, go vet
+- **Security**: go vet
 - **Formatting**: gofmt
 
 ## Database Schema

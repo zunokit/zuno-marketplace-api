@@ -360,7 +360,6 @@ tests := []struct {
 - Lint (golangci-lint)
 - Test (go test with coverage)
 - Build (Docker image builds)
-- Security Scan (gosec)
 - PR Validation (coverage threshold 80%)
 
 ## Development Tools

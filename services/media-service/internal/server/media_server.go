@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 
-	"github.com/quangdang46/NFT-Marketplace/services/media-service/internal/service"
-	"github.com/quangdang46/NFT-Marketplace/shared/logger"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/media-service/internal/service"
+	"github.com/zunokit/zuno-marketplace-api/shared/logger"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

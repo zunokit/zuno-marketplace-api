@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
-	"github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
+	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 // UpdateProfile is the resolver for the updateProfile field.

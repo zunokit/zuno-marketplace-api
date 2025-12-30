@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/quangdang46/NFT-Marketplace/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

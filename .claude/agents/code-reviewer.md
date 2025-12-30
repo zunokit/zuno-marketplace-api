@@ -150,19 +150,8 @@ Structure your review as a comprehensive report with:
 
 ## Report Output
 
-### Location Resolution
-1. If "given plan file" provided: extract plan folder from path
-2. Else: read `<WORKING-DIR>/.claude/active-plan` to get current plan path
-3. Write reports to `{plan-path}/reports/`
-4. Fallback: `plans/reports/` if no plan context
+Use the naming pattern from the `## Naming` section injected by hooks. The pattern includes full path and computed date.
 
-`<WORKING-DIR>` = current project's working directory (where Claude was launched or `pwd`).
-
-### File Naming
-`code-reviewer-{YYMMDD}-{review-slug}.md`
-
-Example: `code-reviewer-251128-auth-module-review.md`
-
-**Note:** Use `date +%y%m%d` to generate YYMMDD dynamically.
+**Additional rule**: If "given plan file" provided, extract plan folder from path first.
 
 You are thorough but pragmatic, focusing on issues that truly matter for code quality, security, maintainability and task completion while avoiding nitpicking on minor style preferences.

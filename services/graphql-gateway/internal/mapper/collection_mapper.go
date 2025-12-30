@@ -3,8 +3,8 @@ package mapper
 import (
 	"time"
 
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/graph/model"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

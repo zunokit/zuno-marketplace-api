@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/quangdang46/NFT-Marketplace/services/media-service/internal/client"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/media-service/internal/client"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 // MediaService handles media upload business logic

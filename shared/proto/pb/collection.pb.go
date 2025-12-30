@@ -7,12 +7,13 @@
 package pb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -2371,7 +2372,7 @@ const file_proto_collection_proto_rawDesc = "" +
 	"\x0fListCollections\x12\x1a.pb.ListCollectionsRequest\x1a\x1b.pb.ListCollectionsResponse\x12G\n" +
 	"\x0eAddToAllowlist\x12\x19.pb.AddToAllowlistRequest\x1a\x1a.pb.AddToAllowlistResponse\x12M\n" +
 	"\x10DeleteCollection\x12\x1b.pb.DeleteCollectionRequest\x1a\x1c.pb.DeleteCollectionResponse\x12\\\n" +
-	"\x15ProcessIndexerWebhook\x12 .pb.ProcessIndexerWebhookRequest\x1a!.pb.ProcessIndexerWebhookResponseB8Z6github.com/quangdang46/NFT-Marketplace/shared/proto/pbb\x06proto3"
+	"\x15ProcessIndexerWebhook\x12 .pb.ProcessIndexerWebhookRequest\x1a!.pb.ProcessIndexerWebhookResponseB8Z6github.com/zunokit/zuno-marketplace-api/shared/proto/pbb\x06proto3"
 
 var (
 	file_proto_collection_proto_rawDescOnce sync.Once

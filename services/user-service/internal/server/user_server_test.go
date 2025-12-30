@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/models"
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/repository"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/repository"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 func TestIsValidMediaType(t *testing.T) {

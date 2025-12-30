@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 // Validation constants

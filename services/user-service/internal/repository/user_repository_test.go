@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

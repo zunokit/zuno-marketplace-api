@@ -1,4 +1,4 @@
-module github.com/quangdang46/NFT-Marketplace
+module github.com/zunokit/zuno-marketplace-api
 
 go 1.25.1
 

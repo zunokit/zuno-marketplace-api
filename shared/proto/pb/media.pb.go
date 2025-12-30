@@ -7,11 +7,12 @@
 package pb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -606,7 +607,7 @@ const file_proto_media_proto_rawDesc = "" +
 	"\fMediaService\x12D\n" +
 	"\vUploadMedia\x12\x19.media.UploadMediaRequest\x1a\x1a.media.UploadMediaResponse\x12S\n" +
 	"\x10BatchUploadMedia\x12\x1e.media.BatchUploadMediaRequest\x1a\x1f.media.BatchUploadMediaResponse\x12;\n" +
-	"\bGetMedia\x12\x16.media.GetMediaRequest\x1a\x17.media.GetMediaResponseB8Z6github.com/quangdang46/NFT-Marketplace/shared/proto/pbb\x06proto3"
+	"\bGetMedia\x12\x16.media.GetMediaRequest\x1a\x17.media.GetMediaResponseB8Z6github.com/zunokit/zuno-marketplace-api/shared/proto/pbb\x06proto3"
 
 var (
 	file_proto_media_proto_rawDescOnce sync.Once

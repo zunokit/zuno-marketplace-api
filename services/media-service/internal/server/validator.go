@@ -1,7 +1,7 @@
 package server
 
 import (
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

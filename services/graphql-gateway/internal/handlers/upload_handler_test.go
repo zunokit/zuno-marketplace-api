@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/quangdang46/NFT-Marketplace/services/graphql-gateway/internal/middleware"
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 )
 

@@ -11,9 +11,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 )
 

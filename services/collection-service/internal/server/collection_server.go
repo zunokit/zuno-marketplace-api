@@ -3,10 +3,10 @@ package server
 import (
 	"context"
 
-	"github.com/quangdang46/NFT-Marketplace/services/collection-service/internal/models"
-	"github.com/quangdang46/NFT-Marketplace/services/collection-service/internal/repository"
-	"github.com/quangdang46/NFT-Marketplace/services/collection-service/internal/service"
-	"github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/repository"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/service"
+	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

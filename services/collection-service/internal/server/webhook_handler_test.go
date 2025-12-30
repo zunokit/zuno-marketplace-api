@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/quangdang46/NFT-Marketplace/shared/proto/pb"
 	"github.com/stretchr/testify/assert"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 )
 
 func TestProcessIndexerWebhook_CollectionCreated(t *testing.T) {
