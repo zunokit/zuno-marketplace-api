@@ -1,0 +1,206 @@
+# Tiltfile for Zuno NFT Marketplace API - Development (Serverless Mode)
+# Hot reload with cloud infrastructure (Supabase/Upstash/CloudAMQP)
+
+# Load extensions
+load('ext://restart_process', 'docker_build_with_restart')
+load('ext://helm_remote', 'helm_remote')
+
+# Configuration
+allow_k8s_contexts('docker-desktop')
+
+# Set default namespace
+k8s_namespace = 'dev'
+
+# Environment config
+config.define_string('namespace', args=False, usage='Kubernetes namespace to use')
+cfg = config.parse()
+if cfg.get('namespace'):
+    k8s_namespace = cfg.get('namespace')
+
+# Ensure namespace exists
+local('kubectl create namespace {} --dry-run=client -o yaml | kubectl apply -f -'.format(k8s_namespace))
+
+# Apply secrets (required for serverless mode)
+local('kubectl apply -f infra/development/k8s/secrets.yaml --namespace={} || echo "Warning: secrets.yaml not found. Create it from secrets.yaml.example"'.format(k8s_namespace))
+
+# Set kubectl context - use serverless config
+k8s_yaml('infra/development/k8s/app-config.development.yaml', allow_duplicates=True)
+
+# ===================================
+# Infrastructure Services
+# ===================================
+# NOTE: In serverless mode, infrastructure is external cloud services:
+# - PostgreSQL: Supabase (cloud)
+# - Redis: Upstash (cloud)
+# - RabbitMQ: CloudAMQP (cloud)
+# No local K8s deployments needed
+
+# ===================================
+# Application Services
+# ===================================
+
+# Helper function to build service (no infra deps in serverless mode)
+def build_service(name, path, port, deps=[]):
+    # Build Docker image with live update
+    docker_build(
+        '{}'.format(name),
+        '.',
+        dockerfile='infra/development/docker/{}.Dockerfile'.format(name),
+        only=[
+            './shared',
+            './services/{}'.format(path),
+            './proto',
+            './go.mod',
+            './go.sum',
+        ],
+        live_update=[
+            sync('./shared', '/app/shared'),
+            sync('./services/{}'.format(path), '/app/services/{}'.format(path)),
+            sync('./proto', '/app/proto'),
+            sync('./go.mod', '/app/go.mod'),
+            sync('./go.sum', '/app/go.sum'),
+            run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+        ],
+    )
+
+    # Deploy to k8s
+    k8s_yaml('infra/development/k8s/{}-deployment.yaml'.format(name))
+
+    # Configure resource
+    k8s_resource(
+        name,
+        port_forwards=[port] if port else [],
+        labels=['services'],
+        resource_deps=deps,
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
+# Auth Service
+build_service(
+    'auth-service',
+    'auth-service',
+    '50051:50051',
+    deps=['user-service', 'wallet-service']
+)
+
+# User Service
+build_service(
+    'user-service',
+    'user-service',
+    '50052:50052',
+    deps=[]
+)
+
+# Wallet Service
+build_service(
+    'wallet-service',
+    'wallet-service',
+    '50053:50053',
+    deps=[]
+)
+
+# GraphQL Gateway
+docker_build(
+    'graphql-gateway',
+    '.',
+    dockerfile='infra/development/docker/graphql-gateway.Dockerfile',
+    only=[
+        './shared',
+        './services/graphql-gateway',
+        './proto',
+        './go.mod',
+        './go.sum',
+    ],
+    live_update=[
+        sync('./shared', '/app/shared'),
+        sync('./services/graphql-gateway', '/app/services/graphql-gateway'),
+        sync('./proto', '/app/proto'),
+        sync('./go.mod', '/app/go.mod'),
+        sync('./go.sum', '/app/go.sum'),
+        run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+    ],
+)
+
+k8s_yaml('infra/development/k8s/graphql-gateway-deployment.yaml')
+k8s_resource(
+    'graphql-gateway',
+    port_forwards=['8081:8081'],
+    labels=['services'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service'],
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_AUTO
+)
+
+# ===================================
+# Development Helpers
+# ===================================
+
+# Add local scripts for common tasks
+local_resource(
+    'proto-gen',
+    'make generate-proto',
+    deps=['proto'],
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+    'test-all',
+    'go test ./...',
+    deps=['services', 'shared'],
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+local_resource(
+    'db-migrate',
+    'echo "Run migrations on Supabase dashboard or migrate CLI"',
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
+)
+
+# ===================================
+# UI Configuration
+# ===================================
+
+# Group services by type
+update_settings(
+    k8s_upsert_timeout_secs=60,
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'graphql-gateway']
+)
+
+print("""
+╔══════════════════════════════════════════════════════════════╗
+║  Zuno NFT Marketplace - Serverless Development Environment  ║
+╚══════════════════════════════════════════════════════════════╝
+
+🚀 Services Starting...
+
+☁️  Cloud Infrastructure (External):
+   - PostgreSQL:     Supabase (cloud)
+   - Redis:          Upstash (cloud)
+   - RabbitMQ:       CloudAMQP (cloud)
+
+🔧 Application Services (Local):
+   - Auth Service:       localhost:50051 (gRPC)
+   - User Service:       localhost:50052 (gRPC)
+   - Wallet Service:     localhost:50053 (gRPC)
+   - GraphQL Gateway:    http://localhost:8081 (HTTP/WS)
+
+🛠️  Helper Commands:
+   - proto-gen:     Generate protobuf code
+   - test-all:      Run all tests
+   - db-migrate:    Database migrations (via Supabase)
+
+📝 Quick Commands:
+   - tilt up          Start all services
+   - tilt down        Stop all services
+   - tilt logs [svc]  View service logs
+   - tilt trigger     Manual trigger builds
+
+🔥 Hot Reload Active - Edit code and see changes instantly!
+""")

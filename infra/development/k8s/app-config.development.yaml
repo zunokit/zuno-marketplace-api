@@ -6,25 +6,23 @@ metadata:
 data:
   # Application Environment
   ENVIRONMENT: "development"
+  INFRA_MODE: "serverless"
 
-  # Database Configuration
-  POSTGRES_HOST: "postgres"
+  # Database Configuration - Supabase (Cloud)
+  # Secrets (POSTGRES_PASSWORD, SUPABASE_KEYS) loaded from k8s secrets
+  POSTGRES_HOST: "db.xqsujkyuargadsnrikme.supabase.co"
   POSTGRES_PORT: "5432"
   POSTGRES_USER: "postgres"
-  POSTGRES_DATABASE: "nft_marketplace"
+  POSTGRES_DATABASE: "postgres"
 
-  # MongoDB Configuration
-  MONGO_URI: "mongodb://mongo:27017"
-  MONGO_DATABASE: "nft_marketplace"
-
-  # Redis Configuration
-  REDIS_HOST: "redis"
+  # Redis Configuration - Upstash (Cloud)
+  # Secrets (UPSTASH_REDIS_REST_TOKEN) loaded from k8s secrets
+  REDIS_HOST: "tender-stag-16168.upstash.io"
   REDIS_PORT: "6379"
+  UPSTASH_REDIS_REST_URL: "https://tender-stag-16168.upstash.io"
 
-  # RabbitMQ Configuration
-  RABBITMQ_HOST: "rabbitmq"
-  RABBITMQ_PORT: "5672"
-  RABBITMQ_USER: "guest"
+  # RabbitMQ Configuration - CloudAMQP (Cloud)
+  # Secrets (RABBITMQ_URL, CLOUDAMQP_URL) loaded from k8s secrets
   RABBITMQ_EXCHANGE: "nft-marketplace"
 
   # Service Ports (gRPC)
