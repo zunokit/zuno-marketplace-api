@@ -6,6 +6,7 @@ metadata:
 data:
   # Application Environment
   ENVIRONMENT: "development"
+  INFRA_MODE: "docker"
 
   # Database Configuration
   POSTGRES_HOST: "postgres"
