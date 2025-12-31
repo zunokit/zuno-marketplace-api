@@ -8,24 +8,33 @@ data:
   ENVIRONMENT: "development"
   INFRA_MODE: "serverless"
 
+  # ===================================
+  # Serverless Mode - Cloud Infrastructure
+  # ===================================
+  # NOTE: Full URLs with credentials loaded from k8s secrets
+  # Services check for URL first (DATABASE_URL, REDIS_URL, CLOUDAMQP_URL)
+  # If not set, they fall back to individual config parts
+
   # Database Configuration - Supabase (Cloud)
-  # Secrets (POSTGRES_PASSWORD, SUPABASE_KEYS) loaded from k8s secrets
+  # Individual config parts (for reference, actual connection uses DATABASE_URL from secrets)
   POSTGRES_HOST: "db.xqsujkyuargadsnrikme.supabase.co"
   POSTGRES_PORT: "5432"
   POSTGRES_USER: "postgres"
   POSTGRES_DATABASE: "postgres"
+  POSTGRES_SSL_MODE: "require"
 
   # Redis Configuration - Upstash (Cloud)
-  # Secrets (UPSTASH_REDIS_REST_TOKEN) loaded from k8s secrets
+  # Individual config parts (for reference, actual connection uses REDIS_URL from secrets)
   REDIS_HOST: "tender-stag-16168.upstash.io"
   REDIS_PORT: "6379"
-  UPSTASH_REDIS_REST_URL: "https://tender-stag-16168.upstash.io"
 
   # RabbitMQ Configuration - CloudAMQP (Cloud)
-  # Secrets (RABBITMQ_URL, CLOUDAMQP_URL) loaded from k8s secrets
+  # Individual config (actual connection uses CLOUDAMQP_URL from secrets)
   RABBITMQ_EXCHANGE: "nft-marketplace"
 
+  # ===================================
   # Service Ports (gRPC)
+  # ===================================
   AUTH_GRPC_PORT: "50051"
   USER_GRPC_PORT: "50052"
   WALLET_GRPC_PORT: "50053"
