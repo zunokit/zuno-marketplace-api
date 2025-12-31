@@ -11,10 +11,10 @@ data:
   # ===================================
   # Serverless Mode - Cloud Infrastructure
   # ===================================
-  # All connection URLs (with credentials) loaded from k8s secrets
-  # Services check DATABASE_URL, REDIS_URL, CLOUDAMQP_URL first
-
-  # RabbitMQ exchange name (non-sensitive)
+  # Placeholders overridden by k8s secrets
+  DATABASE_URL: "postgresql://user:pass@host:5432/db"
+  REDIS_URL: "rediss://:password@host:6379"
+  CLOUDAMQP_URL: "amqps://user:pass@host/vhost"
   RABBITMQ_EXCHANGE: "nft-marketplace"
 
   # ===================================
