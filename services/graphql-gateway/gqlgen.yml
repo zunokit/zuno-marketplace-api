@@ -1,5 +1,35 @@
-schema: graphql/schemas/*.graphql
+# gqlgen configuration for GraphQL Gateway
+
+# Where are all the schema files located? globs are supported eg  src/**/*.graphqls
+schema:
+  - graph/schemas/*.graphqls
+
+# Where should the generated server code go?
 exec:
-  filename: graphql/schemas/generated.go
+  filename: graph/generated.go
+  package: graph
+
+# Where should any generated models go?
 model:
-  filename: graphql/schemas/models_gen.go
+  filename: graph/model/models_gen.go
+  package: model
+
+# Where should the resolver implementations go?
+resolver:
+  layout: follow-schema
+  dir: graph
+  package: graph
+  filename_template: "{name}.resolvers.go"
+# Optional: turn on to not generate the automatic bind
+# autobind:
+#  - "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model"
+
+# Tell gqlgen about existing models you want to reuse for GraphQL types
+# models:
+#   User:
+#     model: github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph/model.User
+
+# Uncomment to enable federation
+# federation:
+#   filename: graph/federation.go
+#   package: graph

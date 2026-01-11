@@ -1,116 +1,77 @@
 package config
 
 import (
-	"log"
+	"time"
 
-	"github.com/quangdang46/NFT-Marketplace/shared/env"
-	"github.com/quangdang46/NFT-Marketplace/shared/messaging"
-	"github.com/quangdang46/NFT-Marketplace/shared/postgres"
-	"github.com/quangdang46/NFT-Marketplace/shared/redis"
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
-// GRPCConfig holds gRPC server configuration
-type GRPCConfig struct {
-	Port string
+// Config holds all configuration for the auth service
+type Config struct {
+	Server   ServerConfig
+	Database DatabaseConfig
+	JWT      JWTConfig
+	Services ServicesConfig
 }
 
-// Config contains configuration for Auth Service
-type Config struct {
-	GRPCConfig       GRPCConfig
-	JWTKey           string
-	RefreshKey       string
+// ServerConfig holds gRPC server configuration
+type ServerConfig struct {
+	GRPCPort string
+}
+
+// DatabaseConfig holds database connection configuration
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
+	SSLMode  string
+}
+
+// JWTConfig holds JWT token configuration
+type JWTConfig struct {
+	Secret            string
+	RefreshSecret     string
+	AccessExpiration  time.Duration
+	RefreshExpiration time.Duration
+}
+
+// ServicesConfig holds URLs for dependent services
+type ServicesConfig struct {
 	UserServiceURL   string
 	WalletServiceURL string
-	PostgresConfig   postgres.PostgresConfig
-	RedisConfig      redis.RedisConfig
-	RabbitMQ         messaging.RabbitMQConfig
-	Features         Features
 }
 
-// NewConfig creates and loads configuration from environment variables
-func NewConfig() *Config {
-	log.Println("Loading Auth Service configuration...")
-
-	config := &Config{
-		GRPCConfig: GRPCConfig{
-			Port: env.GetString("AUTH_GRPC_PORT", ":50051"),
+// Load loads configuration from environment variables
+func Load() *Config {
+	return &Config{
+		Server: ServerConfig{
+			GRPCPort: env.GetString("AUTH_GRPC_PORT", ":50051"),
 		},
-		JWTKey:           env.GetString("JWT_SECRET", "default-jwt-secret-for-development"),
-		RefreshKey:       env.GetString("REFRESH_SECRET", "default-refresh-secret-for-development"),
-		UserServiceURL:   env.GetString("USER_SERVICE_URL", "user-service:50052"),
-		WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "wallet-service:50053"),
-		PostgresConfig:   loadPostgresConfig(),
-		RedisConfig:      loadRedisConfig(),
-		RabbitMQ:         loadRabbitMQConfig(),
-		Features:         loadFeatures(),
-	}
-
-	return config
-}
-
-// LoadConfig is an alias for NewConfig for consistency
-func LoadConfig() *Config {
-	return NewConfig()
-}
-
-// loadPostgresConfig loads PostgreSQL configuration
-func loadPostgresConfig() postgres.PostgresConfig {
-	return postgres.PostgresConfig{
-		PostgresHost:     env.GetString("POSTGRES_HOST", "localhost"),
-		PostgresPort:     env.GetInt("POSTGRES_PORT", 5432),
-		PostgresUser:     env.GetString("POSTGRES_USER", "postgres"),
-		PostgresPassword: env.GetString("POSTGRES_PASSWORD", "postgres"),
-		PostgresDatabase: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
+		Database: DatabaseConfig{
+			Host:     env.GetString("POSTGRES_HOST", "localhost"),
+			Port:     env.GetString("POSTGRES_PORT", "5432"),
+			User:     env.GetString("POSTGRES_USER", "postgres"),
+			Password: env.GetString("POSTGRES_PASSWORD", "postgres"),
+			Database: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
+			SSLMode:  env.GetString("POSTGRES_SSL_MODE", "disable"),
+		},
+		JWT: JWTConfig{
+			Secret:            env.GetString("JWT_SECRET", "your-jwt-secret-key-change-in-production"),
+			RefreshSecret:     env.GetString("REFRESH_SECRET", "your-refresh-secret-key-change-in-production"),
+			AccessExpiration:  time.Duration(env.GetInt("JWT_ACCESS_EXPIRATION_HOURS", 1)) * time.Hour,
+			RefreshExpiration: time.Duration(env.GetInt("JWT_REFRESH_EXPIRATION_DAYS", 7)) * 24 * time.Hour,
+		},
+		Services: ServicesConfig{
+			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
+			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+		},
 	}
 }
 
-// loadRedisConfig loads Redis configuration
-func loadRedisConfig() redis.RedisConfig {
-	return redis.RedisConfig{
-		RedisHost: env.GetString("REDIS_HOST", "localhost"),
-		RedisPort: env.GetInt("REDIS_PORT", 6379),
-	}
-}
-
-// loadRabbitMQConfig loads RabbitMQ configuration
-func loadRabbitMQConfig() messaging.RabbitMQConfig {
-	return messaging.RabbitMQConfig{
-		RabbitMQHost:     env.GetString("RABBITMQ_HOST", "localhost"),
-		RabbitMQPort:     env.GetInt("RABBITMQ_PORT", 5671),
-		RabbitMQUser:     env.GetString("RABBITMQ_USER", "guest"),
-		RabbitMQPassword: env.GetString("RABBITMQ_PASSWORD", "guest"),
-	}
-}
-
-// Features holds feature flags for gradual rollout
-type Features struct {
-	EnableCollectionContext bool
-}
-
-func loadFeatures() Features {
-	return Features{
-		EnableCollectionContext: env.GetBool("ENABLE_COLLECTION_CONTEXT", false),
-	}
-}
-
-// Validate validates the configuration
-func (c *Config) Validate() error {
-	if c.GRPCConfig.Port == "" {
-		log.Fatal("GRPC_PORT is required")
-	}
-	if c.JWTKey == "" {
-		log.Fatal("JWT_SECRET is required")
-	}
-	if c.PostgresConfig.PostgresHost == "" {
-		log.Fatal("POSTGRES_HOST is required")
-	}
-	if c.RedisConfig.RedisHost == "" {
-		log.Fatal("REDIS_HOST is required")
-	}
-	if c.RabbitMQ.RabbitMQHost == "" {
-		log.Fatal("AMQP_HOST is required")
-	}
-
-	log.Println("Auth Service configuration validation passed")
-	return nil
+// GetDSN returns the database connection string
+func (c *DatabaseConfig) GetDSN() string {
+	return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
+		" password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
 }

@@ -1,93 +1,85 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/config"
+	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/repository"
+	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/server"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-
-	"github.com/quangdang46/NFT-Marketplace/services/wallet-service/internal/config"
-	"github.com/quangdang46/NFT-Marketplace/services/wallet-service/internal/infrastructure/events"
-	grpcServer "github.com/quangdang46/NFT-Marketplace/services/wallet-service/internal/infrastructure/grpc"
-	"github.com/quangdang46/NFT-Marketplace/services/wallet-service/internal/infrastructure/repository"
-	"github.com/quangdang46/NFT-Marketplace/services/wallet-service/internal/service"
-	"github.com/quangdang46/NFT-Marketplace/shared/messaging"
-	"github.com/quangdang46/NFT-Marketplace/shared/postgres"
-	"github.com/quangdang46/NFT-Marketplace/shared/proto/wallet"
-	"github.com/quangdang46/NFT-Marketplace/shared/redis"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
+	log.Println("Starting Wallet Service...")
+
 	// Load configuration
-	cfg := config.LoadConfig()
-	cfg.Validate()
+	cfg := config.Load()
 
-	log.Printf("Starting Wallet Service on %s", cfg.GRPCPort)
+	// Initialize database connection
+	dsn := cfg.Database.GetDSN()
 
-	// Create context for graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	grpcSrv := grpc.NewServer()
-
-	postgresDB, err := postgres.NewPostgres(cfg.Postgres)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		log.Fatalf("Failed to create postgres: %v", err)
-	}
-	defer postgresDB.Close()
-
-	if err := postgresDB.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping postgres: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	redisClient, err := redis.NewRedis(cfg.Redis)
+	log.Println("Database connected successfully")
+
+	// Initialize repository
+	walletRepo := repository.NewWalletRepository(db)
+
+	// Create gRPC server
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
+		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
+	)
+
+	// Register services
+	walletServer := server.NewWalletServer(walletRepo)
+	pb.RegisterWalletServiceServer(grpcServer, walletServer)
+
+	// Register health check
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	// Register reflection for development
+	reflection.Register(grpcServer)
+
+	// Start gRPC server
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to create redis: %v", err)
-	}
-	defer redisClient.Close()
-
-	if err := redisClient.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping redis: %v", err)
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
 	}
 
-	walletRepo := repository.NewWalletRepository(postgresDB, redisClient)
-	walletService := service.NewWalletService(walletRepo)
+	log.Printf("Wallet Service listening on %s", cfg.Server.GRPCPort)
 
-	amqpClient, err := messaging.NewRabbitMQ(cfg.RabbitMQ)
-	if err != nil {
-		log.Fatalf("Failed to create amqp client: %v", err)
-	}
-	defer amqpClient.Close()
-
-	eventPublisher := events.NewEventPublisher(amqpClient)
-
-	walletGRPCServer := grpcServer.NewWalletGRPCServer(walletService, eventPublisher)
-	wallet.RegisterWalletServiceServer(grpcSrv, walletGRPCServer)
-
-	reflection.Register(grpcSrv)
-
-	// Start gRPC server in a goroutine
+	// Graceful shutdown
 	go func() {
-		lis, err := net.Listen("tcp", cfg.GRPCPort)
-		if err != nil {
-			log.Fatalf("Failed to listen: %v", err)
-		}
-		log.Printf("Wallet service listening on %s", cfg.GRPCPort)
-		if err := grpcSrv.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
-		}
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
+
+		log.Println("Shutting down Wallet Service...")
+		grpcServer.GracefulStop()
+		log.Println("Wallet Service stopped")
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-
-	log.Println("Shutting down Wallet Service...")
-	grpcSrv.GracefulStop()
+	// Start serving
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
 }

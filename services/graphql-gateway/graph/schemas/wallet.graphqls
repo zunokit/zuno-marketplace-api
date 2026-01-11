@@ -1,0 +1,44 @@
+# ============================================
+# Wallet Types & Operations
+# ============================================
+
+type WalletLink {
+  id: ID!
+  userId: ID!
+  accountId: String!
+  address: String!
+  chainId: String!
+  isPrimary: Boolean!
+  verifiedAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input LinkWalletInput {
+  accountId: String!
+  address: String!
+  chainId: String!
+  isPrimary: Boolean!
+  type: String
+  connector: String
+  label: String
+}
+
+extend type Query {
+  """
+  Get all wallets linked to the authenticated user.
+  """
+  myWallets: [WalletLink!]!
+
+  """
+  Get all wallets linked to a specific user.
+  """
+  getWallets(userId: ID!): [WalletLink!]!
+}
+
+extend type Mutation {
+  """
+  Link a new wallet to the authenticated user.
+  """
+  linkWallet(input: LinkWalletInput!): WalletLink!
+}

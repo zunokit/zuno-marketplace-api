@@ -1,67 +1,49 @@
 package config
 
 import (
-	"log"
-
-	"github.com/quangdang46/NFT-Marketplace/shared/env"
-	"github.com/quangdang46/NFT-Marketplace/shared/postgres"
-	"github.com/quangdang46/NFT-Marketplace/shared/redis"
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
-// Config contains configuration for User Service
+// Config holds all configuration for the user service
 type Config struct {
+	Server   ServerConfig
+	Database DatabaseConfig
+}
+
+// ServerConfig holds gRPC server configuration
+type ServerConfig struct {
 	GRPCPort string
-	Postgres postgres.PostgresConfig
-	Redis    redis.RedisConfig
 }
 
-// LoadConfig loads configuration from environment variables
-func LoadConfig() *Config {
-	log.Println("Loading User Service configuration...")
-
-	config := &Config{
-		GRPCPort: env.GetString("USER_GRPC_PORT", ":50052"),
-		Postgres: loadPostgresConfig(),
-		Redis:    loadRedisConfig(),
-	}
-
-	log.Printf("User Service config loaded - gRPC: %s",
-		config.GRPCPort)
-
-	return config
+// DatabaseConfig holds database connection configuration
+type DatabaseConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Database string
+	SSLMode  string
 }
 
-// loadPostgresConfig loads PostgreSQL configuration
-func loadPostgresConfig() postgres.PostgresConfig {
-	return postgres.PostgresConfig{
-		PostgresHost:     env.GetString("POSTGRES_HOST", "localhost"),
-		PostgresPort:     env.GetInt("POSTGRES_PORT", 5432),
-		PostgresUser:     env.GetString("POSTGRES_USER", "postgres"),
-		PostgresPassword: env.GetString("POSTGRES_PASSWORD", "password"),
-		PostgresDatabase: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
-	}
-}
-
-// loadRedisConfig loads Redis configuration
-func loadRedisConfig() redis.RedisConfig {
-	return redis.RedisConfig{
-		RedisHost: env.GetString("REDIS_HOST", "localhost"),
-		RedisPort: env.GetInt("REDIS_PORT", 6379),
+// Load loads configuration from environment variables
+func Load() *Config {
+	return &Config{
+		Server: ServerConfig{
+			GRPCPort: env.GetString("USER_GRPC_PORT", ":50052"),
+		},
+		Database: DatabaseConfig{
+			Host:     env.GetString("POSTGRES_HOST", "localhost"),
+			Port:     env.GetString("POSTGRES_PORT", "5432"),
+			User:     env.GetString("POSTGRES_USER", "postgres"),
+			Password: env.GetString("POSTGRES_PASSWORD", "postgres"),
+			Database: env.GetString("POSTGRES_DATABASE", "nft_marketplace"),
+			SSLMode:  env.GetString("POSTGRES_SSL_MODE", "disable"),
+		},
 	}
 }
 
-// Validate validates the configuration
-func (c *Config) Validate() error {
-	if c.GRPCPort == "" {
-		log.Fatal("GRPC_PORT is required")
-	}
-	if c.Postgres.PostgresHost == "" {
-		log.Fatal("POSTGRES_HOST is required")
-	}
-	if c.Redis.RedisHost == "" {
-		log.Fatal("REDIS_HOST is required")
-	}
-
-	log.Println("User Service configuration validation passed")
-	return nil
+// GetDSN returns the database connection string
+func (c *DatabaseConfig) GetDSN() string {
+	return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
+		" password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
 }

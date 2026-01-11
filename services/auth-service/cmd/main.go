@@ -1,103 +1,102 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/client"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/config"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/repository"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/server"
+	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/service"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/config"
-	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/infrastructure/events"
-	grpc_handler "github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/infrastructure/grpc"
-	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/infrastructure/repository"
-	"github.com/quangdang46/NFT-Marketplace/services/auth-service/internal/service"
-	"github.com/quangdang46/NFT-Marketplace/shared/messaging"
-	"github.com/quangdang46/NFT-Marketplace/shared/postgres"
-	authProto "github.com/quangdang46/NFT-Marketplace/shared/proto/auth"
-	protoUser "github.com/quangdang46/NFT-Marketplace/shared/proto/user"
-	protoWallet "github.com/quangdang46/NFT-Marketplace/shared/proto/wallet"
-	"github.com/quangdang46/NFT-Marketplace/shared/redis"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
-	cfg := config.NewConfig()
+	log.Println("Starting Auth Service...")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Load configuration
+	cfg := config.Load()
 
-	postgresClient, err := postgres.NewPostgres(cfg.PostgresConfig)
+	// Initialize database
+	dsn := cfg.Database.GetDSN()
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		log.Fatalf("Failed to connect to postgres: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer postgresClient.Close()
-	if err := postgresClient.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping postgres: %v", err)
-	}
+	log.Println("Database connected successfully")
 
-	redisClient, err := redis.NewRedis(cfg.RedisConfig)
-	if err != nil {
-		log.Fatalf("Failed to connect to redis: %v", err)
-	}
-	defer redisClient.Close()
-	if err := redisClient.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping redis: %v", err)
-	}
+	// Initialize repositories
+	nonceRepo := repository.NewNonceRepository(db)
+	sessionRepo := repository.NewSessionRepository(db)
+	loginEventRepo := repository.NewLoginEventRepository(db)
 
-	authRepo := repository.NewAuthRepository(postgresClient, redisClient)
-
-	dialOptions := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-
-	userConn, err := grpc.Dial(cfg.UserServiceURL, dialOptions...)
-	if err != nil {
-		log.Fatalf("Failed to connect to user service: %v", err)
-	}
-	defer userConn.Close()
-
-	userClient := protoUser.NewUserServiceClient(userConn)
-
-	walletConn, err := grpc.Dial(cfg.WalletServiceURL, dialOptions...)
-	if err != nil {
-		log.Fatalf("Failed to connect to wallet service: %v", err)
-	}
-	defer walletConn.Close()
-
-	walletClient := protoWallet.NewWalletServiceClient(walletConn)
-
-	// Initialize RabbitMQ
-	amqpClient, err := messaging.NewRabbitMQ(cfg.RabbitMQ)
-	if err != nil {
-		log.Fatalf("Failed to create amqp client: %v", err)
-	}
-	defer amqpClient.Close()
-
-	publisher := events.NewEventPublisher(amqpClient)
-
-	authService := service.NewAuthService(
-		authRepo,
-		userClient,
-		walletClient,
-		publisher,
-		[]byte(cfg.JWTKey),
-		[]byte(cfg.RefreshKey),
-		cfg.Features.EnableCollectionContext,
+	// Initialize services
+	siweService := service.NewSIWEService()
+	jwtService := service.NewJWTService(
+		cfg.JWT.Secret,
+		cfg.JWT.RefreshSecret,
+		cfg.JWT.AccessExpiration,
+		cfg.JWT.RefreshExpiration,
 	)
 
-	server := grpc.NewServer()
-
-	handler := grpc_handler.NewgRPCHandler(server, authService)
-	authProto.RegisterAuthServiceServer(server, handler)
-
-	lis, err := net.Listen("tcp", cfg.GRPCConfig.Port)
+	// Initialize gRPC clients
+	clients, err := client.NewServiceClients(cfg.Services.UserServiceURL, cfg.Services.WalletServiceURL)
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to initialize gRPC clients: %v", err)
+	}
+	log.Println("gRPC clients initialized")
+
+	// Create gRPC server
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(10*1024*1024),
+		grpc.MaxSendMsgSize(10*1024*1024),
+	)
+
+	// Register auth service
+	authServer := server.NewAuthServer(nonceRepo, sessionRepo, loginEventRepo, siweService, jwtService, clients)
+	pb.RegisterAuthServiceServer(grpcServer, authServer)
+
+	// Register health check
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	// Register reflection
+	reflection.Register(grpcServer)
+
+	// Start gRPC server
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
+	if err != nil {
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
 	}
 
-	log.Printf("Auth service listening on %s", cfg.GRPCConfig.Port)
-	if err := server.Serve(lis); err != nil {
+	log.Printf("Auth Service listening on %s", cfg.Server.GRPCPort)
+
+	// Graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
+		log.Println("Shutting down Auth Service...")
+		grpcServer.GracefulStop()
+		log.Println("Auth Service stopped")
+	}()
+
+	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }

@@ -1,295 +1,232 @@
-allow_k8s_contexts('docker-desktop')
-k8s_namespace('dev')
+# Tiltfile for Zuno NFT Marketplace API
+# Hot reload development environment with Kubernetes
 
-# Load the restart_process extension
+# Load extensions
 load('ext://restart_process', 'docker_build_with_restart')
+load('ext://helm_remote', 'helm_remote')
 
-### K8s Config ###
+# Configuration
+allow_k8s_contexts('docker-desktop')
 
-# Load secrets for sensitive configuration
-k8s_yaml('./infra/development/k8s/secrets.yaml')
+# Set default namespace
+k8s_namespace = 'dev'
 
-# Load application configuration
-k8s_yaml('./infra/development/k8s/app-config.yaml')
+# Environment config
+config.define_string('namespace', args=False, usage='Kubernetes namespace to use')
+cfg = config.parse()
+if cfg.get('namespace'):
+    k8s_namespace = cfg.get('namespace')
 
-# Load infrastructure services
-k8s_yaml('./infra/development/k8s/postgres.yaml')
-k8s_yaml('./infra/development/k8s/redis.yaml')
-k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
-k8s_yaml('./infra/development/k8s/mongo.yaml')
+# Ensure namespace exists
+local('kubectl create namespace {} --dry-run=client -o yaml | kubectl apply -f -'.format(k8s_namespace))
 
-# Load individual service deployments
-k8s_yaml('./infra/development/k8s/auth-service-deployment.yaml')
-k8s_yaml('./infra/development/k8s/user-service-deployment.yaml') 
-k8s_yaml('./infra/development/k8s/wallet-service-deployment.yaml')
-k8s_yaml('./infra/development/k8s/graphql-gateway-deployment.yaml')
-k8s_yaml('./infra/development/k8s/media-service-deployment.yaml')
-k8s_yaml('./infra/development/k8s/chain-registry-service-deployment.yaml')
-## Orchestrator Service (new)
-# k8s_yaml for orchestrator is added below after build section
+# Apply secrets (if file exists)
+local('kubectl apply -f infra/development/k8s/secrets.yaml --namespace={} || true'.format(k8s_namespace))
 
-### End of K8s Config ###
+# Set kubectl context
+k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 
-### PostgreSQL Database ###
-local_resource(
-  'postgres-build',
-  cmd='infra\\development\\docker\\postgres-build.bat',
-  deps=['services/auth-service/db/up.sql', 'services/user-service/db/up.sql', 'services/wallet-service/db/up.sql', 'services/chain-registry-service/db/up.sql', 'infra/development/docker/postgres.dockerfile']
+# ===================================
+# Infrastructure Services
+# ===================================
+
+# PostgreSQL
+k8s_yaml('infra/development/k8s/postgres.yaml')
+k8s_resource(
+    'postgres',
+    port_forwards=['5433:5432'],
+    labels=['infrastructure'],
+    resource_deps=[]
 )
 
+# Redis
+k8s_yaml('infra/development/k8s/redis.yaml')
+k8s_resource(
+    'redis',
+    port_forwards=['6379:6379'],
+    labels=['infrastructure'],
+    resource_deps=[]
+)
+
+# RabbitMQ
+k8s_yaml('infra/development/k8s/rabbitmq.yaml')
+k8s_resource(
+    'rabbitmq',
+    port_forwards=[
+        '5672:5672',   # AMQP
+        '15672:15672'  # Management UI
+    ],
+    labels=['infrastructure'],
+    resource_deps=[]
+)
+
+# ===================================
+# Application Services
+# ===================================
+
+# Helper function to build service
+def build_service(name, path, port, deps=['postgres', 'redis', 'rabbitmq']):
+    # Build Docker image with live update
+    docker_build(
+        '{}'.format(name),
+        '.',
+        dockerfile='infra/development/docker/{}.Dockerfile'.format(name),
+        only=[
+            './shared',
+            './services/{}'.format(path),
+            './proto',
+            './go.mod',
+            './go.sum',
+        ],
+        live_update=[
+            sync('./shared', '/app/shared'),
+            sync('./services/{}'.format(path), '/app/services/{}'.format(path)),
+            sync('./proto', '/app/proto'),
+            sync('./go.mod', '/app/go.mod'),
+            sync('./go.sum', '/app/go.sum'),
+            run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+        ],
+    )
+
+    # Deploy to k8s
+    k8s_yaml('infra/development/k8s/{}-deployment.yaml'.format(name))
+
+    # Configure resource
+    k8s_resource(
+        name,
+        port_forwards=[port] if port else [],
+        labels=['services'],
+        resource_deps=deps,
+        auto_init=True,
+        trigger_mode=TRIGGER_MODE_AUTO
+    )
+
+# Auth Service
+build_service(
+    'auth-service',
+    'auth-service',
+    '50051:50051',
+    deps=['postgres', 'redis', 'rabbitmq', 'user-service', 'wallet-service']
+)
+
+# User Service
+build_service(
+    'user-service',
+    'user-service',
+    '50052:50052',
+    deps=['postgres', 'redis', 'rabbitmq']
+)
+
+# Wallet Service
+build_service(
+    'wallet-service',
+    'wallet-service',
+    '50053:50053',
+    deps=['postgres', 'redis', 'rabbitmq']
+)
+
+# GraphQL Gateway
 docker_build(
-  'nft-postgres:latest',
-  '.',
-  dockerfile='infra/development/docker/postgres.dockerfile'
+    'graphql-gateway',
+    '.',
+    dockerfile='infra/development/docker/graphql-gateway.Dockerfile',
+    only=[
+        './shared',
+        './services/graphql-gateway',
+        './proto',
+        './go.mod',
+        './go.sum',
+    ],
+    live_update=[
+        sync('./shared', '/app/shared'),
+        sync('./services/graphql-gateway', '/app/services/graphql-gateway'),
+        sync('./proto', '/app/proto'),
+        sync('./go.mod', '/app/go.mod'),
+        sync('./go.sum', '/app/go.sum'),
+        run('cd /app && go mod download', trigger=['./go.mod', './go.sum']),
+    ],
 )
 
-### GraphQL Gateway ###
+k8s_yaml('infra/development/k8s/graphql-gateway-deployment.yaml')
+k8s_resource(
+    'graphql-gateway',
+    port_forwards=['8081:8081'],
+    labels=['services'],
+    resource_deps=['auth-service', 'user-service', 'wallet-service'],
+    auto_init=True,
+    trigger_mode=TRIGGER_MODE_AUTO
+)
 
-gateway_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/graphql-gateway ./services/graphql-gateway'
-if os.name == 'nt':
-  gateway_compile_cmd = 'infra\\development\\docker\\graphql-gateway-build.bat'
+# ===================================
+# Development Helpers
+# ===================================
+
+# Add local scripts for common tasks
+local_resource(
+    'proto-gen',
+    'make generate-proto',
+    deps=['proto'],
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
+)
 
 local_resource(
-  'graphql-gateway-compile',
-  gateway_compile_cmd,
-  deps=['./services/graphql-gateway', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/graphql-gateway',
-  '.',
-  entrypoint=['/app/build/graphql-gateway'],
-  dockerfile='./infra/development/docker/graph-gateway.Dockerfile',
-  only=[
-    './build/graphql-gateway',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
+    'test-all',
+    'go test ./...',
+    deps=['services', 'shared'],
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
 )
-
-k8s_resource('graphql-gateway', port_forwards=8081,
-             resource_deps=['graphql-gateway-compile'], labels="services")
-
-### End of GraphQL Gateway ###
-
-### Auth Service ###
-
-auth_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/auth-service ./services/auth-service/cmd'
-if os.name == 'nt':
-  auth_compile_cmd = 'infra\\development\\docker\\auth-build.bat'
 
 local_resource(
-  'auth-service-compile',
-  auth_compile_cmd,
-  deps=['./services/auth-service', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/auth-service',
-  '.',
-  entrypoint=['/app/build/auth-service'],
-  dockerfile='./infra/development/docker/auth-service.Dockerfile',
-  only=[
-    './build/auth-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
+    'db-migrate',
+    'echo "Run migrations manually"',
+    labels=['helpers'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL
 )
 
-k8s_resource('auth-service', port_forwards="50051:50051",
-             resource_deps=['auth-service-compile', 'postgres', 'redis'], labels="services")
+# ===================================
+# UI Configuration
+# ===================================
 
-### End of Auth Service ###
-
-### User Service ###
-
-user_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/user-service ./services/user-service/cmd'
-if os.name == 'nt':
-  user_compile_cmd = 'infra\\development\\docker\\user-build.bat'
-
-local_resource(
-  'user-service-compile',
-  user_compile_cmd,
-  deps=['./services/user-service', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/user-service',
-  '.',
-  entrypoint=['/app/build/user-service'],
-  dockerfile='./infra/development/docker/user-service.Dockerfile',
-  only=[
-    './build/user-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
+# Group services by type
+update_settings(
+    k8s_upsert_timeout_secs=60,
+    suppress_unused_image_warnings=['auth-service', 'user-service', 'wallet-service', 'graphql-gateway']
 )
 
-k8s_resource('user-service', port_forwards="50052:50052",
-             resource_deps=['user-service-compile', 'postgres', 'redis'], labels="services")
+print("""
+╔══════════════════════════════════════════════════════════════╗
+║  Zuno NFT Marketplace - Development Environment             ║
+╚══════════════════════════════════════════════════════════════╝
 
-### End of User Service ###
+🚀 Services Starting...
 
-### Wallet Service ###
+📦 Infrastructure:
+   - PostgreSQL:     localhost:5432
+   - Redis:          localhost:6379
+   - RabbitMQ:       localhost:5672
+   - RabbitMQ UI:    http://localhost:15672 (guest/guest)
 
-wallet_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/wallet-service ./services/wallet-service/cmd'
-if os.name == 'nt':
-  wallet_compile_cmd = 'infra\\development\\docker\\wallet-build.bat'
+🔧 Application Services:
+   - Auth Service:       localhost:50051 (gRPC)
+   - User Service:       localhost:50052 (gRPC)
+   - Wallet Service:     localhost:50053 (gRPC)
+   - GraphQL Gateway:    http://localhost:8081 (HTTP/WS)
 
-local_resource(
-  'wallet-service-compile',
-  wallet_compile_cmd,
-  deps=['./services/wallet-service', './shared'], 
-  labels="compiles")
+🛠️  Helper Commands:
+   - proto-gen:     Generate protobuf code
+   - test-all:      Run all tests
+   - db-migrate:    Database migrations
 
-docker_build_with_restart(
-  'nft-marketplace/wallet-service',
-  '.',
-  entrypoint=['/app/build/wallet-service'],
-  dockerfile='./infra/development/docker/wallet-service.Dockerfile',
-  only=[
-    './build/wallet-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
-)
+📝 Quick Commands:
+   - tilt up          Start all services
+   - tilt down        Stop all services
+   - tilt logs [svc]  View service logs
+   - tilt trigger     Manual trigger builds
 
-k8s_resource('wallet-service', port_forwards="50053:50053",
-             resource_deps=['wallet-service-compile', 'postgres', 'redis'], labels="services")
-
-### End of Wallet Service ###
-
-### Media Service ###
-
-media_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/media-service ./services/media-service/cmd'
-if os.name == 'nt':
-  media_compile_cmd = 'infra\\development\\docker\\media-build.bat'
-
-local_resource(
-  'media-service-compile',
-  media_compile_cmd,
-  deps=['./services/media-service', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/media-service',
-  '.',
-  entrypoint=['/app/build/media-service'],
-  dockerfile='./infra/development/docker/media-service.Dockerfile',
-  only=[
-    './build/media-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
-)
-
-k8s_resource('media-service', port_forwards="50055:50055",
-             resource_deps=['media-service-compile', 'postgres', 'redis'], labels="services")
-
-### End of Media Service ###
-
-### Orchestrator Service ###
-
-orchestrator_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/orchestrator-service ./services/orchestrator-service/cmd'
-if os.name == 'nt':
-  orchestrator_compile_cmd = 'infra\\development\\docker\\orchestrator-build.bat'
-
-local_resource(
-  'orchestrator-service-compile',
-  orchestrator_compile_cmd,
-  deps=['./services/orchestrator-service', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/orchestrator-service',
-  '.',
-  entrypoint=['/app/build/orchestrator-service'],
-  dockerfile='./infra/development/docker/orchestrator-service.Dockerfile',
-  only=[
-    './build/orchestrator-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
-)
-
-k8s_yaml('./infra/development/k8s/orchestrator-service-deployment.yaml')
-
-k8s_resource('orchestrator-service', port_forwards="50054:50054",
-             resource_deps=['orchestrator-service-compile', 'postgres', 'redis'], labels="services")
-
-### End of Orchestrator Service ###
-
-### Chain Registry Service ###
-
-chain_registry_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/chain-registry-service ./services/chain-registry-service/cmd'
-if os.name == 'nt':
-  chain_registry_compile_cmd = 'infra\\development\\docker\\chain-registry-build.bat'
-
-local_resource(
-  'chain-registry-service-compile',
-  chain_registry_compile_cmd,
-  deps=['./services/chain-registry-service', './shared'], 
-  labels="compiles")
-
-docker_build_with_restart(
-  'nft-marketplace/chain-registry-service',
-  '.',
-  entrypoint=['/app/build/chain-registry-service'],
-  dockerfile='./infra/development/docker/chain-registry-service.Dockerfile',
-  only=[
-    './build/chain-registry-service',
-    './shared',
-  ],
-  live_update=[
-    sync('./build', '/app/build'),
-    sync('./shared', '/app/shared'),
-  ],
-)
-
-k8s_resource('chain-registry-service', port_forwards="50056:50056",
-             resource_deps=['chain-registry-service-compile', 'postgres', 'redis'], labels="services")
-
-### End of Chain Registry Service ###
-
-### Infrastructure Services ###
-
-# PostgreSQL Database
-k8s_resource('postgres', port_forwards="5432:5432", 
-             resource_deps=['postgres-build'], labels="infrastructure")
-
-# Redis Cache
-k8s_resource('redis', port_forwards="6379:6379", labels="infrastructure")
-
-# RabbitMQ Message Broker
-k8s_resource('rabbitmq', port_forwards=["5672:5672", "15672:15672"], labels="infrastructure")
-
-# MongoDB
-k8s_resource('mongo', port_forwards="27017:27017", labels="infrastructure")
-
-### End of Infrastructure Services ###
-
-### Resource Groups ###
-
-# ConfigMap and Secret resources are automatically handled by Tilt
-# No need to explicitly reference them with k8s_resource()
-
-### End of Resource Groups ###
-### RabbitMQ (dev) — integration moved pending correct placement
+🔥 Hot Reload Active - Edit code and see changes instantly!
+""")

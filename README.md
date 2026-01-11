@@ -1,237 +1,294 @@
-# Zuno Marketplace API
+# Zuno NFT Marketplace API
 
-A high-performance, multi-chain NFT marketplace backend built with microservices architecture.
+Clean, production-ready microservices backend for NFT Marketplace with focus on wallet authentication.
 
-## 🚀 Features
+## 🎯 Current Status
 
-- **Multi-Chain Support**: Ethereum, Polygon, BSC, and more
-- **SIWE Authentication**: Secure Sign-In with Ethereum
-- **Real-time Updates**: WebSocket subscriptions for live data
-- **Scalable Architecture**: Microservices with gRPC communication
-- **Advanced NFT Features**: Collections, minting, marketplace operations
-- **Media Processing**: IPFS integration with CDN optimization
-- **Comprehensive Indexing**: Real-time blockchain event processing
+**Version**: 0.1.0 (Clean Skeleton)
+**Branch**: `develop-claude`
+**Last Cleanup**: Nov 15, 2025
 
-## 🏗️ Architecture
+✅ All AI-generated bloat removed (95,819 lines deleted)
+✅ Database schemas tested and working
+✅ Infrastructure services running
+⏳ Ready for feature development with TDD
 
-### Microservices Overview
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   GraphQL        │    │   Services      │
-│   (Next.js)     │───▶│   Gateway/BFF    │───▶│   (gRPC)        │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │   Message Queue  │
-                       │   (RabbitMQ)     │
-                       └──────────────────┘
-```
-
-### Core Services
-
-- **Auth Service**: SIWE authentication and session management
-- **User Service**: User profiles and account management
-- **Wallet Service**: Multi-wallet support and approvals
-- **Collection Service**: NFT collection creation and management
-- **Mint Service**: NFT minting operations
-- **Catalog Service**: NFT indexing and marketplace data
-- **Indexer Service**: Blockchain event processing
-- **Media Service**: File upload and IPFS integration
-
-## 🛠️ Tech Stack
-
-### Backend
-- **Language**: Go
-- **Communication**: gRPC, GraphQL
-- **Message Queue**: RabbitMQ
-- **Cache**: Redis
-
-### Databases
-- **PostgreSQL**: Relational data (auth, users, collections)
-- **MongoDB**: Document storage (events, metadata)
-
-### Infrastructure
-- **Storage**: S3, IPFS
-- **Blockchain**: JSON-RPC endpoints
-- **Monitoring**: (Configure as needed)
-
-## 📚 Documentation
-
-### Architecture & Design
-- [System Overview](./docs/architecture/system-overview.md)
-- [Database Schema](./docs/architecture/database-schema.md)
-- [Chain Registry](./docs/architecture/chain-registry.md)
-
-### Implementation Guides
-- [Authentication Flow](./docs/knowledge/authentication-flow.md)
-- [Collection Creation](./docs/knowledge/collection-creation-flow.md)
-- [Minting Process](./docs/knowledge/minting-process.md)
-- [Media Handling](./docs/knowledge/media-handling.md)
-- [Creation Guide](./docs/knowledge/creation-guide.md)
-
-## 🚦 Getting Started
-
-### Prerequisites
-
-- Go 1.21+
-- PostgreSQL 14+
-- MongoDB 6.0+
-- Redis 7.0+
-- RabbitMQ 3.12+
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd zuno-marketplace-api
-   ```
-
-2. **Install dependencies**
-   ```bash
-   go mod download
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Run database migrations**
-   ```bash
-   # Add migration commands here
-   ```
-
-5. **Start services**
-   ```bash
-   # Start individual services or use docker-compose
-   docker-compose up -d
-   ```
-
-## 🔧 Development
-
-### Service Structure
+## 📁 Project Structure
 
 ```
 services/
-├── auth-service/           # Authentication & sessions
-├── catalog-service/        # NFT catalog & marketplace
-├── indexer-service/        # Blockchain event indexing
-├── orchestrator-service/   # Transaction orchestration
-└── subscription-worker/    # Real-time notifications
+├── auth-service/           # SIWE Authentication
+│   ├── cmd/.gitkeep       # Empty - ready for development
+│   ├── internal/.gitkeep  # Empty - ready for development
+│   ├── test/.gitkeep      # Empty - ready for tests
+│   ├── db/up.sql          # ✅ Database schema (tested)
+│   └── migrations/        # ✅ Migration files
+├── user-service/          # User Profiles & Management
+│   ├── cmd/.gitkeep
+│   ├── internal/.gitkeep
+│   ├── test/.gitkeep
+│   └── db/up.sql          # ✅ Database schema (tested)
+├── wallet-service/        # Wallet Management
+│   ├── cmd/.gitkeep
+│   ├── internal/.gitkeep
+│   ├── test/.gitkeep
+│   └── db/up.sql          # ✅ Database schema (tested)
+└── graphql-gateway/       # GraphQL BFF API
+    ├── graphql/.gitkeep
+    └── internal/.gitkeep
 ```
 
-### Running Services
+## 🗄️ Database Schema (Tested & Working)
 
-Each service can be run independently:
+**PostgreSQL Tables** (11 total):
+
+**Auth Service** (`auth_nonces`, `sessions`, `login_events`)
+- SIWE nonce management
+- Session tracking with device fingerprinting
+- Login event history
+
+**User Service** (`users`, `profiles`, `user_follows`, `user_preferences`, `user_stats`)
+- User account management
+- Social features (follows)
+- User preferences and statistics
+
+**Wallet Service** (`wallet_links`, `wallet_verifications`, `wallet_activity`)
+- Multi-wallet support per user
+- Wallet verification (SIWE)
+- Wallet activity tracking
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker Desktop
+- Go 1.21+
+- Make (optional but recommended)
+- Tilt (optional, for hot reload)
+
+### Option 1: Docker Compose (Simple)
 
 ```bash
-cd services/auth-service
-go run main.go
+# Start infrastructure services
+make dev
+# or
+docker compose up -d
+
+# Check services status
+docker compose ps
+
+# View logs
+make dev-logs
 ```
 
-### Testing
+### Option 2: Tilt (Hot Reload - Recommended)
 
 ```bash
-# Run all tests
-go test ./...
+# Start Tilt (requires Kubernetes enabled in Docker Desktop)
+make tilt-up
+# or
+tilt up
 
-# Run specific service tests
-cd services/auth-service
-go test ./...
+# Open Tilt UI: http://localhost:10350
+
+# Stop Tilt
+make tilt-down
 ```
 
-## 📡 API Usage
+### Common Commands
 
-### GraphQL Endpoint
+```bash
+# Show all available commands
+make help
 
-```
-POST /graphql
-```
+# Run tests
+make test
 
-### Authentication
+# Build services
+make build
 
-Use SIWE (Sign-In with Ethereum) for authentication:
+# Generate protobuf code
+make proto
 
-```graphql
-mutation {
-  signInSiwe(input: {
-    accountId: "0x..."
-    chainId: "eip155:1"
-    domain: "app.zuno.com"
-  }) {
-    nonce
-  }
-}
-```
+# Run linter
+make lint
 
-### Collection Creation
+# Format code
+make format
 
-```graphql
-mutation {
-  prepareCreateCollection(input: {
-    name: "My Collection"
-    symbol: "MC"
-    chainId: "eip155:1"
-  }) {
-    intentId
-    txRequest {
-      to
-      data
-      value
-    }
-  }
-}
+# Run CI pipeline locally
+make ci
 ```
 
-## 🔄 Deployment
+**📖 For detailed development guide, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 
-### Environment Configuration
+### Environment Variables
 
-- **Development**: Local setup with docker-compose
-- **Staging**: Kubernetes cluster with staging configs
-- **Production**: Kubernetes cluster with production configs
+Copy `.env.example` to `.env`:
 
-### CI/CD Pipeline
+```env
+# Database
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DATABASE=nft_marketplace
 
-The project uses GitHub Actions for automated testing and deployment:
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-- **Testing**: Run on every PR
-- **Staging**: Deploy to staging on main branch
-- **Production**: Deploy on release tags
+# RabbitMQ
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+RABBITMQ_EXCHANGE=nft_events
 
-## 🤝 Contributing
+# JWT Secrets (Change in production!)
+JWT_SECRET=your-256-bit-secret-key-here
+REFRESH_SECRET=your-256-bit-refresh-secret-key-here
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 📊 Infrastructure Test Results
 
-### Development Guidelines
+✅ **PostgreSQL**: Running on port 5432
+- Database: `nft_marketplace`
+- User: `postgres`
+- 11 tables loaded successfully
+- Schemas from: auth-service, user-service, wallet-service
 
-- Follow Go best practices and idioms
-- Write comprehensive tests for new features
-- Update documentation for API changes
-- Use conventional commit messages
+✅ **Redis**: Running on port 6379
+- Status: PONG
+- Ready for session caching
+
+✅ **RabbitMQ**: Running on ports 5672, 15672
+- Management UI: http://localhost:15672 (guest/guest)
+- Status: Ping succeeded
+- Ready for event messaging
+
+## 🎯 Next Steps
+
+### Feature Development Workflow
+
+1. **Create feature branch** from `develop-claude`:
+   ```bash
+   git checkout develop-claude
+   git pull origin develop-claude
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Follow TDD** (Test-Driven Development):
+   - 🔴 RED: Write failing tests first
+   - 🟢 GREEN: Write minimal code to pass tests
+   - 🔵 REFACTOR: Improve code while keeping tests green
+
+3. **Commit and merge**:
+   ```bash
+   git add .
+   git commit -m "feat(scope): your feature description"
+   git push origin feature/your-feature-name
+   # Merge to develop-claude when done
+   ```
+
+### First Feature: Wallet Authentication
+
+Recommended implementation order:
+
+1. **Proto Definitions** (gRPC interfaces)
+2. **Auth Service** (SIWE authentication)
+3. **Wallet Service** (Wallet management)
+4. **User Service** (User profiles)
+5. **GraphQL Gateway** (BFF API)
+6. **Integration Tests** (E2E flows)
+
+## 🧪 Testing Strategy
+
+- **Unit Tests**: Test individual functions/methods
+- **Integration Tests**: Test with real databases (testcontainers)
+- **E2E Tests**: Test complete user flows
+- **Minimum Coverage**: 80% for new code
+
+## 📚 Related Repositories
+
+- `zuno-marketplace-ui`: Next.js frontend
+- `zuno-marketplace-contracts`: Solidity smart contracts (Foundry)
+- `zuno-marketplace-sdk`: TypeScript SDK for ABIs and contracts
+- `zuno-marketplace-abis`: ABI provider service
+- `zuno-marketplace-metadata`: NFT metadata storage
+- `zuno-marketplace-mini`: Quick contract testing mini-app
+
+## 🔧 Development Tools
+
+**Makefile** - Comprehensive development commands
+```bash
+make help          # Show all commands
+make dev           # Start development environment
+make test          # Run tests
+make build         # Build all services
+make lint          # Run linter
+make ci            # Run CI pipeline locally
+```
+
+**Tiltfile** - Hot reload development with Kubernetes
+- 🔥 Automatic rebuilds on code changes
+- 📊 Real-time logs and resource monitoring
+- 🎯 Interactive UI at http://localhost:10350
+
+**GitHub Actions** - CI/CD Pipeline
+- ✅ Automated linting and testing
+- 🐳 Docker image builds
+- 📊 Test coverage reports
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for complete guide.
+
+## 📝 Commit Message Format
+
+Follow conventional commits:
+
+```
+<type>(<scope>): <description>
+
+<body> (min 100 characters)
+
+<footer>
+```
+
+**Types**: feat, fix, docs, style, refactor, perf, test, chore
+**Scopes**: auth, user, wallet, gateway, database, infra
+
+## 🏗️ Architecture
+
+**Pattern**: GraphQL Gateway + gRPC Microservices
+
+```
+Frontend → GraphQL Gateway (HTTP/WS) → gRPC Services
+                                      ↓
+                                  RabbitMQ Events
+```
+
+**Why This Stack?**
+- **gRPC**: Fast, typed internal communication
+- **GraphQL**: Flexible API for frontend
+- **RabbitMQ**: Reliable event messaging
+- **PostgreSQL**: ACID compliance for critical data
+- **Redis**: Fast session/cache storage
+
+## 📚 Documentation
+
+Complete documentation available in `/docs` directory:
+
+- **[project-overview-pdr.md](docs/project-overview-pdr.md)** - Project vision, PDR, roadmap, and success criteria
+- **[codebase-summary.md](docs/codebase-summary.md)** - Repository structure, file inventory, and service breakdown
+- **[code-standards.md](docs/code-standards.md)** - Go conventions, patterns, testing, and TDD workflow
+- **[system-architecture.md](docs/system-architecture.md)** - High-level architecture, database schema, auth flows, and deployment
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Documentation**: Check the [docs](./docs/) directory
-- **Issues**: Create an issue for bugs or feature requests
-- **Discussions**: Use GitHub Discussions for questions
-
-## 🏷️ Version
-
-Current version: `v1.0.0`
+MIT
 
 ---
 
-**Built with ❤️ by the Zuno team**
+**Status**: 🟢 Clean skeleton ready for development
+**Last Updated**: 2025-12-04
+**Maintainer**: Zuno Team

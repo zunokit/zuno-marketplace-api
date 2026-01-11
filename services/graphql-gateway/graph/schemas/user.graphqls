@@ -1,0 +1,54 @@
+# ============================================
+# User Types & Operations
+# ============================================
+
+type User {
+  id: ID!
+  status: String!
+  createdAt: String!
+  profile: Profile
+}
+
+type Profile {
+  userId: ID!
+  username: String
+  displayName: String
+  avatarUrl: String
+  bannerUrl: String
+  bio: String
+  locale: String
+  timezone: String
+  socialsJson: String
+  updatedAt: String
+}
+
+input UpdateProfileInput {
+  username: String
+  displayName: String
+  avatarUrl: String
+  bannerUrl: String
+  bio: String
+  locale: String
+  timezone: String
+  socialsJson: String
+}
+
+extend type Query {
+  """
+  Get the currently authenticated user.
+  Returns null if not authenticated (attempts silent session restore via cookie).
+  """
+  me: User
+
+  """
+  Get a user by their ID.
+  """
+  getUser(userId: ID!): User
+}
+
+extend type Mutation {
+  """
+  Update the authenticated user's profile.
+  """
+  updateProfile(input: UpdateProfileInput!): Profile!
+}

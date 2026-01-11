@@ -1,69 +1,85 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/config"
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/repository"
+	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/server"
+	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
-
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/config"
-	grpc_handler "github.com/quangdang46/NFT-Marketplace/services/user-service/internal/infrastructure/grpc"
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/infrastructure/repository"
-	"github.com/quangdang46/NFT-Marketplace/services/user-service/internal/service"
-	"github.com/quangdang46/NFT-Marketplace/shared/postgres"
-	userProto "github.com/quangdang46/NFT-Marketplace/shared/proto/user"
-	"github.com/quangdang46/NFT-Marketplace/shared/redis"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func main() {
+	log.Println("Starting User Service...")
 
 	// Load configuration
-	cfg := config.LoadConfig()
-	cfg.Validate()
+	cfg := config.Load()
 
-	log.Printf("Starting User Service on %s", cfg.GRPCPort)
+	// Initialize database connection
+	dsn := cfg.Database.GetDSN()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	postgresClient, err := postgres.NewPostgres(cfg.Postgres)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		log.Fatalf("Failed to connect to postgres: %v", err)
-	}
-	defer postgresClient.Close()
-
-	if err := postgresClient.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping postgres: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	redisClient, err := redis.NewRedis(cfg.Redis)
+	log.Println("Database connected successfully")
+
+	// Initialize repository
+	userRepo := repository.NewUserRepository(db)
+
+	// Create gRPC server
+	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
+		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
+	)
+
+	// Register services
+	userServer := server.NewUserServer(userRepo)
+	pb.RegisterUserServiceServer(grpcServer, userServer)
+
+	// Register health check
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	// Register reflection for development
+	reflection.Register(grpcServer)
+
+	// Start gRPC server
+	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to connect to redis: %v", err)
-	}
-	defer redisClient.Close()
-	if err := redisClient.HealthCheck(ctx); err != nil {
-		log.Fatalf("Failed to ping redis: %v", err)
+		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
 	}
 
-	userRepo := repository.NewUserRepository(postgresClient, redisClient)
+	log.Printf("User Service listening on %s", cfg.Server.GRPCPort)
 
-	userService := service.NewUserService(userRepo)
+	// Graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
 
-	// Initialize gRPC handler
-	server := grpc.NewServer()
+		log.Println("Shutting down User Service...")
+		grpcServer.GracefulStop()
+		log.Println("User Service stopped")
+	}()
 
-	grpcHandler := grpc_handler.NewgRPCHandler(userService)
-	userProto.RegisterUserServiceServer(server, grpcHandler)
-
-	// Start listening
-	lis, err := net.Listen("tcp", cfg.GRPCPort)
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	log.Printf("User service listening on %s", cfg.GRPCPort)
-	if err := server.Serve(lis); err != nil {
+	// Start serving
+	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }
