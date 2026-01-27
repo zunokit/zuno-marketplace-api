@@ -10,15 +10,23 @@ import (
 	"github.com/getsentry/sentry-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 )
+
+// initTestSentry initializes Sentry for testing with disabled transport
+// Using empty DSN prevents actual network calls while testing middleware logic
+func initTestSentry() {
+	_ = sentry.Init(sentry.ClientOptions{
+		Dsn:              "", // Empty DSN disables event sending
+		TracesSampleRate: 1.0,
+	})
+}
 
 // TestSentryHTTP tests the HTTP middleware
 func TestSentryHTTP(t *testing.T) {
-	// Initialize Sentry for testing (with test DSN)
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	// Initialize Sentry for testing
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	tests := []struct {
@@ -111,10 +119,7 @@ func TestResponseWriter(t *testing.T) {
 
 // TestUnaryServerInterceptor tests the gRPC server interceptor
 func TestUnaryServerInterceptor(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	interceptor := UnaryServerInterceptor()
@@ -147,10 +152,7 @@ func TestUnaryServerInterceptor(t *testing.T) {
 
 // TestUnaryClientInterceptor tests the gRPC client interceptor
 func TestUnaryClientInterceptor(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	interceptor := UnaryClientInterceptor()
@@ -177,17 +179,14 @@ func TestUnaryClientInterceptor(t *testing.T) {
 
 // TestFormatTraceHeader tests trace header formatting
 func TestFormatTraceHeader(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	ctx := context.Background()
 	span := sentry.StartSpan(ctx, "test")
 	defer span.Finish()
 
-	header := formatTraceHeader(span)
+	header := obsTrace.FormatTraceHeader(span)
 
 	if header == "" {
 		t.Error("expected non-empty trace header")
@@ -201,10 +200,7 @@ func TestFormatTraceHeader(t *testing.T) {
 
 // TestStreamServerInterceptor tests the gRPC streaming server interceptor
 func TestStreamServerInterceptor(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	interceptor := StreamServerInterceptor()
@@ -247,10 +243,7 @@ func (m *mockServerStream) Context() context.Context {
 
 // TestHTTPTracePropagation tests that HTTP middleware continues trace from header
 func TestHTTPTracePropagation(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	// Create a parent span to get a valid trace ID
@@ -259,7 +252,7 @@ func TestHTTPTracePropagation(t *testing.T) {
 	defer parentSpan.Finish()
 
 	// Generate trace header from parent span
-	traceHeader := formatTraceHeader(parentSpan)
+	traceHeader := obsTrace.FormatTraceHeader(parentSpan)
 
 	// Create test handler that validates trace continuation
 	var capturedTraceID sentry.TraceID
@@ -297,10 +290,7 @@ func TestHTTPTracePropagation(t *testing.T) {
 
 // TestGRPCTracePropagation tests that gRPC server interceptor continues trace from header
 func TestGRPCTracePropagation(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	// Create a parent span to get a valid trace ID
@@ -309,7 +299,7 @@ func TestGRPCTracePropagation(t *testing.T) {
 	defer parentSpan.Finish()
 
 	// Generate trace header from parent span
-	traceHeader := formatTraceHeader(parentSpan)
+	traceHeader := obsTrace.FormatTraceHeader(parentSpan)
 
 	var capturedTraceID sentry.TraceID
 	var capturedParentSpanID sentry.SpanID
@@ -364,17 +354,14 @@ func TestGRPCTracePropagation(t *testing.T) {
 
 // TestTraceHeaderFormat tests that trace header is correctly formatted
 func TestTraceHeaderFormat(t *testing.T) {
-	_ = sentry.Init(sentry.ClientOptions{
-		Dsn:              "https://examplePublicKey@o0.ingest.sentry.io/0",
-		TracesSampleRate: 1.0,
-	})
+	initTestSentry()
 	defer sentry.Flush(1)
 
 	ctx := context.Background()
 	span := sentry.StartSpan(ctx, "test")
 	defer span.Finish()
 
-	header := formatTraceHeader(span)
+	header := obsTrace.FormatTraceHeader(span)
 
 	// Header format: {trace_id}-{span_id}-{sampled}
 	// Example: 12345678901234567890123456789012-1234567890123456-1
