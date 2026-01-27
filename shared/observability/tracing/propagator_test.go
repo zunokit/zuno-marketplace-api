@@ -70,9 +70,9 @@ func TestFormatTraceHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatTraceHeader(nil)
+			result := FormatTraceHeader(nil)
 			if result != "" {
-				t.Errorf("formatTraceHeader(nil) = %q, want empty", result)
+				t.Errorf("FormatTraceHeader(nil) = %q, want empty", result)
 			}
 		})
 	}
