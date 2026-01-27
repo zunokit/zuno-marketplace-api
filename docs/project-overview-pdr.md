@@ -10,6 +10,7 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Release Date**: November 15, 2025
 - **Status**: Ready for feature development
 - **Branch**: `develop-claude`
+- **Latest Update**: Phase 05 - CI/CD Integration with Sentry Release Tracking (2025-12-29)
 
 ## Key Objectives
 
@@ -78,6 +79,17 @@ Zuno NFT Marketplace API is a production-ready microservices backend designed fo
 - **Linting**: golangci-lint
 - **Security**: go vet
 - **Formatting**: gofmt
+
+### Observability
+- **Error Tracking**: Sentry (sentry-go v0.40.0)
+- **Privacy Scrubbing**: Automatic sensitive data filtering
+- **Performance Monitoring**: Distributed tracing with configurable sampling
+- **Release Tracking**: Automated Sentry release creation with deploy notifications
+
+### CI/CD
+- **GitHub Actions**: Automated lint, test, build, security scan
+- **Sentry Integration**: Release creation and deploy tracking
+- **Version Injection**: Build-time version and timestamp injection
 
 ## Database Schema
 
@@ -159,12 +171,23 @@ GraphQL Gateway
 
 ## Development Roadmap
 
-### Phase 1: Foundation (Current - v0.1.0)
+### Phase 0: Observability Foundation (Completed - v0.1.0)
+- ✅ Sentry error tracking integration (Phase 01)
+- ✅ Privacy scrubbing for sensitive data
+- ✅ Distributed tracing support
+- ✅ Centralized observability package
+- ✅ gRPC/HTTP/GraphQL middleware (Phase 02)
+- ✅ Service-level Sentry integration (Phase 03)
+- ✅ Smart sampling and trace helpers (Phase 04)
+
+### Phase 1: Foundation (Completed - v0.1.0)
 - ✅ Clean skeleton with tested schemas
 - ✅ gRPC service definitions
 - ✅ Database infrastructure
-- ✅ CI/CD pipeline
+- ✅ CI/CD pipeline (Phase 05)
 - ✅ Development tooling (Docker Compose, Tilt, Makefile)
+- ✅ Version injection for release tracking
+- ✅ Sentry release and deploy tracking
 
 ### Phase 2: Core Features (v0.2.0 - Next)
 - [ ] Complete SIWE authentication implementation
@@ -233,7 +256,7 @@ GraphQL Gateway
 - RabbitMQ integration not implemented
 - Redis utilization pending
 - Production Kubernetes manifests missing
-- Monitoring/observability stack absent
+- Service-level Sentry integration (shared package ready, per-service init pending)
 
 ### Documentation Gaps
 - DEVELOPMENT.md referenced but not present
@@ -259,6 +282,6 @@ GraphQL Gateway
 
 ---
 
-**Version**: 0.1.0
-**Last Updated**: 2025-12-04
+**Version**: 0.1.1
+**Last Updated**: 2025-12-29
 **Maintainer**: Zuno Development Team

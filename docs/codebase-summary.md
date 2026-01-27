@@ -37,6 +37,10 @@ zuno-marketplace-api/
 │   └── graphql-gateway/       # GraphQL BFF API
 ├── shared/                    # Shared packages
 │   ├── env/                   # Environment loading
+│   ├── observability/         # Error tracking & monitoring
+│   │   ├── sentry/            # Sentry core package
+│   │   ├── middleware/        # HTTP/gRPC/GraphQL middleware
+│   │   └── tracing/           # Smart sampling & trace helpers
 │   └── proto/pb/              # Generated protobuf code
 ├── CLAUDE.md                  # Claude Code instructions
 ├── docker-compose.yml         # Local development
@@ -54,6 +58,7 @@ zuno-marketplace-api/
 **Responsibility**: SIWE authentication, JWT tokens, session management
 
 **Key Components**:
+
 - `cmd/main.go` - Service entry point
 - `internal/config/` - Configuration loading
 - `internal/models/` - Data models (AuthNonce, Session, LoginEvent)
@@ -63,6 +68,7 @@ zuno-marketplace-api/
 - `internal/client/` - gRPC client connections to other services
 
 **Key Files**:
+
 - `internal/models/auth_nonce.go` - Nonce generation/validation
 - `internal/models/session.go` - Session tracking
 - `internal/models/login_event.go` - Login audit trail
@@ -72,16 +78,20 @@ zuno-marketplace-api/
 - `internal/repository/session_repository.go` - Session persistence
 
 **Test Coverage**: 6+ test files with table-driven tests
+
 - `internal/service/jwt_service_test.go` - Token validation
 - `internal/service/siwe_service_test.go` - SIWE verification (incomplete)
 - `internal/repository/login_event_repository_test.go` - Event logging
 
 **Database Tables**: 3
+
 - `auth_nonces` - SIWE nonce management
 - `sessions` - Session tracking with device fingerprinting
 - `login_events` - Login history
 
 **Dependencies**: User Service, Wallet Service (via gRPC)
+
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
 
 ### 2. User Service (Port 50052)
 
@@ -89,6 +99,7 @@ zuno-marketplace-api/
 **Responsibility**: User profiles, account management, preferences
 
 **Key Components**:
+
 - `cmd/main.go` - Service entry point
 - `internal/config/` - Configuration loading
 - `internal/models/` - Data models (User, Profile)
@@ -96,10 +107,12 @@ zuno-marketplace-api/
 - `internal/server/` - gRPC server implementation
 
 **Key Files**:
+
 - `internal/models/user.go` - User domain model with UUID v5 generation
 - `internal/repository/user_repository.go` - User CRUD + deterministic ID generation
 
 **Database Tables**: 5
+
 - `users` - Core user accounts
 - `profiles` - User profile information
 - `user_follows` - Social relationships
@@ -108,12 +121,15 @@ zuno-marketplace-api/
 
 **Dependencies**: None (depended on by Auth & Wallet services)
 
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
+
 ### 3. Wallet Service (Port 50053)
 
 **Location**: `services/wallet-service/`
 **Responsibility**: Multi-wallet management, CAIP-2/CAIP-10 support
 
 **Key Components**:
+
 - `cmd/main.go` - Service entry point
 - `internal/config/` - Configuration loading
 - `internal/models/` - Data models (WalletLink)
@@ -121,15 +137,19 @@ zuno-marketplace-api/
 - `internal/server/` - gRPC server implementation
 
 **Key Files**:
+
 - `internal/models/wallet_link.go` - Wallet linking with CAIP-10 support
 - `internal/repository/wallet_repository.go` - Wallet CRUD operations
 
 **Database Tables**: 3
+
 - `wallet_links` - Multi-wallet associations
 - `wallet_verifications` - Verification tracking
 - `wallet_activity` - Activity logging
 
 **Dependencies**: User Service (via gRPC)
+
+**Observability**: Sentry integrated (gRPC server interceptor, graceful shutdown)
 
 ### 4. GraphQL Gateway (Port 8081)
 
@@ -137,6 +157,7 @@ zuno-marketplace-api/
 **Responsibility**: GraphQL API, HTTP endpoint, BFF layer
 
 **Key Components**:
+
 - `cmd/main.go` - Service entry point
 - `internal/config/` - Configuration loading
 - `internal/middleware/` - HTTP middleware (auth, logging)
@@ -146,12 +167,14 @@ zuno-marketplace-api/
 - `graph/` - GraphQL schema and resolvers
 
 **GraphQL Schemas**:
+
 - `graph/schemas/auth.graphqls` - Auth queries/mutations
 - `graph/schemas/user.graphqls` - User queries/mutations
 - `graph/schemas/wallet.graphqls` - Wallet queries/mutations
 - `graph/schemas/schema.graphqls` - Root schema
 
 **Key Files**:
+
 - `graph/resolver.go` - GraphQL resolver entry point
 - `graph/schema.resolvers.go` - Auto-generated resolver implementations
 - `graph/generated.go` - gqlgen generated code
@@ -159,10 +182,13 @@ zuno-marketplace-api/
 - `internal/health/checker.go` - Health endpoint
 
 **Test Coverage**: 3+ test files
+
 - `internal/middleware/auth_test.go` - Auth middleware
 - `internal/health/checker_test.go` - Health check
 
 **Dependencies**: All 3 gRPC services (Auth, User, Wallet)
+
+**Observability**: Sentry integrated (HTTP middleware, gRPC client interceptors, graceful shutdown)
 
 ## Shared Packages
 
@@ -171,15 +197,177 @@ zuno-marketplace-api/
 **File**: `shared/env/env.go`
 **Purpose**: Type-safe environment variable loading
 **Features**:
+
 - `GetString()` - Load string variables
 - `GetInt()` - Load integer variables
 - `GetBool()` - Load boolean variables
 - Required vs optional variables
 - Sensible defaults
 
+### `shared/observability/sentry/` - Sentry Error Tracking
+
+**Location**: `shared/observability/sentry/`
+**Purpose**: Centralized error tracking and observability for all microservices
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+
+- `sentry.go` - Core Sentry functions (Init, Flush, CaptureException, CaptureMessage, AddBreadcrumb)
+- `scrubber.go` - Privacy scrubbing logic for sensitive data
+- `scrubber_test.go` - Unit tests for scrubbing logic
+- `README.md` - Usage documentation
+
+**Features**:
+
+- **Automatic Error Capture**: Captures unhandled panics and errors
+- **Performance Monitoring**: Distributed tracing with configurable sampling
+- **Privacy-First**: Auto-scrubs sensitive data before sending to Sentry
+- **Production-Ready**: Breadcrumbs, context attachment, stack traces
+
+### `shared/observability/middleware/` - Observability Middleware
+
+**Location**: `shared/observability/middleware/`
+**Purpose**: Automatic distributed tracing across HTTP, gRPC, and GraphQL protocols
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+
+- `http.go` - HTTP/Chi middleware for request transaction tracking
+- `grpc.go` - gRPC server/client interceptors with trace propagation
+- `graphql.go` - GraphQL field and response middleware
+- `middleware_test.go` - Comprehensive test suite (6/6 passing)
+- `README.md` - Usage documentation
+
+### `shared/observability/tracing/` - Distributed Tracing Utilities
+
+**Location**: `shared/observability/tracing/`
+**Purpose**: Smart sampling and trace context propagation utilities for distributed tracing
+**Dependency**: `github.com/getsentry/sentry-go v0.40.0`
+
+**Files**:
+
+- `sampler.go` - Environment-based smart sampling with endpoint-specific logic
+- `propagator.go` - Trace helper functions for context propagation
+- `sampler_test.go` - Unit tests for sampling logic
+- `propagator_test.go` - Unit tests for propagation helpers
+
+**Environment-Based Sampling**:
+
+- Development: 100% (full traces for debugging)
+- Staging: 20% (balanced visibility)
+- Production: 5% (cost control)
+
+**Smart Sampling Logic** (via `TracesSampler`):
+
+- Health checks skipped: `GET /health`, `GET /ready`, `grpc.health.v1.Health/Check`
+- Auth operations always traced: `VerifySIWE`, `RefreshToken`, `Login`, `Authenticate`, etc.
+
+**Trace Helper Functions**:
+
+- `GetTracesSampleRate(environment) float64` - Get sampling rate by environment
+- `TracesSampler(environment) sentry.TracesSampler` - Smart sampling with endpoint logic
+- `InjectTraceContext(ctx) context.Context` - Inject sentry-trace header into gRPC metadata
+- `ExtractTraceContext(ctx) []sentry.SpanOption` - Extract trace context from incoming metadata
+- `GetTraceID(ctx) string` - Get current trace ID from context
+- `GetSpanID(ctx) string` - Get current span ID from context
+
+**Usage Example**:
+
+```go
+import obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
+
+// In service main.go
+obs.Init(
+    cfg.Sentry.DSN,
+    cfg.Sentry.Environment,
+    "auth-service",
+    "v1.0.0",
+    obsTrace.GetTracesSampleRate(cfg.Sentry.Environment), // 100% dev, 20% staging, 5% prod
+)
+
+// Inject trace context for outbound gRPC calls
+ctx = obsTrace.InjectTraceContext(ctx)
+
+// Get trace ID for logging
+traceID := obsTrace.GetTraceID(ctx)
+log.Printf("Processing trace: %s", traceID)
+```
+
+**HTTP Middleware (Chi)**:
+
+- `SentryHTTP` middleware for request transaction tracking
+- Health/ready endpoint skip (`/health`, `/ready`)
+- HTTP context capture (method, URL, host, path, query, remote_addr)
+- Distributed tracing via `sentry-trace` header extraction
+- Custom `responseWriter` wrapper for status code capture
+- Status code to span status mapping (4xx, 5xx, others)
+
+**gRPC Interceptors**:
+
+- `UnaryServerInterceptor` - Captures incoming gRPC calls as Sentry spans
+- `UnaryClientInterceptor` - Injects `sentry-trace` header into outbound calls
+- `StreamServerInterceptor` - Support for streaming gRPC RPCs
+- `streamWithContext` wrapper for context propagation
+- Trace header format: `{trace_id}-{span_id}-{sampled}`
+
+**GraphQL Middleware**:
+
+- `GraphQLFieldMiddleware` - Field-level resolver tracing
+- `GraphQLResponseMiddleware` - Operation-level metrics
+- Panic recovery with proper span cleanup
+- GraphQL context data capture (field name, type, operation)
+- Variables count tracking (sanitized)
+
+**Test Coverage**: 6/6 passing
+
+- `TestSentryHTTP` - Health/ready skip, regular endpoint tracing
+- `TestResponseWriter` - Status code wrapper
+- `TestUnaryServerInterceptor` - gRPC server request handling
+- `TestUnaryClientInterceptor` - gRPC client call handling
+- `TestFormatTraceHeader` - Trace header format validation
+- `TestStreamServerInterceptor` - gRPC streaming support
+
+**Privacy Scrubbing Patterns**:
+
+- Ethereum addresses (0x + 40 hex chars)
+- CAIP-10 account IDs (chain namespace:address)
+- JWT tokens (header.payload.signature)
+- Email addresses
+- Private keys (64-char hex)
+- Sensitive HTTP headers (Authorization, Cookie, X-API-Key, etc.)
+
+**Usage Example**:
+
+```go
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+
+func main() {
+    // Initialize Sentry
+    obs.Init(
+        cfg.Sentry.DSN,
+        cfg.Sentry.Environment,
+        "auth-service",  // service name
+        "v1.0.0",        // release version
+        0.2,             // 20% trace sampling
+    )
+    defer obs.Flush(2 * time.Second)
+
+    // Capture errors
+    if err != nil {
+        obs.CaptureException(err)
+    }
+
+    // Add breadcrumbs
+    obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
+        "action": "click_button",
+    })
+}
+```
+
 ### `shared/proto/pb/` - Generated Protobuf Code
 
 **Generated Files** (6 files):
+
 - `auth.pb.go` - Auth message definitions
 - `auth_grpc.pb.go` - Auth service interface
 - `user.pb.go` - User message definitions
@@ -194,6 +382,7 @@ zuno-marketplace-api/
 **Location**: `proto/` directory
 
 ### `proto/auth.proto` (5 RPC methods)
+
 ```protobuf
 service Auth {
   rpc GetNonce(GetNonceRequest) returns (GetNonceResponse)
@@ -205,6 +394,7 @@ service Auth {
 ```
 
 ### `proto/user.proto` (3 RPC methods)
+
 ```protobuf
 service User {
   rpc GetUser(GetUserRequest) returns (GetUserResponse)
@@ -214,6 +404,7 @@ service User {
 ```
 
 ### `proto/wallet.proto` (2 RPC methods)
+
 ```protobuf
 service Wallet {
   rpc LinkWallet(LinkWalletRequest) returns (LinkWalletResponse)
@@ -226,6 +417,7 @@ service Wallet {
 ### Development Setup
 
 **Docker Compose** (`docker-compose.yml`)
+
 - PostgreSQL 15 (port 5432)
 - Redis 7 (port 6379)
 - RabbitMQ 3 (ports 5672, 15672)
@@ -234,6 +426,7 @@ service Wallet {
 ### Kubernetes Deployment
 
 **Development K8s Manifests** (`infra/development/k8s/`)
+
 - `postgres.yaml` - PostgreSQL StatefulSet
 - `redis.yaml` - Redis Deployment
 - `rabbitmq.yaml` - RabbitMQ Deployment
@@ -245,6 +438,7 @@ service Wallet {
 - `secrets.yaml.example` - Secret template
 
 **Features**:
+
 - Tilt integration for hot reload
 - Service discovery via DNS
 - Resource limits specified
@@ -254,6 +448,7 @@ service Wallet {
 ### Dockerfiles
 
 **Development Dockerfiles** (`infra/development/docker/`)
+
 - `auth-service.Dockerfile` - Multi-stage Alpine build
 - `user-service.Dockerfile` - Multi-stage Alpine build
 - `wallet-service.Dockerfile` - Multi-stage Alpine build
@@ -267,6 +462,7 @@ service Wallet {
 **Location**: `db/migrations/`
 
 **Migration Files**:
+
 - `000001_init_schema.up.sql` - Initial schema with all 11 tables
 - `000001_init_schema.down.sql` - Schema teardown
 - `000002_support_caip10_account_id.up.sql` - CAIP-10 support
@@ -327,6 +523,7 @@ func NewUserService(repo UserRepository) *UserService {
 ### Test Coverage
 
 **Existing Test Files**: 6+
+
 - JWT service tests (token validation)
 - SIWE service tests (signature verification - incomplete)
 - Auth middleware tests (token extraction)
@@ -339,6 +536,7 @@ func NewUserService(repo UserRepository) *UserService {
 ### Testing Patterns
 
 **Table-Driven Tests**: Standard approach
+
 ```go
 tests := []struct {
   name    string
@@ -357,6 +555,7 @@ tests := []struct {
 **Location**: `.github/workflows/` (not shown in repomix)
 
 **GitHub Actions Workflows**:
+
 - Lint (golangci-lint)
 - Test (go test with coverage)
 - Build (Docker image builds)
@@ -367,6 +566,7 @@ tests := []struct {
 ### Makefile
 
 **Common Commands** (`Makefile`)
+
 - `make dev` - Start Docker Compose environment
 - `make test` - Run tests
 - `make build` - Build all services
@@ -379,6 +579,7 @@ tests := []struct {
 
 **File**: `Tiltfile`
 **Features**:
+
 - Hot reload on code changes
 - Live logs and resource monitoring
 - Kubernetes integration
@@ -387,26 +588,30 @@ tests := []struct {
 ### Build Scripts
 
 **Location**: `infra/development/build/`
+
 - `.bat` files for Windows builds
 - Service-specific build logic
 
 ## File Statistics
 
-**Total Files**: 138 tracked
-**Go Source Files**: 39
+**Total Files**: 142 tracked (+4 Phase 04 tracing files)
+**Go Source Files**: 50 (+4)
+
 - Auth Service: 8 files
 - User Service: 5 files
 - Wallet Service: 5 files
 - GraphQL Gateway: 8 files
-- Shared: 2 files
+- Shared: 13 files (env, sentry, middleware, tracing)
 - Generated: 6 files
 
 **Configuration Files**: 20+
+
 - Kubernetes manifests
 - Dockerfiles
 - Docker Compose
 
 **Documentation**: 10+ files
+
 - README.md
 - QUICKSTART.md
 - TILT.md
@@ -414,19 +619,23 @@ tests := []struct {
 - This codebase summary
 
 **Database**: 4 files
+
 - Migration files
 - DB README
 
 ## Key Dependencies
 
 ### Go Packages (from go.mod)
+
 - gRPC/protobuf libraries
 - PostgreSQL driver
 - JWT library
 - GraphQL gqlgen
+- Sentry error tracking (sentry-go v0.40.0)
 - Standard library (context, encoding, net, etc.)
 
 ### Runtime Dependencies
+
 - PostgreSQL 15
 - Redis 7
 - RabbitMQ 3
@@ -435,14 +644,15 @@ tests := []struct {
 ## Code Statistics
 
 **Approximate Lines of Code**:
+
 - Auth Service: ~800 lines
 - User Service: ~400 lines
 - Wallet Service: ~400 lines
 - GraphQL Gateway: ~600 lines
-- Shared: ~100 lines
+- Shared: ~750 lines (env, observability/sentry, observability/middleware, observability/tracing)
 - Generated Code: ~5000 lines (protobuf)
-- Tests: ~600 lines
-- **Total**: ~8000 lines (excluding generated code)
+- Tests: ~1050 lines (+100 from Phase 04)
+- **Total**: ~8950 lines (excluding generated code)
 
 ## Architecture Patterns Used
 
@@ -457,6 +667,7 @@ tests := []struct {
 ## Current Implementation Status
 
 ### Implemented
+
 - Service scaffolding and configuration
 - Database schema and migrations
 - Proto definitions
@@ -465,21 +676,24 @@ tests := []struct {
 - GraphQL schema definitions
 - Health check endpoints
 - Docker and Kubernetes setup
+- Sentry observability (Phase 01-04 complete: Core + Middleware + Service Integration + Distributed Tracing)
 
 ### Partial
+
 - SIWE verification (has TODOs)
 - JWT token service
 - Session management
 - GraphQL resolvers (basic structure)
 
 ### TODO
+
 - Complete SIWE implementation
 - Full JWT middleware
 - RabbitMQ integration
 - Redis caching
 - Complete E2E tests
 - Production Kubernetes manifests
-- Monitoring and observability
+- Enhanced observability metrics (Prometheus, Jaeger)
 
 ## Unresolved Items
 
@@ -493,5 +707,5 @@ tests := []struct {
 ---
 
 **Generated**: 2025-12-04
-**Last Updated**: 2025-12-04
+**Last Updated**: 2025-12-29
 **Source**: repomix output analysis

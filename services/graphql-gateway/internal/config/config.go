@@ -10,6 +10,7 @@ type Config struct {
 	JWT      JWTConfig
 	Services ServicesConfig
 	Features FeatureConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -34,6 +35,12 @@ type FeatureConfig struct {
 	PlaygroundEnabled bool
 }
 
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
@@ -50,6 +57,10 @@ func Load() *Config {
 		},
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
+		},
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
 		},
 	}
 }

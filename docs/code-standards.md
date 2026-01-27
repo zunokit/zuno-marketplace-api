@@ -132,6 +132,18 @@ func main() {
   // Load config
   cfg := config.LoadConfig()
 
+  // Initialize observability
+  if err := obs.Init(
+    cfg.Sentry.DSN,
+    cfg.Sentry.Environment,
+    "auth-service",     // service name
+    cfg.Version,        // release version
+    0.2,               // 20% trace sampling
+  ); err != nil {
+    log.Printf("Sentry init failed: %v", err)
+  }
+  defer obs.Flush(2 * time.Second)
+
   // Initialize database
   db, err := sql.Open("postgres", cfg.DatabaseURL)
 
@@ -421,6 +433,7 @@ make lint  # Run locally before commit
 ```
 
 **Checks**:
+
 - `gofmt` - Code formatting
 - `govet` - Common Go mistakes
 - `errcheck` - Unchecked errors
@@ -448,6 +461,7 @@ go vet ./...  # Run in repo root
 ```
 
 **Checks**:
+
 - Unreachable code
 - Type mismatches
 - Build constraints
@@ -743,6 +757,204 @@ err = bcrypt.CompareHashAndPassword(hash, []byte(inputPassword))
 - Store in secure vault (not config files)
 - Never log token values
 
+## Version Injection Pattern
+
+### Build-Time Variables
+
+All services must support version injection via Go linker flags (`-ldflags`):
+
+**Makefile Configuration**:
+
+```makefile
+# Version information for CI/CD release tracking
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown")
+LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
+
+# Build target example
+build-auth:
+    cd services/auth-service/cmd && go build $(LDFLAGS) -o ../../build/auth-service .
+```
+
+### Service Integration
+
+**Pattern** (in `cmd/main.go`):
+
+```go
+package main
+
+import (
+    "log"
+    "fmt"
+)
+
+// Version and BuildTime are injected via ldflags during build
+// Default values used when building locally without Makefile
+var (
+    Version   = "dev"
+    BuildTime = "unknown"
+)
+
+// getBuildVersion returns the version string for observability
+func getBuildVersion() string {
+    return Version
+}
+
+func main() {
+    // Log version at startup for debugging
+    log.Printf("Starting service Version: %s BuildTime: %s", Version, BuildTime)
+
+    // Pass version to observability (Sentry)
+    obs.Init(cfg.Sentry.DSN, cfg.Sentry.Environment, "auth-service", getBuildVersion(), sampleRate)
+
+    // Optionally expose via health endpoint
+    // http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+    //     fmt.Fprintf(w, `{"version":"%s","build_time":"%s"}`, Version, BuildTime)
+    // })
+}
+```
+
+### Version Format
+
+The `git describe --tags --always --dirty` command produces:
+
+| Git State | Version Output | Example |
+|-----------|----------------|---------|
+| Tagged commit | `v1.0.0` | Clean release |
+| Commits after tag | `v1.0.0-5-g123abcd` | 5 commits after v1.0.0 |
+| No tags, on branch | `feature-add-sentry-123abcd` | Branch-based |
+| Uncommitted changes | `*-dirty` suffix | Any state + dirty |
+| No git available | `dev` | Fallback |
+
+### CI/CD Integration
+
+**Sentry Release Tracking**:
+
+Version is automatically passed to Sentry for release-to-error correlation:
+
+```go
+// Sentry init with version
+obs.Init(
+    cfg.Sentry.DSN,
+    cfg.Sentry.Environment,
+    "auth-service",
+    getBuildVersion(),  // Maps to Sentry release
+    obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
+)
+```
+
+**GitHub Actions** creates Sentry releases:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Create Sentry Release
+  run: |
+    VERSION=$(git describe --tags --always --dirty)
+    sentry-cli releases new "$VERSION" --org ${{ env.SENTRY_ORG }}
+    sentry-cli releases set-commits "$VERSION" --auto
+    sentry-cli releases finalize "$VERSION"
+```
+
+### Benefits
+
+1. **Release Tracking**: Correlate errors with specific deployed versions
+2. **Debugging**: Know exactly which commit is running in production
+3. **Rollback Support**: Identify and revert to known-good versions
+4. **Audit Trail**: Build timestamps for compliance
+5. **CI/CD Automation**: Automated release creation and deploy notifications
+
+## Observability Standards
+
+### Sentry Integration Pattern
+
+All services must initialize Sentry at startup:
+
+```go
+import obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+
+func main() {
+    // Initialize Sentry (fail gracefully if not configured)
+    if cfg.Sentry.DSN != "" {
+        if err := obs.Init(
+            cfg.Sentry.DSN,
+            cfg.Sentry.Environment,
+            "auth-service",     // unique per service
+            cfg.Version,
+            0.2,               // 20% trace sampling
+        ); err != nil {
+            log.Printf("Warning: Sentry init failed: %v", err)
+        }
+    }
+    defer obs.Flush(2 * time.Second)
+}
+```
+
+### Error Capture Patterns
+
+**Automatic Capture** (for panics):
+
+```go
+func main() {
+    // Sentry automatically recovers panics
+    obs.Init(...)
+    defer obs.Flush(2 * time.Second)
+
+    // Your service code
+}
+```
+
+**Manual Exception Capture**:
+
+```go
+if err != nil {
+    obs.CaptureException(err)
+    return err
+}
+```
+
+**Message Capture** (for non-error events):
+
+```go
+obs.CaptureMessage("User login failed: invalid signature")
+```
+
+**Breadcrumbs** (for context):
+
+```go
+obs.AddBreadcrumb("User action", sentry.LevelInfo, map[string]interface{}{
+    "action": "click_button",
+    "user_id": userID,
+})
+```
+
+### Privacy Requirements
+
+The shared Sentry package automatically scrubs:
+
+- Ethereum addresses (0x...)
+- CAIP-10 account IDs
+- JWT tokens
+- Email addresses
+- Private keys
+- Sensitive headers (Authorization, Cookie, X-API-Key)
+
+**Never log or send to Sentry**:
+
+- Raw private keys
+- Unhashed passwords
+- Full JWT tokens
+- Unmasked API keys
+
+### Configuration Requirements
+
+Per-service environment variables:
+
+```bash
+SENTRY_DSN=https://...@sentry.io/...
+SENTRY_ENVIRONMENT=production|staging|development
+SENTRY_TRACES_SAMPLE_RATE=0.2  # 0.0 to 1.0
+```
+
 ## Documentation Standards
 
 ### Code Comments
@@ -795,6 +1007,6 @@ func (s *AuthService) VerifySignature(ctx context.Context, message, signature st
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-12-04
+**Version**: 1.1
+**Last Updated**: 2025-12-29
 **Applies To**: All Go services in the project
