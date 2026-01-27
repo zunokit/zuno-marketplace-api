@@ -11,6 +11,8 @@ import (
 	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
+	sharedrabbitmq "github.com/zunokit/zuno-marketplace-api/shared/rabbitmq"
+	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/client"
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/config"
@@ -67,6 +69,22 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	log.Println("Database connected successfully")
+
+	// Initialize Redis (non-blocking)
+	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
+		log.Printf("Redis init failed (continuing without cache): %v", err)
+	} else {
+		log.Println("Redis connected")
+		defer sharedredis.Close()
+	}
+
+	// Initialize RabbitMQ (non-blocking)
+	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
+		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+	} else {
+		log.Println("RabbitMQ connected")
+		defer sharedrabbitmq.Close()
+	}
 
 	// Initialize repositories
 	nonceRepo := repository.NewNonceRepository(db)

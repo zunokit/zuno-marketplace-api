@@ -30,7 +30,7 @@ k8s_yaml('infra/development/k8s/app-config.development.yaml', allow_duplicates=T
 # Infrastructure Services
 # ===================================
 # NOTE: In serverless mode, infrastructure is external cloud services:
-# - PostgreSQL: Supabase (cloud)
+# - PostgreSQL: Neon (cloud)
 # - Redis: Upstash (cloud)
 # - RabbitMQ: CloudAMQP (cloud)
 # No local K8s deployments needed
@@ -185,7 +185,8 @@ print("""
    - Redis:          Upstash (cloud)
    - RabbitMQ:       CloudAMQP (cloud)
 
-🔧 Application Services (Local):
+☁️  Cloud Infrastructure (External):
+   - PostgreSQL:     Neon (cloud)
    - Auth Service:       localhost:50051 (gRPC)
    - User Service:       localhost:50052 (gRPC)
    - Wallet Service:     localhost:50053 (gRPC)

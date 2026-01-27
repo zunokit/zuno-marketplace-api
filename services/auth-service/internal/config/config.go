@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
@@ -139,6 +140,10 @@ func Load() *Config {
 // GetDSN returns the database connection string
 func (c *DatabaseConfig) GetDSN() string {
 	if c.Mode == "serverless" && c.URL != "" {
+		// Neon requires SSL mode
+		if !strings.Contains(c.URL, "sslmode=") {
+			return c.URL + "&sslmode=require"
+		}
 		return c.URL
 	}
 	return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +

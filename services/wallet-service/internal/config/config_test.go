@@ -92,7 +92,7 @@ func TestDatabaseConfig_GetDSN_ServerlessMode(t *testing.T) {
 	}
 
 	dsn := cfg.GetDSN()
-	expected := "postgresql://user:pass@host:5432/db"
+	expected := "postgresql://user:pass@host:5432/db&sslmode=require"
 
 	if dsn != expected {
 		t.Errorf("Expected DSN=%s, got %s", expected, dsn)
