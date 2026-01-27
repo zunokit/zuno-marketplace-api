@@ -1,0 +1,28 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ./cmd/main.go"
+bin = "tmp/main"
+include_ext = ["go", "tpl", "tmpl", "html"]
+exclude_dir = ["tmp", "vendor", "build", "logs"]
+include_dir = ["cmd", "internal", "pkg", "../../shared/env", "../../shared/observability", "../../shared/proto"]
+exclude_file = []
+exclude_unchanged = false
+follow_symlink = false
+delay = 1000
+stop_on_root = false
+rerun = false
+rerun_delay = 500
+
+[log]
+time = true
+main_only = false
+
+[color]
+main = "magenta"
+builder = "yellow"
+runner = "green"
+
+[misc]
+clean_on_exit = false

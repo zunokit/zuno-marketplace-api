@@ -1,4 +1,8 @@
 tmp
+tmp/
+services/*/tmp/
+
+# Environment
 .env
 .envrc
 .env.development

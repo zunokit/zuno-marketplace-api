@@ -34,13 +34,15 @@ help: ## Show help
 	@echo   Zuno NFT Marketplace - Quick Start
 	@echo ============================================================
 	@echo
-	@echo OPTION 1 - Docker Compose - Recommended:
+	@echo OPTION 1 - Docker Compose (Production):
 	@echo   make dev           - Start all services
 	@echo   make dev-stop      - Stop all services
 	@echo   make dev-logs      - View logs
 	@echo
-	@echo OPTION 2 - Tilt/Kubernetes - Advanced:
-	@echo   See TILT.md for instructions
+	@echo OPTION 2 - Air Hot-Reload (Development):
+	@echo   make dev-air       - Start all services with Air
+	@echo   make dev-air-stop  - Stop Air services
+	@echo   make dev-air-logs  - View Air logs
 	@echo
 	@echo Common Commands:
 	@echo   make test          - Run tests
@@ -93,6 +95,37 @@ dev-clean: ## Stop and remove all data
 	@echo Cleaning up...
 	docker compose down -v
 	@echo Done!
+
+# ============================================================
+# Air Hot-Reload (Development Mode)
+# ============================================================
+
+dev-air: ## Start Air development environment (serverless infra)
+	@echo ============================================================
+	@echo   Starting Air Development Environment...
+	@echo ============================================================
+	@./scripts/dev-air.sh all
+
+dev-air-auth: ## Start auth-service with Air
+	@./scripts/dev-air.sh auth
+
+dev-air-user: ## Start user-service with Air
+	@./scripts/dev-air.sh user
+
+dev-air-wallet: ## Start wallet-service with Air
+	@./scripts/dev-air.sh wallet
+
+dev-air-gateway: ## Start graphql-gateway with Air
+	@./scripts/dev-air.sh gateway
+
+dev-air-stop: ## Stop Air services
+	@./scripts/stop-air.sh
+
+dev-air-logs: ## View Air logs
+	@tail -f logs/*.log 2>/dev/null || echo "No logs found. Start services first."
+
+dev-air-validate: ## Validate .env.development
+	@./scripts/validate-env.sh
 
 # ============================================================
 # Database Migrations
@@ -222,4 +255,5 @@ install-tools: ## Install development tools
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/air-verse/air@latest
 	@echo Tools installed!
