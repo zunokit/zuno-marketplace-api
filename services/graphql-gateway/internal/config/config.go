@@ -14,6 +14,7 @@ type Config struct {
 	Features FeatureConfig
 	Redis    RedisConfig
 	RabbitMQ RabbitMQConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -55,6 +56,12 @@ type RabbitMQConfig struct {
 	Password string
 	Exchange string
 	URL      string // Full URL for serverless
+}
+
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
 }
 
 // Load loads configuration from environment variables
@@ -99,6 +106,10 @@ func Load() *Config {
 		},
 		Redis:    redisConfig,
 		RabbitMQ: rabbitConfig,
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
+		},
 	}
 }
 

@@ -11,10 +11,11 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	JWT      JWTConfig
-	Services ServicesConfig
 	Redis    RedisConfig
 	RabbitMQ RabbitMQConfig
+	JWT      JWTConfig
+	Services ServicesConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds gRPC server configuration
@@ -67,6 +68,12 @@ type ServicesConfig struct {
 	WalletServiceURL string
 }
 
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	mode := env.GetString("INFRA_MODE", "docker")
@@ -110,6 +117,8 @@ func Load() *Config {
 			GRPCPort: env.GetString("AUTH_GRPC_PORT", ":50051"),
 		},
 		Database: dbConfig,
+		Redis:    redisConfig,
+		RabbitMQ: rabbitConfig,
 		JWT: JWTConfig{
 			Secret:            env.GetString("JWT_SECRET", "your-jwt-secret-key-change-in-production"),
 			RefreshSecret:     env.GetString("REFRESH_SECRET", "your-refresh-secret-key-change-in-production"),
@@ -120,8 +129,10 @@ func Load() *Config {
 			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
 			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
 		},
-		Redis:    redisConfig,
-		RabbitMQ: rabbitConfig,
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
+		},
 	}
 }
 
