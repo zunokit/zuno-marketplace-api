@@ -2,7 +2,9 @@ package tracing
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"google.golang.org/grpc/metadata"
 
@@ -22,7 +24,7 @@ func InjectTraceContext(ctx context.Context) context.Context {
 	}
 
 	// Format: {trace_id}-{span_id}-{sampled}
-	traceHeader := formatTraceHeader(span)
+	traceHeader := FormatTraceHeader(span)
 
 	// Get existing metadata or create new
 	md, ok := metadata.FromOutgoingContext(ctx)
@@ -57,10 +59,10 @@ func ExtractTraceContext(ctx context.Context) []sentry.SpanOption {
 	return nil
 }
 
-// formatTraceHeader formats span data as sentry-trace header
+// FormatTraceHeader formats span data as sentry-trace header
 // Format: {trace_id}-{span_id}-{sampled}
 // Example: 12345678901234567890123456789012-1234567890123456-1
-func formatTraceHeader(span *sentry.Span) string {
+func FormatTraceHeader(span *sentry.Span) string {
 	if span == nil {
 		return ""
 	}
@@ -70,6 +72,48 @@ func formatTraceHeader(span *sentry.Span) string {
 	sampled := "1" // Always sample if we're injecting
 
 	return fmt.Sprintf("%s-%s-%s", traceID, spanID, sampled)
+}
+
+// ContinueFromTraceHeader creates a span option from sentry-trace header
+// Header format: {trace_id}-{parent_span_id}-{sampled}
+// Example: 12345678901234567890123456789012-1234567890123456-1
+// Used by both HTTP and gRPC middleware for distributed tracing
+func ContinueFromTraceHeader(header string) sentry.SpanOption {
+	return func(span *sentry.Span) {
+		parts := strings.Split(header, "-")
+		if len(parts) != 3 {
+			return
+		}
+
+		traceIDStr := parts[0]
+		parentSpanIDStr := parts[1]
+		// parts[2] is sampled flag
+
+		// Parse trace ID (32 hex chars -> 16 bytes)
+		traceIDBytes, err := hex.DecodeString(traceIDStr)
+		if err != nil || len(traceIDBytes) != 16 {
+			return
+		}
+
+		// Parse parent span ID (16 hex chars -> 8 bytes)
+		parentSpanIDBytes, err := hex.DecodeString(parentSpanIDStr)
+		if err != nil || len(parentSpanIDBytes) != 8 {
+			return
+		}
+
+		var traceID sentry.TraceID
+		copy(traceID[:], traceIDBytes)
+
+		var parentSpanID sentry.SpanID
+		copy(parentSpanID[:], parentSpanIDBytes)
+
+		// Set the trace context to continue the parent trace
+		span.TraceID = traceID
+		span.ParentSpanID = parentSpanID
+
+		// Mark this as continuing from a trace header
+		span.SetData("sentry.trace_source", "header")
+	}
 }
 
 // GetTraceID returns the current trace ID from context

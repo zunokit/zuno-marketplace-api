@@ -2,14 +2,12 @@ package middleware
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
-	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/getsentry/sentry-go"
+	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 )
 
 const (
@@ -35,7 +33,7 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
 			if values := md[sentryTraceHeader]; len(values) > 0 {
 				// Continue parent span from trace header
-				spanOpts = append(spanOpts, continueFromTraceHeader(values[0]))
+				spanOpts = append(spanOpts, obsTrace.ContinueFromTraceHeader(values[0]))
 			}
 		}
 
@@ -99,7 +97,7 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 
 		// Add sentry-trace header
 		if span.TraceID.String() != "" {
-			traceHeader := formatTraceHeader(span)
+			traceHeader := obsTrace.FormatTraceHeader(span)
 			md.Set(sentryTraceHeader, traceHeader)
 		}
 
@@ -117,57 +115,6 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 
 		return err
 	}
-}
-
-// continueFromTraceHeader creates a span option from sentry-trace header
-// Header format: {trace_id}-{parent_span_id}-{sampled}
-// Example: 12345678901234567890123456789012-1234567890123456-1
-func continueFromTraceHeader(header string) sentry.SpanOption {
-	return func(span *sentry.Span) {
-		parts := strings.Split(header, "-")
-		if len(parts) != 3 {
-			return
-		}
-
-		traceIDStr := parts[0]
-		parentSpanIDStr := parts[1]
-		// parts[2] is sampled flag, currently not used
-
-		// Parse trace ID (32 hex chars -> 16 bytes)
-		traceIDBytes, err := hex.DecodeString(traceIDStr)
-		if err != nil || len(traceIDBytes) != 16 {
-			return
-		}
-
-		// Parse parent span ID (16 hex chars -> 8 bytes)
-		parentSpanIDBytes, err := hex.DecodeString(parentSpanIDStr)
-		if err != nil || len(parentSpanIDBytes) != 8 {
-			return
-		}
-
-		var traceID sentry.TraceID
-		copy(traceID[:], traceIDBytes)
-
-		var parentSpanID sentry.SpanID
-		copy(parentSpanID[:], parentSpanIDBytes)
-
-		// Set the trace context to continue the parent trace
-		span.TraceID = traceID
-		span.ParentSpanID = parentSpanID
-
-		// Mark this as continuing from a trace header
-		span.SetData("sentry.trace_source", "header")
-	}
-}
-
-// formatTraceHeader formats span data as sentry-trace header
-func formatTraceHeader(span *sentry.Span) string {
-	// Format: {trace_id}-{span_id}-{sampled}
-	// Simplified - production code should use proper Sentry SDK utilities
-	return fmt.Sprintf("%s-%s-1",
-		span.TraceID.String(),
-		span.SpanID.String(),
-	)
 }
 
 // StreamServerInterceptor creates a Sentry span for streaming gRPC calls

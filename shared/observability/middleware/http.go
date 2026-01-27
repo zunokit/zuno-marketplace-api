@@ -1,12 +1,11 @@
 package middleware
 
 import (
-	"encoding/hex"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/getsentry/sentry-go"
+	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 )
 
 // SentryHTTP is Chi middleware that captures HTTP requests as Sentry transactions
@@ -21,7 +20,7 @@ func SentryHTTP(next http.Handler) http.Handler {
 		// Extract sentry-trace header before starting transaction for distributed tracing
 		var traceParentOption sentry.SpanOption
 		if traceHeader := r.Header.Get("sentry-trace"); traceHeader != "" {
-			traceParentOption = continueFromTraceHeaderHTTP(traceHeader)
+			traceParentOption = obsTrace.ContinueFromTraceHeader(traceHeader)
 		}
 
 		// Start transaction with trace continuation option if available
@@ -77,46 +76,6 @@ func SentryHTTP(next http.Handler) http.Handler {
 			transaction.Status = sentry.SpanStatusOK
 		}
 	})
-}
-
-// continueFromTraceHeaderHTTP creates a span option from sentry-trace header for HTTP
-// Header format: {trace_id}-{parent_span_id}-{sampled}
-func continueFromTraceHeaderHTTP(header string) sentry.SpanOption {
-	return func(span *sentry.Span) {
-		parts := strings.Split(header, "-")
-		if len(parts) != 3 {
-			return
-		}
-
-		traceIDStr := parts[0]
-		parentSpanIDStr := parts[1]
-		// parts[2] is sampled flag
-
-		// Parse trace ID (32 hex chars -> 16 bytes)
-		traceIDBytes, err := hex.DecodeString(traceIDStr)
-		if err != nil || len(traceIDBytes) != 16 {
-			return
-		}
-
-		// Parse parent span ID (16 hex chars -> 8 bytes)
-		parentSpanIDBytes, err := hex.DecodeString(parentSpanIDStr)
-		if err != nil || len(parentSpanIDBytes) != 8 {
-			return
-		}
-
-		var traceID sentry.TraceID
-		copy(traceID[:], traceIDBytes)
-
-		var parentSpanID sentry.SpanID
-		copy(parentSpanID[:], parentSpanIDBytes)
-
-		// Set the trace context to continue the parent trace
-		span.TraceID = traceID
-		span.ParentSpanID = parentSpanID
-
-		// Mark this as continuing from a trace header
-		span.SetData("sentry.trace_source", "header")
-	}
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
