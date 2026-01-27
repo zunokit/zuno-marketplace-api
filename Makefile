@@ -108,7 +108,7 @@ migrate-status: ## Show migration status
 	-@$(MIGRATE) -path db/migrations -database "$(DB_URL)" version
 	@echo
 	@echo Available migrations:
-	@find db/migrations -name "*.up.sql" 2>/dev/null || ls -1 db/migrations/*.up.sql 2>/dev/null || echo "No migrations found"
+	@$(FIND_CMD) || echo "No migrations found"
 
 migrate-create: ## Create new migration (make migrate-create NAME=add_feature)
 	@echo Creating migration: $(NAME)
@@ -140,25 +140,38 @@ test-verbose: ## Run tests with verbose output
 # Building
 # ============================================================
 
+# Detect OS for Windows compatibility
+ifeq ($(OS),Windows_NT)
+	MKDIR_CMD = if not exist build mkdir build
+	RM_CMD = if exist build rmdir /s /q build
+	MKDIR_PROTO = if not exist shared\proto\pb mkdir shared\proto\pb
+	FIND_CMD = dir /b db\migrations\*.up.sql 2>nul
+else
+	MKDIR_CMD = mkdir -p build
+	RM_CMD = rm -rf build
+	MKDIR_PROTO = mkdir -p shared/proto/pb
+	FIND_CMD = find db/migrations -name "*.up.sql" 2>/dev/null || ls -1 db/migrations/*.up.sql 2>/dev/null
+endif
+
 build-auth: ## Build auth service
 	@echo Building auth-service...
-	@mkdir -p build
-	cd services/auth-service/cmd && go build $(LDFLAGS) -o ../../build/auth-service .
+	@$(MKDIR_CMD)
+	cd services/auth-service/cmd && go build $(LDFLAGS) -o ../../build/auth-service$(if $(filter $(OS),Windows_NT),.exe,) .
 
 build-user: ## Build user service
 	@echo Building user-service...
-	@mkdir -p build
-	cd services/user-service/cmd && go build $(LDFLAGS) -o ../../build/user-service .
+	@$(MKDIR_CMD)
+	cd services/user-service/cmd && go build $(LDFLAGS) -o ../../build/user-service$(if $(filter $(OS),Windows_NT),.exe,) .
 
 build-wallet: ## Build wallet service
 	@echo Building wallet-service...
-	@mkdir -p build
-	cd services/wallet-service/cmd && go build $(LDFLAGS) -o ../../build/wallet-service .
+	@$(MKDIR_CMD)
+	cd services/wallet-service/cmd && go build $(LDFLAGS) -o ../../build/wallet-service$(if $(filter $(OS),Windows_NT),.exe,) .
 
 build-gateway: ## Build graphql gateway
 	@echo Building graphql-gateway...
-	@mkdir -p build
-	cd services/graphql-gateway/cmd && go build $(LDFLAGS) -o ../../../build/graphql-gateway .
+	@$(MKDIR_CMD)
+	cd services/graphql-gateway/cmd && go build $(LDFLAGS) -o ../../../build/graphql-gateway$(if $(filter $(OS),Windows_NT),.exe,) .
 
 build: build-auth build-user build-wallet build-gateway ## Build all services
 	@echo Build complete! Binaries in ./build/
@@ -171,8 +184,8 @@ build-version: ## Show build version info
 
 clean: ## Clean build artifacts
 	@echo Cleaning build artifacts...
-	@rm -rf build
-	@mkdir -p build
+	@$(RM_CMD)
+	@$(MKDIR_CMD)
 
 # ============================================================
 # Code Generation
@@ -180,7 +193,7 @@ clean: ## Clean build artifacts
 
 proto: ## Generate protobuf code
 	@echo Generating protobuf code...
-	@mkdir -p shared/proto/pb
+	@$(MKDIR_PROTO)
 	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/*.proto
 	@if exist proto\*.pb.go move /Y proto\*.pb.go shared\proto\pb\
 	@echo Protobuf generation complete!
