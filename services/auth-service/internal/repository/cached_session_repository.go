@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/models"
+	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 )
 
 // CachedSessionRepository wraps SessionRepository with Redis caching
 // Uses cache-aside pattern: try cache, fallback to DB, populate cache
 type CachedSessionRepository struct {
-	repo SessionRepository
+	repo  SessionRepository
 	cache *sharedredis.Cache
 }
 

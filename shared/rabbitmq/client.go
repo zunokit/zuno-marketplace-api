@@ -36,9 +36,9 @@ func connect(url string) error {
 	log.Printf("Connecting to RabbitMQ...")
 
 	config := amqp.Config{
-		Vhost:      "/",
-		Heartbeat:  10 * time.Second,
-		Locale:     "en_US",
+		Vhost:     "/",
+		Heartbeat: 10 * time.Second,
+		Locale:    "en_US",
 		Properties: amqp.Table{
 			"connection_name": "zuno-marketplace-api",
 			"product":         "Zuno Marketplace",

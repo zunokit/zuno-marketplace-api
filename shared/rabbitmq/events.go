@@ -18,12 +18,12 @@ type Event struct {
 
 // Event types
 const (
-	EventTypeAuthLogin      = "auth.login"
-	EventTypeAuthLogout     = "auth.logout"
-	EventTypeUserCreated    = "user.created"
-	EventTypeUserUpdated    = "user.updated"
-	EventTypeWalletCreated  = "wallet.created"
-	EventTypeWalletUpdated  = "wallet.updated"
+	EventTypeAuthLogin          = "auth.login"
+	EventTypeAuthLogout         = "auth.logout"
+	EventTypeUserCreated        = "user.created"
+	EventTypeUserUpdated        = "user.updated"
+	EventTypeWalletCreated      = "wallet.created"
+	EventTypeWalletUpdated      = "wallet.updated"
 	EventTypeTransactionCreated = "transaction.created"
 )
 

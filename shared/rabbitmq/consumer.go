@@ -14,9 +14,9 @@ type Handler func(ctx context.Context, event Event) error
 
 // Consumer consumes messages from a queue
 type Consumer struct {
-	queueName string
+	queueName  string
 	routingKey string
-	handler   Handler
+	handler    Handler
 }
 
 // NewConsumer creates a new consumer
