@@ -9,7 +9,9 @@
 ## Issues Fixed
 
 ### 1. go.sum Corruption ✅
+
 **Problem:**
+
 ```
 malformed go.sum: E:\zuno-marketplace-api\go.sum:93: wrong number of fields 2
 ```
@@ -17,6 +19,7 @@ malformed go.sum: E:\zuno-marketplace-api\go.sum:93: wrong number of fields 2
 **Root Cause:** Merge conflict corrupted go.sum file
 
 **Solution:**
+
 ```bash
 rm go.sum
 go mod tidy
@@ -27,7 +30,9 @@ go mod tidy
 ---
 
 ### 2. Build Verification ✅
+
 **Commands Executed:**
+
 ```bash
 go build ./services/collection-service/...  ✅
 go build ./services/graphql-gateway/...     ✅
@@ -38,11 +43,14 @@ go build ./services/graphql-gateway/...     ✅
 ---
 
 ### 3. Database Migration ✅
+
 **Migration Files Applied:**
+
 - ✅ Migration 3: `add_collections_tables` (3.08s)
 - ✅ Migration 4: `add_index_status` (6.00s)
 
 **Tables Created:**
+
 1. `collections` - Core collection data
 2. `collection_metadata` - JSON metadata storage
 3. `collection_stats` - Statistics & metrics
@@ -56,6 +64,7 @@ go build ./services/graphql-gateway/...     ✅
 ## Current Status
 
 ### Backend Implementation ✅ 100%
+
 - [x] gRPC Service: 7 RPC methods
 - [x] GraphQL Gateway: Full schema + resolvers
 - [x] Database Schema: 5 tables with indexes
@@ -68,10 +77,12 @@ go build ./services/graphql-gateway/...     ✅
 ## Next Steps
 
 ### HIGH PRIORITY
+
 1. **Start Services Locally**
+
    ```bash
-   make dev-air-collection  # Terminal 1
-   make dev-air-gateway     # Terminal 2
+   make dev-collection  # Terminal 1
+   make dev-gateway     # Terminal 2
    ```
 
 2. **Integration Testing**
@@ -87,6 +98,7 @@ go build ./services/graphql-gateway/...     ✅
    ```
 
 ### MEDIUM PRIORITY
+
 4. **Code Review**
    - Review 8 commits on feature/create-collection
    - Verify error handling
@@ -124,6 +136,7 @@ go build ./services/graphql-gateway/...     ✅
 **Status:** Ready for integration testing
 
 **Estimated time to production-ready:** 1-2 hours
+
 - Integration testing: 30-45 min
 - Bug fixes (if any): 15-30 min
 - Documentation: 15-30 min
