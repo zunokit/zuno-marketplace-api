@@ -17,9 +17,26 @@ func setupProcessedEventTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	require.NoError(t, err)
 
-	// Create table
-	err = db.AutoMigrate(&models.ProcessedEvent{})
+	// Create table manually for SQLite (uuid_generate_v4() is PostgreSQL-only)
+	err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS processed_events (
+			id TEXT PRIMARY KEY,
+			event_id TEXT NOT NULL UNIQUE,
+			event_type TEXT NOT NULL,
+			chain_id TEXT NOT NULL,
+			block_number INTEGER NOT NULL,
+			tx_hash TEXT NOT NULL,
+			log_index INTEGER NOT NULL,
+			collection_address TEXT,
+			processed_at DATETIME NOT NULL
+		)
+	`).Error
 	require.NoError(t, err)
+
+	// Create indexes (IF NOT EXISTS not supported for indexes in SQLite, ignore errors)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_processed_events_event_type ON processed_events(event_type)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_processed_events_chain_id ON processed_events(chain_id)`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_processed_events_collection_address ON processed_events(collection_address)`)
 
 	return db
 }
@@ -143,6 +160,7 @@ func TestProcessedEventRepository_DeleteProcessedEventsBefore(t *testing.T) {
 	recentTime := time.Now().Add(-1 * time.Hour)
 
 	oldEvent := &models.ProcessedEvent{
+		ID:          uuid.New().String(),
 		EventID:     "0xoldevent:0",
 		EventType:   "collection.created",
 		ChainID:     "eip155:1",
@@ -153,6 +171,7 @@ func TestProcessedEventRepository_DeleteProcessedEventsBefore(t *testing.T) {
 	}
 
 	recentEvent := &models.ProcessedEvent{
+		ID:          uuid.New().String(),
 		EventID:     "0xrecentevent:0",
 		EventType:   "collection.created",
 		ChainID:     "eip155:1",
@@ -174,11 +193,13 @@ func TestProcessedEventRepository_DeleteProcessedEventsBefore(t *testing.T) {
 		assert.Equal(t, int64(1), deletedCount)
 
 		// Verify old event is deleted
-		_, err = repo.GetProcessedEvent(ctx, "0xoldevent:0")
-		assert.Error(t, err)
+		deletedEvent, err := repo.GetProcessedEvent(ctx, "0xoldevent:0")
+		assert.NoError(t, err)
+		assert.Nil(t, deletedEvent)
 
 		// Verify recent event still exists
-		event, err := repo.GetProcessedEvent(ctx, "0xrecentevent:0")
+		var event *models.ProcessedEvent
+		event, err = repo.GetProcessedEvent(ctx, "0xrecentevent:0")
 		assert.NoError(t, err)
 		assert.NotNil(t, event)
 	})
