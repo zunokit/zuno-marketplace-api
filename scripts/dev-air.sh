@@ -148,9 +148,9 @@ esac
 print_header "Services Running"
 
 for service in "${!SERVICES[@]}"; do
-  local pid_file="$PID_DIR/$service.pid"
+  pid_file="$PID_DIR/$service.pid"
   if [ -f "$pid_file" ]; then
-    local pid=$(cat "$pid_file")
+    pid=$(cat "$pid_file")
     if ps -p "$pid" > /dev/null 2>&1; then
       echo -e "  ${GREEN}●${NC} $service - Port ${SERVICES[$service]} (PID: $pid)"
     else

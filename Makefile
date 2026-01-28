@@ -124,8 +124,7 @@ dev-air-stop: ## Stop Air services
 dev-air-logs: ## View Air logs
 	@tail -f logs/*.log 2>/dev/null || echo "No logs found. Start services first."
 
-dev-air-validate: ## Validate .env.development
-	@./scripts/validate-env.sh
+
 
 # ============================================================
 # Database Migrations
