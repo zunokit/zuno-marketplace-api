@@ -55,13 +55,13 @@ func main() {
 			getBuildVersion(),
 			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
 		); err != nil {
-			log.Printf("Sentry init failed (continuing): %v", err)
+			log.Infof("Sentry init failed (continuing): %v", err)
 		} else {
-			log.Println("Sentry initialized")
+			log.Info("Sentry initialized")
 			defer obs.Flush(2 * time.Second)
 		}
 	} else {
-		log.Println("Sentry DSN not configured, skipping")
+		log.Info("Sentry DSN not configured, skipping")
 	}
 
 	// Initialize database connection
@@ -76,17 +76,17 @@ func main() {
 
 	// Initialize Redis (non-blocking)
 	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
-		log.Printf("Redis init failed (continuing without cache): %v", err)
+		log.Infof("Redis init failed (continuing without cache): %v", err)
 	} else {
-		log.Println("Redis connected")
+		log.Info("Redis connected")
 		defer sharedredis.Close()
 	}
 
 	// Initialize RabbitMQ (non-blocking)
 	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
-		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+		log.Infof("RabbitMQ init failed (continuing without events): %v", err)
 	} else {
-		log.Println("RabbitMQ connected")
+		log.Info("RabbitMQ connected")
 		defer sharedrabbitmq.Close()
 	}
 
@@ -128,11 +128,11 @@ func main() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 
-		log.Println("Shutting down Wallet Service...")
+		log.Info("Shutting down Wallet Service...")
 
 		// Flush Sentry before shutdown
 		if cfg.Sentry.DSN != "" {
-			log.Println("Flushing Sentry events...")
+			log.Info("Flushing Sentry events...")
 			obs.Flush(2 * time.Second)
 		}
 
