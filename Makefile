@@ -4,6 +4,10 @@
 # Configuration
 # ============================================================
 
+# Load environment variables from .env.development (if exists)
+-include .env.development
+export
+
 SHELL := /bin/bash
 GOPATH := $(shell go env GOPATH)
 
@@ -15,13 +19,16 @@ LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 # Migrate tool path (cross-platform)
 MIGRATE := $(shell which migrate)
 
-# Database configuration
+# Database configuration (local Docker)
 DB_HOST ?= localhost
 DB_PORT ?= 5433
 DB_USER ?= postgres
 DB_PASSWORD ?= postgres
 DB_NAME ?= nft_marketplace
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
+# DATABASE_URL for serverless (Neon) - loaded from .env.development or environment
+DATABASE_URL ?=
 
 .DEFAULT_GOAL := help
 
@@ -34,23 +41,18 @@ help: ## Show help
 	@echo   Zuno NFT Marketplace - Quick Start
 	@echo ============================================================
 	@echo
-	@echo OPTION 1 - Docker Compose (Production):
-	@echo   make dev           - Start all services
-	@echo   make dev-stop      - Stop all services
-	@echo   make dev-logs      - View logs
-	@echo
-	@echo OPTION 2 - Air Hot-Reload (Development):
-	@echo   make dev-air         - Start all services with Air
-	@echo   make dev-air-stop    - Stop Air services
-	@echo   make dev-air-logs    - View combined logs
-	@echo   make dev-air-logs-all - View all logs separately
+	@echo Development:
+	@echo   make dev         - Start all services with Air
+	@echo   make dev-stop    - Stop Air services
+	@echo   make dev-logs    - View combined logs
+	@echo   make dev-logs-all - View all logs separately
 	@echo
 	@echo Common Commands:
 	@echo   make test          - Run tests
 	@echo   make build         - Build all services
 	@echo   make build-version - Show build version info
 	@echo   make migrate       - Run migrations (Docker)
-	@echo   make migrate-serverless - Run migrations (Neon)
+	@echo   make migrate-dev - Run migrations (Neon)
 	@echo   make proto         - Generate protobuf
 	@echo   make lint          - Run linter
 	@echo   make format        - Format code
@@ -60,79 +62,40 @@ help: ## Show help
 	@echo ============================================================
 
 # ============================================================
-# Docker Compose (Primary Development Method)
-# ============================================================
-
-dev: ## Start Docker Compose (one command does everything)
-	@echo ============================================================
-	@echo   Starting Docker Compose environment...
-	@echo ============================================================
-	@docker compose down -v 2>/dev/null || true
-	@echo [1/3] Starting services...
-	docker compose up -d
-	@echo [2/3] Waiting for PostgreSQL to be ready...
-	@sleep 8
-	@echo [3/3] Running database migrations...
-	@$(MAKE) migrate
-	@echo ============================================================
-	@echo   Ready!
-	@echo ============================================================
-	@echo GraphQL Playground: http://localhost:8081/graphql
-	@echo PostgreSQL:         localhost:5433
-	@echo RabbitMQ UI:        http://localhost:15672 (guest/guest)
-	@echo
-	@echo View logs:  make dev-logs
-	@echo Stop:       make dev-stop
-	@echo ============================================================
-
-dev-stop: ## Stop Docker Compose
-	@echo Stopping Docker Compose...
-	docker compose down
-	@echo Stopped!
-
-dev-logs: ## View Docker Compose logs
-	docker compose logs -f
-
-dev-clean: ## Stop and remove all data
-	@echo Cleaning up...
-	docker compose down -v
-	@echo Done!
-
-# ============================================================
 # Air Hot-Reload (Development Mode)
 # ============================================================
 
-dev-air: ## Start Air development environment (serverless infra)
+dev: ## Start Air development environment (serverless infra)
 	@echo ============================================================
 	@echo   Starting Air Development Environment...
 	@echo ============================================================
-	@./scripts/dev-air.sh all
+	@./scripts/dev.sh all
 
-dev-air-auth: ## Start auth-service with Air
-	@./scripts/dev-air.sh auth
+dev-auth: ## Start auth-service with Air
+	@./scripts/dev.sh auth
 
-dev-air-user: ## Start user-service with Air
-	@./scripts/dev-air.sh user
+dev-user: ## Start user-service with Air
+	@./scripts/dev.sh user
 
-dev-air-wallet: ## Start wallet-service with Air
-	@./scripts/dev-air.sh wallet
+dev-wallet: ## Start wallet-service with Air
+	@./scripts/dev.sh wallet
 
-dev-air-gateway: ## Start graphql-gateway with Air
-	@./scripts/dev-air.sh gateway
+dev-gateway: ## Start graphql-gateway with Air
+	@./scripts/dev.sh gateway
 
-dev-air-stop: ## Stop Air services
+dev-stop: ## Stop Air services
 	@./scripts/stop-air.sh
 
-dev-air-logs: ## View Air logs (combined)
+dev-logs: ## View Air logs (combined)
 	@tail -f logs/all-services.log 2>/dev/null || echo "No logs found. Start services first."
 
-dev-air-logs-all: ## View all Air logs separately
+dev-logs-all: ## View all Air logs separately
 	@tail -f logs/*.log 2>/dev/null || echo "No logs found. Start services first."
 
 
 
 # ============================================================
-# Database Migrations
+# Database Migrations production
 # ============================================================
 
 migrate: ## Run database migrations
@@ -157,34 +120,25 @@ migrate-down: ## Rollback last migration
 	@echo Rollback complete!
 
 # ============================================================
-# Serverless Database Migrations (Neon Development)
+# Serverless Database Migrations (Neon Development Mode)
 # ============================================================
 
-migrate-serverless: ## Run migrations on Neon serverless database
-	@echo Running migrations on Neon serverless...
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set. Please set DATABASE_URL environment variable."; \
-		exit 1; \
-	fi
-	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" up
-	@echo Migrations complete!
+migrate-dev: ## Run migrations on Neon serverless database
+	@echo Running migrations on Neon serverless... && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set. Please set in .env.development or environment." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" up && \
+	echo "Migrations complete!"
 
-migrate-serverless-status: ## Show Neon migration status
-	@echo Neon migration status:
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set."; \
-		exit 1; \
-	fi
-	-@$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" version
+migrate-dev-status: ## Show Neon migration status
+	@echo Neon migration status: && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" version
 
-migrate-serverless-down: ## Rollback last Neon migration
-	@echo Rolling back last Neon migration...
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set."; \
-		exit 1; \
-	fi
-	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" down 1
-	@echo Rollback complete!
+migrate-dev-down: ## Rollback last Neon migration
+	@echo Rolling back last Neon migration... && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" down 1 && \
+	echo "Rollback complete!"
 
 # ============================================================
 # Testing

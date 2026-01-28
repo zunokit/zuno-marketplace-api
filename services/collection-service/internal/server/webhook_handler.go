@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,27 +32,102 @@ func (s *CollectionServer) ProcessIndexerWebhook(
 	ctx context.Context,
 	req *pb.ProcessIndexerWebhookRequest,
 ) (*pb.ProcessIndexerWebhookResponse, error) {
-	// 1. Verify HMAC signature (if provided via metadata)
-	// Note: In production, signature should be passed via gRPC metadata
-	// For HTTP->gRPC gateway, this will be handled by the gateway layer
+	// Build chain ID in CAIP-2 format
+	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
-	// 2. Parse event data
+	// Log incoming webhook
+	s.logger.Debug("Processing webhook",
+		zap.String("event_type", req.Event),
+		zap.String("chain_id", chainID),
+		zap.Int64("timestamp", req.Timestamp),
+	)
+
+	// 1. Parse event data
 	var eventData WebhookEventData
 	if err := json.Unmarshal([]byte(req.DataJson), &eventData); err != nil {
+		s.logger.Error("Failed to parse event data",
+			zap.String("event_type", req.Event),
+			zap.Error(err),
+		)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid event data: %v", err)
 	}
 
-	// 3. Handle event based on type
+	// 2. Validate payload
+	validator := NewWebhookValidator(true) // Allow external collections
+	if err := validator.ValidateRequest(req.Event, req.ChainId, req.Timestamp, eventDataToMap(eventData)); err != nil {
+		s.logger.Error("Webhook validation failed",
+			zap.String("event_type", req.Event),
+			zap.Error(err),
+		)
+		return nil, status.Errorf(codes.InvalidArgument, "validation failed: %v", err)
+	}
+
+	// 3. Build event ID for idempotency
+	eventID := BuildEventID(eventData.TxHash, eventData.LogIndex)
+
+	// 4. Check if event was already processed
+	processed, err := s.processedEventRepo.IsEventProcessed(ctx, eventID)
+	if err != nil {
+		s.logger.Error("Failed to check if event was processed",
+			zap.String("event_id", eventID),
+			zap.Error(err),
+		)
+		return nil, status.Errorf(codes.Internal, "failed to check event status: %v", err)
+	}
+
+	if processed {
+		s.logger.Info("Event already processed, skipping",
+			zap.String("event_id", eventID),
+			zap.String("event_type", req.Event),
+		)
+		return &pb.ProcessIndexerWebhookResponse{
+			Success: true,
+			Message: "Event already processed",
+		}, nil
+	}
+
+	// 5. Handle event based on type
+	var response *pb.ProcessIndexerWebhookResponse
+	var handleErr error
+
 	switch req.Event {
 	case "collection.created":
-		return s.handleCollectionCreated(ctx, req, eventData)
+		response, handleErr = s.handleCollectionCreated(ctx, req, eventData)
 	case "collection.minted":
-		return s.handleCollectionMinted(ctx, req, eventData)
+		response, handleErr = s.handleCollectionMinted(ctx, req, eventData)
 	case "collection.batch_minted":
-		return s.handleCollectionBatchMinted(ctx, req, eventData)
+		response, handleErr = s.handleCollectionBatchMinted(ctx, req, eventData)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unknown event type: %s", req.Event)
 	}
+
+	// 6. Mark event as processed if handling succeeded
+	if handleErr == nil && response.Success {
+		processedEvent := models.NewProcessedEvent(
+			eventID,
+			req.Event,
+			chainID,
+			eventData.BlockNumber,
+			eventData.TxHash,
+			int(eventData.LogIndex),
+			getCollectionAddress(eventData),
+		)
+
+		if err := s.processedEventRepo.CreateProcessedEvent(ctx, processedEvent); err != nil {
+			// Log error but don't fail the request
+			s.logger.Error("Failed to mark event as processed",
+				zap.String("event_id", eventID),
+				zap.Error(err),
+			)
+		} else {
+			s.logger.Info("Event marked as processed",
+				zap.String("event_id", eventID),
+				zap.String("event_type", req.Event),
+			)
+		}
+	}
+
+	return response, handleErr
 }
 
 // handleCollectionCreated processes collection.created webhook events
@@ -62,24 +139,53 @@ func (s *CollectionServer) handleCollectionCreated(
 	// Build chainID in eip155 format
 	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
+	s.logger.Info("Processing collection.created event",
+		zap.String("collection_address", data.CollectionAddress),
+		zap.String("chain_id", chainID),
+		zap.String("creator", data.Creator),
+		zap.String("token_type", data.TokenType),
+		zap.Int64("block_number", data.BlockNumber),
+	)
+
 	// Find collection by contract address and chainID
 	dbCollection, err := s.service.GetCollectionByContract(ctx, data.CollectionAddress, chainID)
 	if err != nil {
+		s.logger.Warn("Collection not found in database",
+			zap.String("collection_address", data.CollectionAddress),
+			zap.String("chain_id", chainID),
+			zap.Error(err),
+		)
 		return nil, status.Errorf(codes.NotFound, "collection not found: %v", err)
 	}
 
-	// Update index status to INDEXED
+	s.logger.Debug("Collection found, updating status",
+		zap.String("collection_id", dbCollection.ID.String()),
+		zap.String("collection_address", data.CollectionAddress),
+		zap.String("current_status", string(dbCollection.Status)),
+	)
+
+	// Update status to DEPLOYED and index_status to INDEXED
 	updates := map[string]interface{}{
-		"index_status": "INDEXED",
+		"status":       models.CollectionStatusDeployed,
+		"index_status": models.IndexStatusSynced,
 		"indexed_at":   time.Now(),
 		"updated_at":   time.Now(),
 	}
 
-	// Update in database (using system user ID for webhook updates)
-	systemUserID := dbCollection.UserID // Use owner's ID for authorization
-	if _, err := s.service.UpdateCollection(ctx, dbCollection.ID, systemUserID, updates); err != nil {
+	// Update in database (using owner's ID for authorization)
+	if _, err := s.service.UpdateCollection(ctx, dbCollection.ID, dbCollection.UserID, updates); err != nil {
+		s.logger.Error("Failed to update collection",
+			zap.String("collection_id", dbCollection.ID.String()),
+			zap.Error(err),
+		)
 		return nil, status.Errorf(codes.Internal, "failed to update collection: %v", err)
 	}
+
+	s.logger.Info("Collection indexed successfully",
+		zap.String("collection_id", dbCollection.ID.String()),
+		zap.String("collection_address", data.CollectionAddress),
+		zap.String("status", string(models.CollectionStatusDeployed)),
+	)
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
@@ -96,27 +202,39 @@ func (s *CollectionServer) handleCollectionMinted(
 	// Build chainID in eip155 format
 	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
+	s.logger.Debug("Processing collection.minted event",
+		zap.String("contract_address", data.ContractAddress),
+		zap.String("chain_id", chainID),
+	)
+
 	// Find collection by contract address and chainID
 	dbCollection, err := s.service.GetCollectionByContract(ctx, data.ContractAddress, chainID)
 	if err != nil {
 		// Collection might not be in our database yet (external collection)
+		s.logger.Info("External collection not in database, skipping stats update",
+			zap.String("contract_address", data.ContractAddress),
+			zap.String("chain_id", chainID),
+		)
 		return &pb.ProcessIndexerWebhookResponse{
 			Success: true,
 			Message: "Collection not in database, skipping stats update",
 		}, nil
 	}
 
-	// Increment total_minted counter
-	// Note: For proper atomic increment, repository should handle this
-	updates := map[string]interface{}{
-		"total_minted": dbCollection.TotalMinted + 1,
-		"updated_at":   time.Now(),
-	}
-
-	// Update in database
-	if _, err := s.service.UpdateCollection(ctx, dbCollection.ID, dbCollection.UserID, updates); err != nil {
+	// Increment total_minted counter atomically
+	if err := s.service.IncrementTotalMinted(ctx, dbCollection.ID, 1); err != nil {
+		s.logger.Error("Failed to update collection stats",
+			zap.String("collection_id", dbCollection.ID.String()),
+			zap.String("contract_address", data.ContractAddress),
+			zap.Error(err),
+		)
 		return nil, status.Errorf(codes.Internal, "failed to update collection stats: %v", err)
 	}
+
+	s.logger.Debug("Collection stats updated",
+		zap.String("collection_id", dbCollection.ID.String()),
+		zap.String("contract_address", data.ContractAddress),
+	)
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
@@ -130,9 +248,76 @@ func (s *CollectionServer) handleCollectionBatchMinted(
 	req *pb.ProcessIndexerWebhookRequest,
 	data WebhookEventData,
 ) (*pb.ProcessIndexerWebhookResponse, error) {
-	// Similar to handleCollectionMinted but for batch mints
-	// For now, treat it the same as single mint
-	return s.handleCollectionMinted(ctx, req, data)
+	// Build chainID in eip155 format
+	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
+
+	s.logger.Debug("Processing collection.batch_minted event",
+		zap.String("contract_address", data.ContractAddress),
+		zap.String("chain_id", chainID),
+	)
+
+	// Find collection by contract address and chainID
+	dbCollection, err := s.service.GetCollectionByContract(ctx, data.ContractAddress, chainID)
+	if err != nil {
+		// Collection might not be in our database yet (external collection)
+		s.logger.Info("External collection not in database, skipping batch stats update",
+			zap.String("contract_address", data.ContractAddress),
+			zap.String("chain_id", chainID),
+		)
+		return &pb.ProcessIndexerWebhookResponse{
+			Success: true,
+			Message: "Collection not in database, skipping stats update",
+		}, nil
+	}
+
+	// For batch_minted, we'd need to extract the batch size from the event data
+	// For now, we'll increment by 1 (this can be enhanced later)
+	// TODO: Extract batch size from event data when available
+	batchSize := int64(1)
+
+	// Increment total_minted counter atomically
+	if err := s.service.IncrementTotalMinted(ctx, dbCollection.ID, batchSize); err != nil {
+		s.logger.Error("Failed to update collection stats",
+			zap.String("collection_id", dbCollection.ID.String()),
+			zap.String("contract_address", data.ContractAddress),
+			zap.Error(err),
+		)
+		return nil, status.Errorf(codes.Internal, "failed to update collection stats: %v", err)
+	}
+
+	s.logger.Debug("Collection stats updated for batch mint",
+		zap.String("collection_id", dbCollection.ID.String()),
+		zap.String("contract_address", data.ContractAddress),
+		zap.Int64("batch_size", batchSize),
+	)
+
+	return &pb.ProcessIndexerWebhookResponse{
+		Success: true,
+		Message: fmt.Sprintf("Collection %s stats updated for batch mint", data.ContractAddress),
+	}, nil
+}
+
+// Helper functions
+
+// eventDataToMap converts WebhookEventData to map for validation
+func eventDataToMap(data WebhookEventData) map[string]interface{} {
+	return map[string]interface{}{
+		"collectionAddress": data.CollectionAddress,
+		"creator":           data.Creator,
+		"tokenType":         data.TokenType,
+		"blockNumber":       float64(data.BlockNumber),
+		"txHash":            data.TxHash,
+		"logIndex":          float64(data.LogIndex),
+		"contractAddress":   data.ContractAddress,
+	}
+}
+
+// getCollectionAddress extracts the collection address from event data
+func getCollectionAddress(data WebhookEventData) string {
+	if data.CollectionAddress != "" {
+		return data.CollectionAddress
+	}
+	return data.ContractAddress
 }
 
 // VerifyWebhookSignature verifies HMAC-SHA256 signature

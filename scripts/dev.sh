@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start services with Air hot-reload
-# Usage: ./scripts/dev-air.sh [all|auth|user|wallet|gateway]
+# Usage: ./scripts/dev.sh [all|auth|user|wallet|gateway]
 
 set -e
 
@@ -181,5 +181,5 @@ echo
 echo -e "GraphQL Playground: ${GREEN}http://localhost:4080/graphql${NC}"
 echo
 echo -e "Logs: ${BLUE}$LOGS_DIR${NC}"
-echo -e "Stop: ${YELLOW}make dev-air-stop${NC} or ${YELLOW}./scripts/stop-air.sh${NC}"
+echo -e "Stop: ${YELLOW}make dev-stop${NC} or ${YELLOW}./scripts/stop-air.sh${NC}"
 echo

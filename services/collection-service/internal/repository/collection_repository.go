@@ -31,6 +31,7 @@ type CollectionRepository interface {
 	ListByUser(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.Collection, int64, error)
 	List(ctx context.Context, filters *ListFilters, page, limit int) ([]*models.Collection, int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+	IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error
 }
 
 type collectionRepository struct {
@@ -195,5 +196,23 @@ func (r *collectionRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	if result.RowsAffected == 0 {
 		return ErrCollectionNotFound
 	}
+	return nil
+}
+
+// IncrementTotalMinted atomically increments the total_minted counter
+func (r *collectionRepository) IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error {
+	result := r.db.WithContext(ctx).
+		Model(&models.Collection{}).
+		Where("id = ?", id).
+		Update("total_minted", gorm.Expr("total_minted + ?", increment))
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrCollectionNotFound
+	}
+
 	return nil
 }

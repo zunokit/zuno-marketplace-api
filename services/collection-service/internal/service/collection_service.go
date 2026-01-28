@@ -161,3 +161,8 @@ func (s *CollectionService) DeleteCollection(ctx context.Context, id uuid.UUID, 
 	// 2. Delete
 	return s.collectionRepo.Delete(ctx, id)
 }
+
+// IncrementTotalMinted atomically increments the total_minted counter for a collection
+func (s *CollectionService) IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error {
+	return s.collectionRepo.IncrementTotalMinted(ctx, id, increment)
+}

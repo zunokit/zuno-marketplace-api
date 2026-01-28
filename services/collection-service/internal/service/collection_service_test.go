@@ -20,6 +20,7 @@ type mockCollectionRepo struct {
 	listByUserFunc           func(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.Collection, int64, error)
 	listFunc                 func(ctx context.Context, filters *repository.ListFilters, page, limit int) ([]*models.Collection, int64, error)
 	deleteFunc               func(ctx context.Context, id uuid.UUID) error
+	incrementTotalMintedFunc func(ctx context.Context, id uuid.UUID, increment int64) error
 }
 
 func (m *mockCollectionRepo) Create(ctx context.Context, collection *models.Collection) error {
@@ -67,6 +68,13 @@ func (m *mockCollectionRepo) List(ctx context.Context, filters *repository.ListF
 func (m *mockCollectionRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	if m.deleteFunc != nil {
 		return m.deleteFunc(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockCollectionRepo) IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error {
+	if m.incrementTotalMintedFunc != nil {
+		return m.incrementTotalMintedFunc(ctx, id, increment)
 	}
 	return nil
 }

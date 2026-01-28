@@ -7,17 +7,28 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/repository"
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/service"
 	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type CollectionServer struct {
 	pb.UnimplementedCollectionServiceServer
-	service *service.CollectionService
+	service            *service.CollectionService
+	processedEventRepo repository.ProcessedEventRepository
+	logger             *zap.Logger
 }
 
-func NewCollectionServer(service *service.CollectionService) *CollectionServer {
-	return &CollectionServer{service: service}
+func NewCollectionServer(
+	service *service.CollectionService,
+	processedEventRepo repository.ProcessedEventRepository,
+	logger *zap.Logger,
+) *CollectionServer {
+	return &CollectionServer{
+		service:            service,
+		processedEventRepo: processedEventRepo,
+		logger:             logger,
+	}
 }
 
 func (s *CollectionServer) CreateCollection(ctx context.Context, req *pb.CreateCollectionRequest) (*pb.CreateCollectionResponse, error) {
