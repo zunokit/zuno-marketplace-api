@@ -13,7 +13,7 @@ BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown
 LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 
 # Migrate tool path (cross-platform)
-MIGRATE := $(GOPATH)/bin/migrate
+MIGRATE := $(shell which migrate)
 
 # Database configuration
 DB_HOST ?= localhost
@@ -49,7 +49,8 @@ help: ## Show help
 	@echo   make test          - Run tests
 	@echo   make build         - Build all services
 	@echo   make build-version - Show build version info
-	@echo   make migrate       - Run migrations
+	@echo   make migrate       - Run migrations (Docker)
+	@echo   make migrate-serverless - Run migrations (Neon)
 	@echo   make proto         - Generate protobuf
 	@echo   make lint          - Run linter
 	@echo   make format        - Format code
@@ -153,6 +154,36 @@ migrate-create: ## Create new migration (make migrate-create NAME=add_feature)
 migrate-down: ## Rollback last migration
 	@echo Rolling back last migration...
 	$(MIGRATE) -path db/migrations -database "$(DB_URL)" down 1
+	@echo Rollback complete!
+
+# ============================================================
+# Serverless Database Migrations (Neon Development)
+# ============================================================
+
+migrate-serverless: ## Run migrations on Neon serverless database
+	@echo Running migrations on Neon serverless...
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Please set DATABASE_URL environment variable."; \
+		exit 1; \
+	fi
+	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" up
+	@echo Migrations complete!
+
+migrate-serverless-status: ## Show Neon migration status
+	@echo Neon migration status:
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set."; \
+		exit 1; \
+	fi
+	-@$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" version
+
+migrate-serverless-down: ## Rollback last Neon migration
+	@echo Rolling back last Neon migration...
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set."; \
+		exit 1; \
+	fi
+	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" down 1
 	@echo Rollback complete!
 
 # ============================================================

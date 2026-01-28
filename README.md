@@ -121,6 +121,39 @@ CLOUDAMQP_URL=amqp://...@cloudamqp.com/...
 
 Use Docker Compose with container infrastructure.
 
+## Database Migrations
+
+### Development (Serverless/Neon)
+
+```bash
+# Load environment variables first
+source .env.development  # or use `make dev-air`
+
+# Run migrations on Neon
+make migrate-serverless              # Apply pending migrations
+make migrate-serverless-status       # Check current version
+make migrate-serverless-down         # Rollback last migration
+```
+
+### Production (Docker)
+
+```bash
+# Uses Docker PostgreSQL (localhost:5433)
+make migrate              # Apply pending migrations
+make migrate-status       # Check current version
+make migrate-down         # Rollback last migration
+```
+
+### Create New Migration
+
+```bash
+make migrate-create NAME=add_feature
+# Creates: db/migrations/000003_add_feature.up.sql
+#          db/migrations/000003_add_feature.down.sql
+```
+
+**Note:** Neon Serverless adds 2-3s cold start latency for first connection.
+
 ## Project Structure
 
 ```
@@ -157,6 +190,21 @@ air version
 ### Port conflicts?
 
 Air uses 4xxx ports (4001-4099). Docker uses 5xxx ports (50051-50053).
+
+### Migrations failing on Neon?
+
+```bash
+# Verify DATABASE_URL format (should use pooler endpoint)
+grep DATABASE_URL .env.development
+
+# Check SSL mode is set
+# Should have: ?sslmode=require
+
+# Test database connection
+make migrate-serverless-status
+
+# First migration after database sleep may timeout - retry once
+```
 
 ### Services not starting?
 
