@@ -4,6 +4,10 @@
 # Configuration
 # ============================================================
 
+# Load environment variables from .env.development (if exists)
+-include .env.development
+export
+
 SHELL := /bin/bash
 GOPATH := $(shell go env GOPATH)
 
@@ -15,13 +19,16 @@ LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 # Migrate tool path (cross-platform)
 MIGRATE := $(shell which migrate)
 
-# Database configuration
+# Database configuration (local Docker)
 DB_HOST ?= localhost
 DB_PORT ?= 5433
 DB_USER ?= postgres
 DB_PASSWORD ?= postgres
 DB_NAME ?= nft_marketplace
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+
+# DATABASE_URL for serverless (Neon) - loaded from .env.development or environment
+DATABASE_URL ?=
 
 .DEFAULT_GOAL := help
 
@@ -117,30 +124,21 @@ migrate-down: ## Rollback last migration
 # ============================================================
 
 migrate-dev: ## Run migrations on Neon serverless database
-	@echo Running migrations on Neon serverless...
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set. Please set DATABASE_URL environment variable."; \
-		exit 1; \
-	fi
-	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" up
-	@echo Migrations complete!
+	@echo Running migrations on Neon serverless... && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set. Please set in .env.development or environment." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" up && \
+	echo "Migrations complete!"
 
 migrate-dev-status: ## Show Neon migration status
-	@echo Neon migration status:
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set."; \
-		exit 1; \
-	fi
-	-@$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" version
+	@echo Neon migration status: && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" version
 
 migrate-dev-down: ## Rollback last Neon migration
-	@echo Rolling back last Neon migration...
-	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "Error: DATABASE_URL not set."; \
-		exit 1; \
-	fi
-	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" down 1
-	@echo Rollback complete!
+	@echo Rolling back last Neon migration... && \
+	[ -n "$(DATABASE_URL)" ] || (echo "Error: DATABASE_URL not set." && exit 1) && \
+	$(MIGRATE) -path db/migrations -database "$(DATABASE_URL)" down 1 && \
+	echo "Rollback complete!"
 
 # ============================================================
 # Testing
