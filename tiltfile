@@ -24,7 +24,7 @@ local('kubectl create namespace {} --dry-run=client -o yaml | kubectl apply -f -
 local('kubectl apply -f infra/development/k8s/secrets.yaml --namespace={} || true'.format(k8s_namespace))
 
 # Set kubectl context - use production config (docker mode)
-k8s_yaml('infra/development/k8s/app-config.production.yaml', allow_duplicates=True)
+k8s_yaml('infra/development/k8s/app-config.yaml', allow_duplicates=True)
 
 # ===================================
 # Infrastructure Services
