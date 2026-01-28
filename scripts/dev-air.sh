@@ -16,9 +16,15 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVICES_DIR="$PROJECT_ROOT/services"
 LOGS_DIR="$PROJECT_ROOT/logs"
 PID_DIR="$PROJECT_ROOT/logs"
+COMBINED_LOG="$LOGS_DIR/all-services.log"
 
 # Ensure logs directory exists
 mkdir -p "$LOGS_DIR"
+
+# Clear combined log on fresh start
+if [ "$1" = "all" ]; then
+  echo "=== Air Dev Started: $(date) ===" > "$COMBINED_LOG"
+fi
 
 # Load environment variables from .env.development
 if [ -f "$PROJECT_ROOT/.env.development" ]; then
@@ -82,8 +88,8 @@ start_service() {
   # Navigate to service directory
   cd "$SERVICES_DIR/$service"
 
-  # Start Air in background with environment
-  env $(cat "$PROJECT_ROOT/.env.development" | grep -v '^#' | grep -v '^$' | xargs) nohup air > "$log_file" 2>&1 &
+  # Start Air in background with environment, writing to both individual and combined log
+  env $(cat "$PROJECT_ROOT/.env.development" | grep -v '^#' | grep -v '^$' | xargs) nohup air > >(tee -a "$log_file" "$COMBINED_LOG") 2>&1 &
   local pid=$!
 
   # Save PID

@@ -40,9 +40,10 @@ help: ## Show help
 	@echo   make dev-logs      - View logs
 	@echo
 	@echo OPTION 2 - Air Hot-Reload (Development):
-	@echo   make dev-air       - Start all services with Air
-	@echo   make dev-air-stop  - Stop Air services
-	@echo   make dev-air-logs  - View Air logs
+	@echo   make dev-air         - Start all services with Air
+	@echo   make dev-air-stop    - Stop Air services
+	@echo   make dev-air-logs    - View combined logs
+	@echo   make dev-air-logs-all - View all logs separately
 	@echo
 	@echo Common Commands:
 	@echo   make test          - Run tests
@@ -121,7 +122,10 @@ dev-air-gateway: ## Start graphql-gateway with Air
 dev-air-stop: ## Stop Air services
 	@./scripts/stop-air.sh
 
-dev-air-logs: ## View Air logs
+dev-air-logs: ## View Air logs (combined)
+	@tail -f logs/all-services.log 2>/dev/null || echo "No logs found. Start services first."
+
+dev-air-logs-all: ## View all Air logs separately
 	@tail -f logs/*.log 2>/dev/null || echo "No logs found. Start services first."
 
 
