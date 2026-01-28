@@ -20,6 +20,16 @@ PID_DIR="$PROJECT_ROOT/logs"
 # Ensure logs directory exists
 mkdir -p "$LOGS_DIR"
 
+# Load environment variables from .env.development
+if [ -f "$PROJECT_ROOT/.env.development" ]; then
+  set -a
+  source "$PROJECT_ROOT/.env.development"
+  set +a
+else
+  echo "ERROR: .env.development not found"
+  exit 1
+fi
+
 # Service configurations (name:port)
 declare -A SERVICES=(
   ["auth-service"]="4001"
@@ -72,8 +82,8 @@ start_service() {
   # Navigate to service directory
   cd "$SERVICES_DIR/$service"
 
-  # Start Air in background
-  nohup air > "$log_file" 2>&1 &
+  # Start Air in background with environment
+  env $(cat "$PROJECT_ROOT/.env.development" | grep -v '^#' | grep -v '^$' | xargs) nohup air > "$log_file" 2>&1 &
   local pid=$!
 
   # Save PID
