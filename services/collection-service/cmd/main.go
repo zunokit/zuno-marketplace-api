@@ -13,6 +13,7 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/shared/database"
 	"github.com/zunokit/zuno-marketplace-api/shared/logger"
 	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -49,9 +50,17 @@ func main() {
 	collectionRepo := repository.NewCollectionRepository(db)
 	allowlistRepo := repository.NewAllowlistRepository(db)
 	metadataRepo := repository.NewMetadataRepository(db)
+	processedEventRepo := repository.NewProcessedEventRepository(db)
 
 	// Initialize service
 	collectionSvc := service.NewCollectionService(collectionRepo, allowlistRepo, metadataRepo)
+
+	// Initialize zap logger
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.FatalWithErr(err, "Failed to initialize zap logger")
+	}
+	defer zapLogger.Sync()
 
 	// Create gRPC server
 	grpcServer := grpc.NewServer(
@@ -60,7 +69,7 @@ func main() {
 	)
 
 	// Register services
-	collectionServer := server.NewCollectionServer(collectionSvc)
+	collectionServer := server.NewCollectionServer(collectionSvc, processedEventRepo, zapLogger)
 	pb.RegisterCollectionServiceServer(grpcServer, collectionServer)
 
 	// Register health check
