@@ -19,6 +19,8 @@ import (
 	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 	obsentry "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
+	sharedrabbitmq "github.com/zunokit/zuno-marketplace-api/shared/rabbitmq"
+	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph"
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/config"
@@ -63,6 +65,22 @@ func main() {
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
 		log.Fatal(err)
+	}
+
+	// Initialize Redis (non-blocking)
+	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
+		log.Printf("Redis init failed (continuing without cache): %v", err)
+	} else {
+		log.Println("Redis connected")
+		defer sharedredis.Close()
+	}
+
+	// Initialize RabbitMQ (non-blocking)
+	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
+		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+	} else {
+		log.Println("RabbitMQ connected")
+		defer sharedrabbitmq.Close()
 	}
 
 	// Connect to gRPC services with Sentry client interceptors
@@ -136,6 +154,9 @@ func main() {
 
 	// JWT authentication middleware
 	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.AccessSecret))
+
+	// Rate limiting middleware
+	router.Use(authmiddleware.RateLimit)
 
 	// Health check endpoint
 	healthRegistry := health.NewRegistry()

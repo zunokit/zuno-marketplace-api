@@ -13,7 +13,7 @@ BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "unknown
 LDFLAGS = -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 
 # Migrate tool path (cross-platform)
-MIGRATE := $(GOPATH)/bin/migrate
+MIGRATE := $(shell which migrate)
 
 # Database configuration
 DB_HOST ?= localhost
@@ -34,19 +34,23 @@ help: ## Show help
 	@echo   Zuno NFT Marketplace - Quick Start
 	@echo ============================================================
 	@echo
-	@echo OPTION 1 - Docker Compose - Recommended:
+	@echo OPTION 1 - Docker Compose (Production):
 	@echo   make dev           - Start all services
 	@echo   make dev-stop      - Stop all services
 	@echo   make dev-logs      - View logs
 	@echo
-	@echo OPTION 2 - Tilt/Kubernetes - Advanced:
-	@echo   See TILT.md for instructions
+	@echo OPTION 2 - Air Hot-Reload (Development):
+	@echo   make dev-air         - Start all services with Air
+	@echo   make dev-air-stop    - Stop Air services
+	@echo   make dev-air-logs    - View combined logs
+	@echo   make dev-air-logs-all - View all logs separately
 	@echo
 	@echo Common Commands:
 	@echo   make test          - Run tests
 	@echo   make build         - Build all services
 	@echo   make build-version - Show build version info
-	@echo   make migrate       - Run migrations
+	@echo   make migrate       - Run migrations (Docker)
+	@echo   make migrate-serverless - Run migrations (Neon)
 	@echo   make proto         - Generate protobuf
 	@echo   make lint          - Run linter
 	@echo   make format        - Format code
@@ -95,6 +99,39 @@ dev-clean: ## Stop and remove all data
 	@echo Done!
 
 # ============================================================
+# Air Hot-Reload (Development Mode)
+# ============================================================
+
+dev-air: ## Start Air development environment (serverless infra)
+	@echo ============================================================
+	@echo   Starting Air Development Environment...
+	@echo ============================================================
+	@./scripts/dev-air.sh all
+
+dev-air-auth: ## Start auth-service with Air
+	@./scripts/dev-air.sh auth
+
+dev-air-user: ## Start user-service with Air
+	@./scripts/dev-air.sh user
+
+dev-air-wallet: ## Start wallet-service with Air
+	@./scripts/dev-air.sh wallet
+
+dev-air-gateway: ## Start graphql-gateway with Air
+	@./scripts/dev-air.sh gateway
+
+dev-air-stop: ## Stop Air services
+	@./scripts/stop-air.sh
+
+dev-air-logs: ## View Air logs (combined)
+	@tail -f logs/all-services.log 2>/dev/null || echo "No logs found. Start services first."
+
+dev-air-logs-all: ## View all Air logs separately
+	@tail -f logs/*.log 2>/dev/null || echo "No logs found. Start services first."
+
+
+
+# ============================================================
 # Database Migrations
 # ============================================================
 
@@ -117,6 +154,36 @@ migrate-create: ## Create new migration (make migrate-create NAME=add_feature)
 migrate-down: ## Rollback last migration
 	@echo Rolling back last migration...
 	$(MIGRATE) -path db/migrations -database "$(DB_URL)" down 1
+	@echo Rollback complete!
+
+# ============================================================
+# Serverless Database Migrations (Neon Development)
+# ============================================================
+
+migrate-serverless: ## Run migrations on Neon serverless database
+	@echo Running migrations on Neon serverless...
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Please set DATABASE_URL environment variable."; \
+		exit 1; \
+	fi
+	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" up
+	@echo Migrations complete!
+
+migrate-serverless-status: ## Show Neon migration status
+	@echo Neon migration status:
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set."; \
+		exit 1; \
+	fi
+	-@$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" version
+
+migrate-serverless-down: ## Rollback last Neon migration
+	@echo Rolling back last Neon migration...
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set."; \
+		exit 1; \
+	fi
+	$(MIGRATE) -path db/migrations -database "$$DATABASE_URL" down 1
 	@echo Rollback complete!
 
 # ============================================================
@@ -222,4 +289,5 @@ install-tools: ## Install development tools
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/air-verse/air@latest
 	@echo Tools installed!

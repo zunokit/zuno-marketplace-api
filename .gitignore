@@ -1,6 +1,13 @@
 tmp
+tmp/
+services/*/tmp/
+
+# Environment
 .env
 .envrc
+.env.development
+.env.production
+.env.local
 bin/
 
 # Logs
@@ -63,3 +70,4 @@ secrets.yaml
 !infra\development\build\*.bat
 
 .sensity
+.env.temp

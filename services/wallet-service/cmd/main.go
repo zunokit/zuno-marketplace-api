@@ -11,6 +11,8 @@ import (
 	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
+	sharedrabbitmq "github.com/zunokit/zuno-marketplace-api/shared/rabbitmq"
+	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 
 	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/config"
 	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/repository"
@@ -66,6 +68,22 @@ func main() {
 	}
 
 	log.Println("Database connected successfully")
+
+	// Initialize Redis (non-blocking)
+	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
+		log.Printf("Redis init failed (continuing without cache): %v", err)
+	} else {
+		log.Println("Redis connected")
+		defer sharedredis.Close()
+	}
+
+	// Initialize RabbitMQ (non-blocking)
+	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
+		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+	} else {
+		log.Println("RabbitMQ connected")
+		defer sharedrabbitmq.Close()
+	}
 
 	// Initialize repository
 	walletRepo := repository.NewWalletRepository(db)

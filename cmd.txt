@@ -1,0 +1,1 @@
+claude --dangerously-skip-permissions --add-dir E:\zuno-marketplace-sdk --add-dir E:\zuno-marketplace-mini --add-dir E:\zuno-marketplace-api --add-dir E:\zuno-marketplace-notifications --add-dir E:\zuno-marketplace-metadata --add-dir E:\zuno-marketplace-indexer
