@@ -1,294 +1,228 @@
 # Zuno NFT Marketplace API
 
-Clean, production-ready microservices backend for NFT Marketplace with focus on wallet authentication.
+Go microservices for NFT marketplace with gRPC services and GraphQL gateway.
 
-## 🎯 Current Status
+## Quick Start
 
-**Version**: 0.1.0 (Clean Skeleton)
-**Branch**: `develop-claude`
-**Last Cleanup**: Nov 15, 2025
+### Option 1: Air Hot-Reload (Development) ⚡
 
-✅ All AI-generated bloat removed (95,819 lines deleted)
-✅ Database schemas tested and working
-✅ Infrastructure services running
-⏳ Ready for feature development with TDD
-
-## 📁 Project Structure
-
-```
-services/
-├── auth-service/           # SIWE Authentication
-│   ├── cmd/.gitkeep       # Empty - ready for development
-│   ├── internal/.gitkeep  # Empty - ready for development
-│   ├── test/.gitkeep      # Empty - ready for tests
-│   ├── db/up.sql          # ✅ Database schema (tested)
-│   └── migrations/        # ✅ Migration files
-├── user-service/          # User Profiles & Management
-│   ├── cmd/.gitkeep
-│   ├── internal/.gitkeep
-│   ├── test/.gitkeep
-│   └── db/up.sql          # ✅ Database schema (tested)
-├── wallet-service/        # Wallet Management
-│   ├── cmd/.gitkeep
-│   ├── internal/.gitkeep
-│   ├── test/.gitkeep
-│   └── db/up.sql          # ✅ Database schema (tested)
-└── graphql-gateway/       # GraphQL BFF API
-    ├── graphql/.gitkeep
-    └── internal/.gitkeep
-```
-
-## 🗄️ Database Schema (Tested & Working)
-
-**PostgreSQL Tables** (11 total):
-
-**Auth Service** (`auth_nonces`, `sessions`, `login_events`)
-- SIWE nonce management
-- Session tracking with device fingerprinting
-- Login event history
-
-**User Service** (`users`, `profiles`, `user_follows`, `user_preferences`, `user_stats`)
-- User account management
-- Social features (follows)
-- User preferences and statistics
-
-**Wallet Service** (`wallet_links`, `wallet_verifications`, `wallet_activity`)
-- Multi-wallet support per user
-- Wallet verification (SIWE)
-- Wallet activity tracking
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker Desktop
-- Go 1.21+
-- Make (optional but recommended)
-- Tilt (optional, for hot reload)
-
-### Option 1: Docker Compose (Simple)
+Fast development with hot-reload on code changes:
 
 ```bash
-# Start infrastructure services
-make dev
-# or
-docker compose up -d
+# 1. Install tools
+make install-tools
 
-# Check services status
-docker compose ps
+# 2. Setup environment
+cp .env.development.example .env.development
+# Edit .env.development with your Neon/Upstash/CloudAMQP credentials
+
+# 3. Validate environment
+make dev-air-validate
+
+# 4. Start all services with hot-reload
+make dev-air
+
+# GraphQL Playground: http://localhost:4080/graphql
+```
+
+**Air Commands:**
+| Command | Description |
+|---------|-------------|
+| `make dev-air` | Start all services |
+| `make dev-air-auth` | Start auth-service only |
+| `make dev-air-user` | Start user-service only |
+| `make dev-air-wallet` | Start wallet-service only |
+| `make dev-air-gateway` | Start graphql-gateway only |
+| `make dev-air-stop` | Stop all Air services |
+| `make dev-air-logs` | View service logs |
+| `make dev-air-validate` | Validate environment |
+
+### Option 2: Docker Compose (Production) 🐳
+
+Full Docker environment for production testing:
+
+```bash
+make dev
+# GraphQL Playground: http://localhost:8081/graphql
+```
+
+## Services
+
+| Service | Port (Air) | Port (Docker) | Description |
+|---------|------------|---------------|-------------|
+| auth-service | 4001 | 50051 | Authentication (SIWE, JWT) |
+| user-service | 4002 | 50052 | User profile management |
+| wallet-service | 4003 | 50053 | Wallet operations |
+| graphql-gateway | 4080 | 8081 | GraphQL API gateway |
+
+## Infrastructure
+
+### Development (Air Mode)
+- **PostgreSQL:** [Neon](https://neon.tech) (serverless)
+- **Redis:** [Upstash](https://upstash.com) (serverless)
+- **RabbitMQ:** [CloudAMQP](https://www.cloudamqp.com) (serverless)
+
+### Production (Docker Mode)
+- All infrastructure runs in Docker containers
+
+## Development Workflow
+
+### Hot-Reload Development
+
+```bash
+# Terminal 1: Start services with Air
+make dev-air
+
+# Terminal 2: Make code changes
+# Air automatically detects changes and rebuilds (< 2s)
 
 # View logs
-make dev-logs
+make dev-air-logs
+# Or: tail -f logs/*.log
 ```
 
-### Option 2: Tilt (Hot Reload - Recommended)
+### Running Tests
 
 ```bash
-# Start Tilt (requires Kubernetes enabled in Docker Desktop)
-make tilt-up
-# or
-tilt up
-
-# Open Tilt UI: http://localhost:10350
-
-# Stop Tilt
-make tilt-down
+make test              # Run all tests
+make test-coverage     # Generate coverage report
+make test-verbose      # Verbose output
 ```
 
-### Common Commands
+### Code Quality
 
 ```bash
-# Show all available commands
-make help
-
-# Run tests
-make test
-
-# Build services
-make build
-
-# Generate protobuf code
-make proto
-
-# Run linter
-make lint
-
-# Format code
-make format
-
-# Run CI pipeline locally
-make ci
+make lint              # Run linter
+make format            # Format code
+make proto             # Generate protobuf code
 ```
 
-**📖 For detailed development guide, see [DEVELOPMENT.md](DEVELOPMENT.md)**
+## Environment Configuration
 
-### Environment Variables
+### Development (`.env.development`)
 
-Copy `.env.example` to `.env`:
-
-```env
-# Database
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DATABASE=nft_marketplace
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# RabbitMQ
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=guest
-RABBITMQ_PASSWORD=guest
-RABBITMQ_EXCHANGE=nft_events
-
-# JWT Secrets (Change in production!)
-JWT_SECRET=your-256-bit-secret-key-here
-REFRESH_SECRET=your-256-bit-refresh-secret-key-here
-```
-
-## 📊 Infrastructure Test Results
-
-✅ **PostgreSQL**: Running on port 5432
-- Database: `nft_marketplace`
-- User: `postgres`
-- 11 tables loaded successfully
-- Schemas from: auth-service, user-service, wallet-service
-
-✅ **Redis**: Running on port 6379
-- Status: PONG
-- Ready for session caching
-
-✅ **RabbitMQ**: Running on ports 5672, 15672
-- Management UI: http://localhost:15672 (guest/guest)
-- Status: Ping succeeded
-- Ready for event messaging
-
-## 🎯 Next Steps
-
-### Feature Development Workflow
-
-1. **Create feature branch** from `develop-claude`:
-   ```bash
-   git checkout develop-claude
-   git pull origin develop-claude
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Follow TDD** (Test-Driven Development):
-   - 🔴 RED: Write failing tests first
-   - 🟢 GREEN: Write minimal code to pass tests
-   - 🔵 REFACTOR: Improve code while keeping tests green
-
-3. **Commit and merge**:
-   ```bash
-   git add .
-   git commit -m "feat(scope): your feature description"
-   git push origin feature/your-feature-name
-   # Merge to develop-claude when done
-   ```
-
-### First Feature: Wallet Authentication
-
-Recommended implementation order:
-
-1. **Proto Definitions** (gRPC interfaces)
-2. **Auth Service** (SIWE authentication)
-3. **Wallet Service** (Wallet management)
-4. **User Service** (User profiles)
-5. **GraphQL Gateway** (BFF API)
-6. **Integration Tests** (E2E flows)
-
-## 🧪 Testing Strategy
-
-- **Unit Tests**: Test individual functions/methods
-- **Integration Tests**: Test with real databases (testcontainers)
-- **E2E Tests**: Test complete user flows
-- **Minimum Coverage**: 80% for new code
-
-## 📚 Related Repositories
-
-- `zuno-marketplace-ui`: Next.js frontend
-- `zuno-marketplace-contracts`: Solidity smart contracts (Foundry)
-- `zuno-marketplace-sdk`: TypeScript SDK for ABIs and contracts
-- `zuno-marketplace-abis`: ABI provider service
-- `zuno-marketplace-metadata`: NFT metadata storage
-- `zuno-marketplace-mini`: Quick contract testing mini-app
-
-## 🔧 Development Tools
-
-**Makefile** - Comprehensive development commands
 ```bash
-make help          # Show all commands
-make dev           # Start development environment
-make test          # Run tests
-make build         # Build all services
-make lint          # Run linter
-make ci            # Run CI pipeline locally
+INFRA_MODE=serverless
+ENVIRONMENT=development
+
+# Services (4xxx ports for Air)
+AUTH_GRPC_PORT=:4001
+USER_GRPC_PORT=:4002
+WALLET_GRPC_PORT=:4003
+GATEWAY_HTTP_ADDR=:4080
+
+# Serverless infrastructure
+DATABASE_URL=postgres://...@neon.tech...
+REDIS_URL=redis://...@upstash.io
+CLOUDAMQP_URL=amqp://...@cloudamqp.com/...
 ```
 
-**Tiltfile** - Hot reload development with Kubernetes
-- 🔥 Automatic rebuilds on code changes
-- 📊 Real-time logs and resource monitoring
-- 🎯 Interactive UI at http://localhost:10350
+### Production (`.env.production`)
 
-**GitHub Actions** - CI/CD Pipeline
-- ✅ Automated linting and testing
-- 🐳 Docker image builds
-- 📊 Test coverage reports
+Use Docker Compose with container infrastructure.
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for complete guide.
+## Database Migrations
 
-## 📝 Commit Message Format
+### Development (Serverless/Neon)
 
-Follow conventional commits:
+```bash
+# Load environment variables first
+source .env.development  # or use `make dev-air`
 
-```
-<type>(<scope>): <description>
-
-<body> (min 100 characters)
-
-<footer>
+# Run migrations on Neon
+make migrate-serverless              # Apply pending migrations
+make migrate-serverless-status       # Check current version
+make migrate-serverless-down         # Rollback last migration
 ```
 
-**Types**: feat, fix, docs, style, refactor, perf, test, chore
-**Scopes**: auth, user, wallet, gateway, database, infra
+### Production (Docker)
 
-## 🏗️ Architecture
-
-**Pattern**: GraphQL Gateway + gRPC Microservices
-
-```
-Frontend → GraphQL Gateway (HTTP/WS) → gRPC Services
-                                      ↓
-                                  RabbitMQ Events
+```bash
+# Uses Docker PostgreSQL (localhost:5433)
+make migrate              # Apply pending migrations
+make migrate-status       # Check current version
+make migrate-down         # Rollback last migration
 ```
 
-**Why This Stack?**
-- **gRPC**: Fast, typed internal communication
-- **GraphQL**: Flexible API for frontend
-- **RabbitMQ**: Reliable event messaging
-- **PostgreSQL**: ACID compliance for critical data
-- **Redis**: Fast session/cache storage
+### Create New Migration
 
-## 📚 Documentation
+```bash
+make migrate-create NAME=add_feature
+# Creates: db/migrations/000003_add_feature.up.sql
+#          db/migrations/000003_add_feature.down.sql
+```
 
-Complete documentation available in `/docs` directory:
+**Note:** Neon Serverless adds 2-3s cold start latency for first connection.
 
-- **[project-overview-pdr.md](docs/project-overview-pdr.md)** - Project vision, PDR, roadmap, and success criteria
-- **[codebase-summary.md](docs/codebase-summary.md)** - Repository structure, file inventory, and service breakdown
-- **[code-standards.md](docs/code-standards.md)** - Go conventions, patterns, testing, and TDD workflow
-- **[system-architecture.md](docs/system-architecture.md)** - High-level architecture, database schema, auth flows, and deployment
+## Project Structure
 
-## 📄 License
+```
+zuno-marketplace-api/
+├── services/
+│   ├── auth-service/          # Authentication microservice
+│   ├── user-service/          # User profile microservice
+│   ├── wallet-service/        # Wallet microservice
+│   └── graphql-gateway/       # GraphQL gateway
+├── shared/                    # Shared code
+│   ├── proto/                 # Protocol buffers
+│   ├── env/                   # Shared config
+│   ├── observability/         # Logging, tracing
+│   ├── rabbitmq/              # RabbitMQ client
+│   └── redis/                 # Redis client
+├── db/migrations/             # Database migrations
+├── scripts/                   # Development scripts
+├── docker-compose.yml         # Production Docker setup
+└── Makefile                   # Build automation
+```
+
+## Troubleshooting
+
+### Air not working?
+
+```bash
+# Reinstall Air
+go install github.com/air-verse/air@latest
+
+# Verify installation
+air version
+```
+
+### Port conflicts?
+
+Air uses 4xxx ports (4001-4099). Docker uses 5xxx ports (50051-50053).
+
+### Migrations failing on Neon?
+
+```bash
+# Verify DATABASE_URL format (should use pooler endpoint)
+grep DATABASE_URL .env.development
+
+# Check SSL mode is set
+# Should have: ?sslmode=require
+
+# Test database connection
+make migrate-serverless-status
+
+# First migration after database sleep may timeout - retry once
+```
+
+### Services not starting?
+
+```bash
+# Validate environment
+make dev-air-validate
+
+# Check logs
+make dev-air-logs
+```
+
+## Contributing
+
+1. Create feature branch
+2. Make changes with hot-reload (`make dev-air`)
+3. Run tests (`make test`)
+4. Submit PR
+
+## License
 
 MIT
-
----
-
-**Status**: 🟢 Clean skeleton ready for development
-**Last Updated**: 2025-12-04
-**Maintainer**: Zuno Team
