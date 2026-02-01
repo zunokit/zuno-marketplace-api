@@ -16,7 +16,7 @@
       }
     }
   },
-  "commands": {
+  "command": {
     "fix": {
       "template": "Fix the reported issue. Before committing:\n1. Run `make lint` to check code style\n2. Run `make test` to verify fixes\n3. Run `go build ./...` to ensure compilation\n4. If proto files changed, run `make proto`",
       "description": "Fix an issue with validation",
