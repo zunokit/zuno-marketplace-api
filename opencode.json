@@ -1,0 +1,52 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "z.ai/glm-4.7",
+  "default_agent": "build",
+  "instructions": [
+    "CLAUDE.md",
+    "README.md",
+    "services/auth-service/README.md",
+    "services/user-service/README.md",
+    "services/wallet-service/README.md"
+  ],
+  "provider": {
+    "z.ai": {
+      "options": {
+        "apiKey": "{env:ZAI_API_KEY}"
+      }
+    }
+  },
+  "commands": {
+    "fix": {
+      "template": "Fix the reported issue. Before committing:\n1. Run `make lint` to check code style\n2. Run `make test` to verify fixes\n3. Run `go build ./...` to ensure compilation\n4. If proto files changed, run `make proto`",
+      "description": "Fix an issue with validation",
+      "agent": "build"
+    },
+    "implement": {
+      "template": "Implement the feature described. Follow these steps:\n1. Read the issue carefully\n2. Check existing code patterns in the relevant service\n3. Implement following Go best practices\n4. Run `make lint && make test && go build ./...`\n5. Create comprehensive PR description",
+      "description": "Implement a new feature",
+      "agent": "build"
+    },
+    "review": {
+      "template": "Review this code change for:\n- Code quality and Go best practices\n- Security issues\n- Performance considerations\n- Test coverage\n- Documentation completeness",
+      "description": "Review code changes",
+      "agent": "plan"
+    }
+  },
+  "tools": {
+    "write": true,
+    "edit": true,
+    "bash": true
+  },
+  "formatter": {
+    "gofmt": {
+      "command": ["gofmt", "-w", "$FILE"],
+      "extensions": [".go"]
+    }
+  },
+  "permission": {
+    "write": "allow",
+    "edit": "allow",
+    "bash": "allow"
+  }
+}
