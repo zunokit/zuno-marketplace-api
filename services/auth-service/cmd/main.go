@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/zunokit/zuno-marketplace-api/shared/env"
 	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
 	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
 	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
@@ -37,6 +39,14 @@ var (
 
 func main() {
 	log.Println("Starting Auth Service...")
+
+	// Initialize Infisical secrets management (optional, falls back to env vars)
+	ctx := context.Background()
+	if err := env.InitInfisical(ctx); err != nil {
+		log.Printf("Infisical not initialized (using environment variables): %v", err)
+	} else if env.IsInfisicalEnabled() {
+		log.Println("✅ Infisical secrets management enabled")
+	}
 
 	// Load configuration
 	cfg := config.Load()
