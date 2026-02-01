@@ -1,0 +1,26 @@
+name: OpenCode Security Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - develop
+
+jobs:
+  security-review:
+    if: contains(github.event.pull_request.title, 'opencode')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run security scan
+        uses: securego/gosec@master
+        with:
+          args: './...'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: develop
+          head: HEAD
