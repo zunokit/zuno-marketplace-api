@@ -13,6 +13,11 @@
     "z.ai": {
       "options": {
         "apiKey": "{env:ZHIPU_API_KEY}"
+      },
+      "models": {
+        "glm-4.7": {
+          "name": "GLM-4.7"
+        }
       }
     }
   },
