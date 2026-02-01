@@ -11,8 +11,11 @@
   ],
   "provider": {
     "z.ai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Z.AI (Zhipu)",
       "options": {
-        "apiKey": "{env:ZHIPU_API_KEY}"
+        "apiKey": "{env:ZHIPU_API_KEY}",
+        "baseURL": "https://api.z.ai/api/anthropic"
       },
       "models": {
         "glm-4.7": {
