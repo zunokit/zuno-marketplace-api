@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
@@ -10,6 +12,9 @@ type Config struct {
 	JWT      JWTConfig
 	Services ServicesConfig
 	Features FeatureConfig
+	Redis    RedisConfig
+	RabbitMQ RabbitMQConfig
+	Sentry   SentryConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -34,8 +39,56 @@ type FeatureConfig struct {
 	PlaygroundEnabled bool
 }
 
+// RedisConfig holds Redis connection configuration
+type RedisConfig struct {
+	Mode string // "docker" or "serverless"
+	Host string
+	Port string
+	URL  string // Full URL for serverless
+}
+
+// RabbitMQConfig holds RabbitMQ connection configuration
+type RabbitMQConfig struct {
+	Mode     string // "docker" or "serverless"
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Exchange string
+	URL      string // Full URL for serverless
+}
+
+// SentryConfig holds Sentry monitoring configuration
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
+	mode := env.GetString("INFRA_MODE", "docker")
+
+	// Redis config
+	redisConfig := RedisConfig{Mode: mode}
+	if mode == "serverless" {
+		redisConfig.URL = env.GetString("REDIS_URL", "")
+	} else {
+		redisConfig.Host = env.GetString("REDIS_HOST", "localhost")
+		redisConfig.Port = env.GetString("REDIS_PORT", "6379")
+	}
+
+	// RabbitMQ config
+	rabbitConfig := RabbitMQConfig{Mode: mode}
+	if mode == "serverless" {
+		rabbitConfig.URL = env.GetString("CLOUDAMQP_URL", "")
+	} else {
+		rabbitConfig.Host = env.GetString("RABBITMQ_HOST", "localhost")
+		rabbitConfig.Port = env.GetString("RABBITMQ_PORT", "5672")
+		rabbitConfig.User = env.GetString("RABBITMQ_USER", "guest")
+		rabbitConfig.Password = env.GetString("RABBITMQ_PASSWORD", "guest")
+		rabbitConfig.Exchange = env.GetString("RABBITMQ_EXCHANGE", "nft_events")
+	}
+
 	return &Config{
 		Server: ServerConfig{
 			HTTPAddr: env.GetString("GATEWAY_HTTP_ADDR", ":8081"),
@@ -51,7 +104,30 @@ func Load() *Config {
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
 		},
+		Redis:    redisConfig,
+		RabbitMQ: rabbitConfig,
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
+		},
 	}
+}
+
+// GetAddr returns the Redis address
+func (c *RedisConfig) GetAddr() string {
+	if c.Mode == "serverless" && c.URL != "" {
+		return c.URL
+	}
+	return c.Host + ":" + c.Port
+}
+
+// GetURL returns the RabbitMQ connection URL
+func (c *RabbitMQConfig) GetURL() string {
+	if c.Mode == "serverless" && c.URL != "" {
+		return c.URL
+	}
+	return fmt.Sprintf("amqp://%s:%s@%s:%s/",
+		c.User, c.Password, c.Host, c.Port)
 }
 
 // Validate checks if required configuration is present

@@ -6,6 +6,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
+	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
+	sharedrabbitmq "github.com/zunokit/zuno-marketplace-api/shared/rabbitmq"
+	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
 
 	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/config"
 	"github.com/zunokit/zuno-marketplace-api/services/user-service/internal/repository"
@@ -20,11 +27,35 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// Version and BuildTime are injected via ldflags during build
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+)
+
 func main() {
 	log.Println("Starting User Service...")
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize Sentry
+	if cfg.Sentry.DSN != "" {
+		if err := obs.Init(
+			cfg.Sentry.DSN,
+			cfg.Sentry.Environment,
+			"user-service",
+			getBuildVersion(),
+			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
+		); err != nil {
+			log.Printf("Sentry init failed (continuing): %v", err)
+		} else {
+			log.Println("Sentry initialized")
+			defer obs.Flush(2 * time.Second)
+		}
+	} else {
+		log.Println("Sentry DSN not configured, skipping")
+	}
 
 	// Initialize database connection
 	dsn := cfg.Database.GetDSN()
@@ -38,13 +69,32 @@ func main() {
 
 	log.Println("Database connected successfully")
 
+	// Initialize Redis (non-blocking)
+	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
+		log.Printf("Redis init failed (continuing without cache): %v", err)
+	} else {
+		log.Println("Redis connected")
+		defer sharedredis.Close()
+	}
+
+	// Initialize RabbitMQ (non-blocking)
+	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
+		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+	} else {
+		log.Println("RabbitMQ connected")
+		defer sharedrabbitmq.Close()
+	}
+
 	// Initialize repository
 	userRepo := repository.NewUserRepository(db)
 
-	// Create gRPC server
+	// Create gRPC server with Sentry interceptor
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
 		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
+		grpc.ChainUnaryInterceptor(
+			grpcMiddleware.UnaryServerInterceptor(),
+		),
 	)
 
 	// Register services
@@ -67,6 +117,11 @@ func main() {
 
 	log.Printf("User Service listening on %s", cfg.Server.GRPCPort)
 
+	// Start event consumer (non-blocking)
+	if sharedrabbitmq.IsConnected() {
+		go startEventConsumer()
+	}
+
 	// Graceful shutdown
 	go func() {
 		sigChan := make(chan os.Signal, 1)
@@ -74,6 +129,13 @@ func main() {
 		<-sigChan
 
 		log.Println("Shutting down User Service...")
+
+		// Flush Sentry before shutdown
+		if cfg.Sentry.DSN != "" {
+			log.Println("Flushing Sentry events...")
+			obs.Flush(2 * time.Second)
+		}
+
 		grpcServer.GracefulStop()
 		log.Println("User Service stopped")
 	}()
@@ -82,4 +144,9 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
+}
+
+// getBuildVersion returns the version injected by build ldflags
+func getBuildVersion() string {
+	return Version
 }

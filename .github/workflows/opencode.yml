@@ -1,0 +1,89 @@
+name: OpenCode Agent
+
+on:
+  # Trigger on issue comments
+  issue_comment:
+    types: [created]
+
+  # Trigger on PR review comments
+  pull_request_review_comment:
+    types: [created]
+
+  # Optional: Auto-triage new issues with 'opencode' label
+  issues:
+    types: [opened, labeled]
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Custom prompt for OpenCode'
+        required: true
+        type: string
+
+jobs:
+  opencode:
+    # Only run if comment contains /opencode or /oc
+    if: |
+      (github.event_name == 'issue_comment' &&
+       (contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc'))) ||
+      (github.event_name == 'pull_request_review_comment' &&
+       (contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc'))) ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'opencode'))
+
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+
+      - name: Run OpenCode Agent (Z.AI)
+        uses: anomalyco/opencode/github@latest
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        with:
+          model: z.ai/glm-4.7
+          prompt: |
+            You are working on a Go microservices project (zuno-marketplace-api).
+
+            Project Structure:
+            - services/: Contains 4 microservices (auth-service, user-service, wallet-service, graphql-gateway)
+            - shared/: Shared libraries and utilities
+            - db/migrations/: Database migrations
+            - proto/: Protocol buffer definitions
+            - scripts/: Development and deployment scripts
+
+            Important Rules:
+            1. ALWAYS read CLAUDE.md first for project guidelines
+            2. Read README.md for setup instructions
+            3. When modifying .proto files, run `make proto` to regenerate code
+            4. Run `make lint` before committing
+            5. Run `make test` to verify changes don't break tests
+            6. Respect service boundaries - don't create cross-service dependencies without good reason
+            7. Database changes require migrations in db/migrations/
+            8. Ensure all services compile: `go build ./...`
+
+            Branch Strategy (GitFlow):
+            - Base branch: develop
+            - Feature branches: feature/description
+            - Bugfix branches: bugfix/description
+
+            If implementing an issue:
+            1. Create branch from develop
+            2. Implement the fix/feature
+            3. Verify compilation and tests
+            4. Create PR with clear description
