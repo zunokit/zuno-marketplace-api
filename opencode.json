@@ -12,7 +12,7 @@
   "provider": {
     "z.ai": {
       "options": {
-        "apiKey": "{env:ZAI_API_KEY}"
+        "apiKey": "{env:ZHIPU_API_KEY}"
       }
     }
   },

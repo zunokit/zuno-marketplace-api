@@ -59,7 +59,7 @@ jobs:
       - name: Run OpenCode Agent (Z.AI)
         uses: anomalyco/opencode/github@latest
         env:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         with:
           model: z.ai/glm-4.7
           prompt: |
