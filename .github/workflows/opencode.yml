@@ -13,10 +13,6 @@ on:
   issues:
     types: [opened, labeled]
 
-  # Optional: Auto-review PRs
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
   # Manual trigger
   workflow_dispatch:
     inputs:
@@ -34,8 +30,7 @@ jobs:
       (github.event_name == 'pull_request_review_comment' &&
        (contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc'))) ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'opencode')) ||
-      github.event_name == 'pull_request'
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'opencode'))
 
     runs-on: ubuntu-latest
     permissions:
