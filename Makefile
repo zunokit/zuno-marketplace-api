@@ -71,17 +71,6 @@ dev: ## Start Air development environment (serverless infra)
 	@echo ============================================================
 	@./scripts/dev.sh all
 
-dev-auth: ## Start auth-service with Air
-	@./scripts/dev.sh auth
-
-dev-user: ## Start user-service with Air
-	@./scripts/dev.sh user
-
-dev-wallet: ## Start wallet-service with Air
-	@./scripts/dev.sh wallet
-
-dev-gateway: ## Start graphql-gateway with Air
-	@./scripts/dev.sh gateway
 
 dev-stop: ## Stop Air services
 	@./scripts/stop-air.sh
@@ -194,12 +183,17 @@ build-collection: ## Build collection service
 	@$(MKDIR_CMD)
 	cd services/collection-service/cmd && go build $(LDFLAGS) -o ../../../build/collection-service$(if $(filter $(OS),Windows_NT),.exe,) .
 
+build-media: ## Build media service
+	@echo Building media-service...
+	@$(MKDIR_CMD)
+	cd services/media-service/cmd && go build $(LDFLAGS) -o ../../../build/media-service$(if $(filter $(OS),Windows_NT),.exe,) .
+
 build-gateway: ## Build graphql gateway
 	@echo Building graphql-gateway...
 	@$(MKDIR_CMD)
 	cd services/graphql-gateway/cmd && go build $(LDFLAGS) -o ../../../build/graphql-gateway$(if $(filter $(OS),Windows_NT),.exe,) .
 
-build: build-auth build-user build-wallet build-collection build-gateway ## Build all services
+build: build-auth build-user build-wallet build-collection build-media build-gateway ## Build all services
 	@echo Build complete! Binaries in ./build/
 	@echo Version: $(VERSION) BuildTime: $(BUILD_TIME)
 

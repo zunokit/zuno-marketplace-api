@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start services with Air hot-reload
-# Usage: ./scripts/dev.sh [all|auth|user|wallet|gateway]
+# Usage: ./scripts/dev.sh [all|auth|user|wallet|collection|media|gateway]
 
 set -e
 
@@ -41,6 +41,8 @@ declare -A SERVICES=(
   ["auth-service"]="4001"
   ["user-service"]="4002"
   ["wallet-service"]="4003"
+  ["collection-service"]="4004"
+  ["media-service"]="4005"
   ["graphql-gateway"]="4080"
 )
 
@@ -149,13 +151,19 @@ case "$SERVICE_ARG" in
   wallet|wallet-service)
     start_service "wallet-service" "${SERVICES[wallet-service]}"
     ;;
+  collection|collection-service)
+    start_service "collection-service" "${SERVICES[collection-service]}"
+    ;;
+  media|media-service)
+    start_service "media-service" "${SERVICES[media-service]}"
+    ;;
   gateway|graphql-gateway)
     start_service "graphql-gateway" "${SERVICES[graphql-gateway]}"
     ;;
   *)
     print_error "Unknown service: $SERVICE_ARG"
     echo
-    echo "Usage: $0 [all|auth|user|wallet|gateway]"
+    echo "Usage: $0 [all|auth|user|wallet|collection|media|gateway]"
     exit 1
     ;;
 esac
