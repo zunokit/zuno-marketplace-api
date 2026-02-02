@@ -42,6 +42,7 @@ func main() {
 		Password: cfg.Database.Password,
 		DBName:   cfg.Database.Database,
 		SSLMode:  cfg.Database.SSLMode,
+		DSN:      cfg.DatabaseDSN, // Use full DSN for serverless mode
 		LogLevel: gormlogger.Info,
 	}
 	db := database.MustConnect(dbConfig)

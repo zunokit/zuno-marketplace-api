@@ -308,7 +308,7 @@ func MapUpdateRequestToUpdates(req *pb.UpdateCollectionRequest) map[string]inter
 		updates["mint_limit_per_wallet"] = int(*req.MintLimitPerWallet)
 	}
 	if req.Status != nil {
-		updates["status"] = models.CollectionStatus(req.Status.String())
+		updates["status"] = ProtoToModelCollectionStatus(*req.Status)
 	}
 	if req.ContractAddress != nil {
 		updates["contract_address"] = *req.ContractAddress
@@ -344,4 +344,20 @@ func MapMetadataUpdates(req *pb.UpdateCollectionRequest) map[string]interface{} 
 	}
 
 	return metadataUpdates
+}
+
+// ProtoToModelCollectionStatus converts proto CollectionStatus to models.CollectionStatus
+func ProtoToModelCollectionStatus(proto pb.CollectionStatus) models.CollectionStatus {
+	switch proto {
+	case pb.CollectionStatus_COLLECTION_STATUS_PENDING:
+		return models.CollectionStatusPending
+	case pb.CollectionStatus_COLLECTION_STATUS_DEPLOYED:
+		return models.CollectionStatusDeployed
+	case pb.CollectionStatus_COLLECTION_STATUS_FAILED:
+		return models.CollectionStatusFailed
+	case pb.CollectionStatus_COLLECTION_STATUS_ARCHIVED:
+		return models.CollectionStatusArchived
+	default:
+		return models.CollectionStatusPending
+	}
 }

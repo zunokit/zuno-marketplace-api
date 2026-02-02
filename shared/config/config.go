@@ -4,8 +4,9 @@ import "time"
 
 // Config holds generic configuration for services
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	DatabaseDSN string // Full connection string (for serverless mode)
 }
 
 // ServerConfig holds gRPC server configuration

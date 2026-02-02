@@ -20,11 +20,15 @@ type Config struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	DSN      string // Full connection string (optional, for serverless mode)
 	LogLevel logger.LogLevel
 }
 
 // GetDSN returns the PostgreSQL connection string
 func (c *Config) GetDSN() string {
+	if c.DSN != "" {
+		return c.DSN
+	}
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
