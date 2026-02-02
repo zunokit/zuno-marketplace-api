@@ -1,0 +1,267 @@
+# ============================================
+# Collection Types & Operations
+# ============================================
+
+scalar Time
+
+# ============================================
+# Enums
+# ============================================
+
+enum TokenStandard {
+  ERC721
+  ERC1155
+}
+
+enum CollectionStatus {
+  PENDING
+  DEPLOYED
+  FAILED
+  ARCHIVED
+}
+
+enum IndexStatus {
+  NOT_STARTED
+  SYNCING
+  SYNCED
+  FAILED
+}
+
+# ============================================
+# Types
+# ============================================
+
+type Collection {
+  id: ID!
+  slug: String
+  userId: ID!
+  name: String!
+  symbol: String!
+  description: String
+  category: String
+  contractAddress: String
+  chainId: String
+  tokenStandard: TokenStandard!
+  deployerAddress: String!
+  deployedBlock: Int
+  status: CollectionStatus!
+  deployedAt: Time
+  indexStatus: IndexStatus
+  isVerified: Boolean!
+  isHidden: Boolean!
+  source: String
+  imageUrl: String
+  bannerUrl: String
+  featuredImageUrl: String
+  websiteUrl: String
+  baseUri: String
+  maxSupply: Int
+  mintPriceAllowlist: String
+  mintPricePublic: String
+  mintStartTime: Time
+  allowlistStageEnd: Time
+  mintLimitPerWallet: Int
+  royaltyFeeBps: Int
+  royaltyRecipient: String
+  totalSupply: Int!
+  totalMinted: Int!
+  metadataStandard: String
+  createdAt: Time!
+  updatedAt: Time!
+
+  # Relations
+  metadata: CollectionMetadata
+  stats: CollectionStats
+}
+
+type CollectionMetadata {
+  id: ID!
+  collectionId: ID!
+  metadataUri: String
+  ipfsHash: String
+  ipfsUrl: String
+  discordUrl: String
+  twitterUrl: String
+  instagramUrl: String
+  mediumUrl: String
+  telegramUrl: String
+  backgroundColor: String
+}
+
+type CollectionStats {
+  collectionId: ID!
+  totalItems: Int!
+  totalOwners: Int!
+  totalSales: Int!
+  floorPriceWei: String!
+  totalVolumeWei: String!
+  averagePriceWei: String!
+  volume24hWei: String!
+  sales24h: Int!
+  lastSaleAt: Time
+  lastMintAt: Time
+  updatedAt: Time!
+}
+
+type CollectionConnection {
+  items: [Collection!]!
+  pageInfo: PageInfo!
+}
+
+type PageInfo {
+  totalCount: Int!
+  page: Int!
+  limit: Int!
+  hasNext: Boolean!
+  hasPrevious: Boolean!
+}
+
+type CollectionAllowlist {
+  id: ID!
+  collectionId: ID!
+  walletAddress: String!
+  maxMintAmount: Int!
+  addedByUserId: ID!
+  addedAt: Time!
+}
+
+# ============================================
+# Inputs
+# ============================================
+
+input CreateCollectionInput {
+  name: String!
+  symbol: String!
+  description: String
+  category: String
+  tokenStandard: TokenStandard!
+  deployerAddress: String!
+  chainId: String
+  imageUrl: String
+  bannerUrl: String
+  featuredImageUrl: String
+  websiteUrl: String
+  royaltyFeeBps: Int
+  royaltyRecipient: String
+  baseUri: String
+  maxSupply: Int
+  mintPriceAllowlist: String
+  mintPricePublic: String
+  mintStartTime: Time
+  allowlistStageEnd: Time
+  mintLimitPerWallet: Int
+
+  # Metadata
+  metadataUri: String
+  ipfsHash: String
+  discordUrl: String
+  twitterUrl: String
+  instagramUrl: String
+  mediumUrl: String
+  telegramUrl: String
+}
+
+input UpdateCollectionInput {
+  description: String
+  category: String
+  imageUrl: String
+  bannerUrl: String
+  featuredImageUrl: String
+  websiteUrl: String
+  discordUrl: String
+  twitterUrl: String
+  instagramUrl: String
+  mediumUrl: String
+  telegramUrl: String
+  backgroundColor: String
+
+  # Mint settings
+  baseUri: String
+  mintPriceAllowlist: String
+  mintPricePublic: String
+  mintStartTime: Time
+  allowlistStageEnd: Time
+  mintLimitPerWallet: Int
+
+  # Status update (after deployment)
+  status: CollectionStatus
+  contractAddress: String
+  deployedBlock: Int
+}
+
+input AddToAllowlistInput {
+  collectionId: ID!
+  walletAddresses: [String!]!
+  maxMintAmount: Int!
+}
+
+# ============================================
+# Queries
+# ============================================
+
+extend type Query {
+  """
+  Get a single collection by ID, slug, or contract address.
+  Public endpoint - no auth required.
+  """
+  collection(
+    id: ID
+    slug: String
+    contractAddress: String
+    chainId: String
+  ): Collection
+
+  """
+  Get collections owned by the authenticated user.
+  Requires authentication.
+  """
+  myCollections(
+    page: Int
+    limit: Int
+  ): CollectionConnection!
+
+  """
+  List all collections with optional filters.
+  Public endpoint - no auth required.
+  """
+  collections(
+    page: Int
+    limit: Int
+    sortBy: String
+    sortOrder: String
+    category: String
+    chainId: String
+    isVerified: Boolean
+    searchQuery: String
+  ): CollectionConnection!
+}
+
+# ============================================
+# Mutations
+# ============================================
+
+extend type Mutation {
+  """
+  Create a new collection.
+  Requires authentication.
+  """
+  createCollection(input: CreateCollectionInput!): Collection!
+
+  """
+  Update an existing collection.
+  Requires authentication and ownership.
+  """
+  updateCollection(id: ID!, input: UpdateCollectionInput!): Collection!
+
+  """
+  Add wallet addresses to collection allowlist.
+  Requires authentication and ownership.
+  """
+  addToAllowlist(input: AddToAllowlistInput!): Boolean!
+
+  """
+  Delete a collection (soft delete - marks as archived).
+  Requires authentication and ownership.
+  """
+  deleteCollection(id: ID!): Boolean!
+}

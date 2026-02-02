@@ -2,6 +2,20 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+)
+
+type AddToAllowlistInput struct {
+	CollectionID    string   `json:"collectionId"`
+	WalletAddresses []string `json:"walletAddresses"`
+	MaxMintAmount   int      `json:"maxMintAmount"`
+}
+
 // Response from SIWE verification.
 // Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
 type AuthResponse struct {
@@ -10,6 +24,120 @@ type AuthResponse struct {
 	UserID      string `json:"userId"`
 	Address     string `json:"address"`
 	ChainID     string `json:"chainId"`
+}
+
+type Collection struct {
+	ID                 string              `json:"id"`
+	Slug               *string             `json:"slug,omitempty"`
+	UserID             string              `json:"userId"`
+	Name               string              `json:"name"`
+	Symbol             string              `json:"symbol"`
+	Description        *string             `json:"description,omitempty"`
+	Category           *string             `json:"category,omitempty"`
+	ContractAddress    *string             `json:"contractAddress,omitempty"`
+	ChainID            *string             `json:"chainId,omitempty"`
+	TokenStandard      TokenStandard       `json:"tokenStandard"`
+	DeployerAddress    string              `json:"deployerAddress"`
+	DeployedBlock      *int                `json:"deployedBlock,omitempty"`
+	Status             CollectionStatus    `json:"status"`
+	DeployedAt         *time.Time          `json:"deployedAt,omitempty"`
+	IndexStatus        *IndexStatus        `json:"indexStatus,omitempty"`
+	IsVerified         bool                `json:"isVerified"`
+	IsHidden           bool                `json:"isHidden"`
+	Source             *string             `json:"source,omitempty"`
+	ImageURL           *string             `json:"imageUrl,omitempty"`
+	BannerURL          *string             `json:"bannerUrl,omitempty"`
+	FeaturedImageURL   *string             `json:"featuredImageUrl,omitempty"`
+	WebsiteURL         *string             `json:"websiteUrl,omitempty"`
+	BaseURI            *string             `json:"baseUri,omitempty"`
+	MaxSupply          *int                `json:"maxSupply,omitempty"`
+	MintPriceAllowlist *string             `json:"mintPriceAllowlist,omitempty"`
+	MintPricePublic    *string             `json:"mintPricePublic,omitempty"`
+	MintStartTime      *time.Time          `json:"mintStartTime,omitempty"`
+	AllowlistStageEnd  *time.Time          `json:"allowlistStageEnd,omitempty"`
+	MintLimitPerWallet *int                `json:"mintLimitPerWallet,omitempty"`
+	RoyaltyFeeBps      *int                `json:"royaltyFeeBps,omitempty"`
+	RoyaltyRecipient   *string             `json:"royaltyRecipient,omitempty"`
+	TotalSupply        int                 `json:"totalSupply"`
+	TotalMinted        int                 `json:"totalMinted"`
+	MetadataStandard   *string             `json:"metadataStandard,omitempty"`
+	CreatedAt          time.Time           `json:"createdAt"`
+	UpdatedAt          time.Time           `json:"updatedAt"`
+	Metadata           *CollectionMetadata `json:"metadata,omitempty"`
+	Stats              *CollectionStats    `json:"stats,omitempty"`
+}
+
+type CollectionAllowlist struct {
+	ID            string    `json:"id"`
+	CollectionID  string    `json:"collectionId"`
+	WalletAddress string    `json:"walletAddress"`
+	MaxMintAmount int       `json:"maxMintAmount"`
+	AddedByUserID string    `json:"addedByUserId"`
+	AddedAt       time.Time `json:"addedAt"`
+}
+
+type CollectionConnection struct {
+	Items    []*Collection `json:"items"`
+	PageInfo *PageInfo     `json:"pageInfo"`
+}
+
+type CollectionMetadata struct {
+	ID              string  `json:"id"`
+	CollectionID    string  `json:"collectionId"`
+	MetadataURI     *string `json:"metadataUri,omitempty"`
+	IpfsHash        *string `json:"ipfsHash,omitempty"`
+	IpfsURL         *string `json:"ipfsUrl,omitempty"`
+	DiscordURL      *string `json:"discordUrl,omitempty"`
+	TwitterURL      *string `json:"twitterUrl,omitempty"`
+	InstagramURL    *string `json:"instagramUrl,omitempty"`
+	MediumURL       *string `json:"mediumUrl,omitempty"`
+	TelegramURL     *string `json:"telegramUrl,omitempty"`
+	BackgroundColor *string `json:"backgroundColor,omitempty"`
+}
+
+type CollectionStats struct {
+	CollectionID    string     `json:"collectionId"`
+	TotalItems      int        `json:"totalItems"`
+	TotalOwners     int        `json:"totalOwners"`
+	TotalSales      int        `json:"totalSales"`
+	FloorPriceWei   string     `json:"floorPriceWei"`
+	TotalVolumeWei  string     `json:"totalVolumeWei"`
+	AveragePriceWei string     `json:"averagePriceWei"`
+	Volume24hWei    string     `json:"volume24hWei"`
+	Sales24h        int        `json:"sales24h"`
+	LastSaleAt      *time.Time `json:"lastSaleAt,omitempty"`
+	LastMintAt      *time.Time `json:"lastMintAt,omitempty"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+type CreateCollectionInput struct {
+	Name               string        `json:"name"`
+	Symbol             string        `json:"symbol"`
+	Description        *string       `json:"description,omitempty"`
+	Category           *string       `json:"category,omitempty"`
+	TokenStandard      TokenStandard `json:"tokenStandard"`
+	DeployerAddress    string        `json:"deployerAddress"`
+	ChainID            *string       `json:"chainId,omitempty"`
+	ImageURL           *string       `json:"imageUrl,omitempty"`
+	BannerURL          *string       `json:"bannerUrl,omitempty"`
+	FeaturedImageURL   *string       `json:"featuredImageUrl,omitempty"`
+	WebsiteURL         *string       `json:"websiteUrl,omitempty"`
+	RoyaltyFeeBps      *int          `json:"royaltyFeeBps,omitempty"`
+	RoyaltyRecipient   *string       `json:"royaltyRecipient,omitempty"`
+	BaseURI            *string       `json:"baseUri,omitempty"`
+	MaxSupply          *int          `json:"maxSupply,omitempty"`
+	MintPriceAllowlist *string       `json:"mintPriceAllowlist,omitempty"`
+	MintPricePublic    *string       `json:"mintPricePublic,omitempty"`
+	MintStartTime      *time.Time    `json:"mintStartTime,omitempty"`
+	AllowlistStageEnd  *time.Time    `json:"allowlistStageEnd,omitempty"`
+	MintLimitPerWallet *int          `json:"mintLimitPerWallet,omitempty"`
+	MetadataURI        *string       `json:"metadataUri,omitempty"`
+	IpfsHash           *string       `json:"ipfsHash,omitempty"`
+	DiscordURL         *string       `json:"discordUrl,omitempty"`
+	TwitterURL         *string       `json:"twitterUrl,omitempty"`
+	InstagramURL       *string       `json:"instagramUrl,omitempty"`
+	MediumURL          *string       `json:"mediumUrl,omitempty"`
+	TelegramURL        *string       `json:"telegramUrl,omitempty"`
 }
 
 type LinkWalletInput struct {
@@ -22,12 +150,22 @@ type LinkWalletInput struct {
 	Label     *string `json:"label,omitempty"`
 }
 
+// Root mutation type.
+// All domain-specific mutations are defined in their respective schema files.
 type Mutation struct {
 }
 
 type Nonce struct {
 	Nonce     string `json:"nonce"`
 	ExpiresAt string `json:"expiresAt"`
+}
+
+type PageInfo struct {
+	TotalCount  int  `json:"totalCount"`
+	Page        int  `json:"page"`
+	Limit       int  `json:"limit"`
+	HasNext     bool `json:"hasNext"`
+	HasPrevious bool `json:"hasPrevious"`
 }
 
 type Profile struct {
@@ -43,6 +181,8 @@ type Profile struct {
 	UpdatedAt   *string `json:"updatedAt,omitempty"`
 }
 
+// Root query type.
+// All domain-specific queries are defined in their respective schema files.
 type Query struct {
 }
 
@@ -52,6 +192,30 @@ type RefreshResponse struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresAt   string `json:"expiresAt"`
 	UserID      string `json:"userId"`
+}
+
+type UpdateCollectionInput struct {
+	Description        *string           `json:"description,omitempty"`
+	Category           *string           `json:"category,omitempty"`
+	ImageURL           *string           `json:"imageUrl,omitempty"`
+	BannerURL          *string           `json:"bannerUrl,omitempty"`
+	FeaturedImageURL   *string           `json:"featuredImageUrl,omitempty"`
+	WebsiteURL         *string           `json:"websiteUrl,omitempty"`
+	DiscordURL         *string           `json:"discordUrl,omitempty"`
+	TwitterURL         *string           `json:"twitterUrl,omitempty"`
+	InstagramURL       *string           `json:"instagramUrl,omitempty"`
+	MediumURL          *string           `json:"mediumUrl,omitempty"`
+	TelegramURL        *string           `json:"telegramUrl,omitempty"`
+	BackgroundColor    *string           `json:"backgroundColor,omitempty"`
+	BaseURI            *string           `json:"baseUri,omitempty"`
+	MintPriceAllowlist *string           `json:"mintPriceAllowlist,omitempty"`
+	MintPricePublic    *string           `json:"mintPricePublic,omitempty"`
+	MintStartTime      *time.Time        `json:"mintStartTime,omitempty"`
+	AllowlistStageEnd  *time.Time        `json:"allowlistStageEnd,omitempty"`
+	MintLimitPerWallet *int              `json:"mintLimitPerWallet,omitempty"`
+	Status             *CollectionStatus `json:"status,omitempty"`
+	ContractAddress    *string           `json:"contractAddress,omitempty"`
+	DeployedBlock      *int              `json:"deployedBlock,omitempty"`
 }
 
 type UpdateProfileInput struct {
@@ -82,4 +246,177 @@ type WalletLink struct {
 	VerifiedAt *string `json:"verifiedAt,omitempty"`
 	CreatedAt  string  `json:"createdAt"`
 	UpdatedAt  string  `json:"updatedAt"`
+}
+
+type CollectionStatus string
+
+const (
+	CollectionStatusPending  CollectionStatus = "PENDING"
+	CollectionStatusDeployed CollectionStatus = "DEPLOYED"
+	CollectionStatusFailed   CollectionStatus = "FAILED"
+	CollectionStatusArchived CollectionStatus = "ARCHIVED"
+)
+
+var AllCollectionStatus = []CollectionStatus{
+	CollectionStatusPending,
+	CollectionStatusDeployed,
+	CollectionStatusFailed,
+	CollectionStatusArchived,
+}
+
+func (e CollectionStatus) IsValid() bool {
+	switch e {
+	case CollectionStatusPending, CollectionStatusDeployed, CollectionStatusFailed, CollectionStatusArchived:
+		return true
+	}
+	return false
+}
+
+func (e CollectionStatus) String() string {
+	return string(e)
+}
+
+func (e *CollectionStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CollectionStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CollectionStatus", str)
+	}
+	return nil
+}
+
+func (e CollectionStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *CollectionStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e CollectionStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type IndexStatus string
+
+const (
+	IndexStatusNotStarted IndexStatus = "NOT_STARTED"
+	IndexStatusSyncing    IndexStatus = "SYNCING"
+	IndexStatusSynced     IndexStatus = "SYNCED"
+	IndexStatusFailed     IndexStatus = "FAILED"
+)
+
+var AllIndexStatus = []IndexStatus{
+	IndexStatusNotStarted,
+	IndexStatusSyncing,
+	IndexStatusSynced,
+	IndexStatusFailed,
+}
+
+func (e IndexStatus) IsValid() bool {
+	switch e {
+	case IndexStatusNotStarted, IndexStatusSyncing, IndexStatusSynced, IndexStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e IndexStatus) String() string {
+	return string(e)
+}
+
+func (e *IndexStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = IndexStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid IndexStatus", str)
+	}
+	return nil
+}
+
+func (e IndexStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *IndexStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e IndexStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TokenStandard string
+
+const (
+	TokenStandardErc721  TokenStandard = "ERC721"
+	TokenStandardErc1155 TokenStandard = "ERC1155"
+)
+
+var AllTokenStandard = []TokenStandard{
+	TokenStandardErc721,
+	TokenStandardErc1155,
+}
+
+func (e TokenStandard) IsValid() bool {
+	switch e {
+	case TokenStandardErc721, TokenStandardErc1155:
+		return true
+	}
+	return false
+}
+
+func (e TokenStandard) String() string {
+	return string(e)
+}
+
+func (e *TokenStandard) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TokenStandard(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TokenStandard", str)
+	}
+	return nil
+}
+
+func (e TokenStandard) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TokenStandard) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TokenStandard) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

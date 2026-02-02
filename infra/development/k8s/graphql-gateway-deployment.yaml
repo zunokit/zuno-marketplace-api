@@ -42,6 +42,8 @@ spec:
               value: "wallet-service:50053"
             - name: MEDIA_SERVICE_URL
               value: "media-service:50055"
+            - name: COLLECTION_SERVICE_URL
+              value: "collection-service:50054"
             - name: CHAIN_REGISTRY_SERVICE_URL
               value: "chain-registry-service:50056"
             - name: ORCHESTRATOR_SERVICE_URL

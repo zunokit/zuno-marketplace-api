@@ -5,11 +5,13 @@ package graph
 import (
 	"bytes"
 	"context"
+	"embed"
 	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -54,18 +56,115 @@ type ComplexityRoot struct {
 		UserID      func(childComplexity int) int
 	}
 
+	Collection struct {
+		AllowlistStageEnd  func(childComplexity int) int
+		BannerURL          func(childComplexity int) int
+		BaseURI            func(childComplexity int) int
+		Category           func(childComplexity int) int
+		ChainID            func(childComplexity int) int
+		ContractAddress    func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
+		DeployedAt         func(childComplexity int) int
+		DeployedBlock      func(childComplexity int) int
+		DeployerAddress    func(childComplexity int) int
+		Description        func(childComplexity int) int
+		FeaturedImageURL   func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		ImageURL           func(childComplexity int) int
+		IndexStatus        func(childComplexity int) int
+		IsHidden           func(childComplexity int) int
+		IsVerified         func(childComplexity int) int
+		MaxSupply          func(childComplexity int) int
+		Metadata           func(childComplexity int) int
+		MetadataStandard   func(childComplexity int) int
+		MintLimitPerWallet func(childComplexity int) int
+		MintPriceAllowlist func(childComplexity int) int
+		MintPricePublic    func(childComplexity int) int
+		MintStartTime      func(childComplexity int) int
+		Name               func(childComplexity int) int
+		RoyaltyFeeBps      func(childComplexity int) int
+		RoyaltyRecipient   func(childComplexity int) int
+		Slug               func(childComplexity int) int
+		Source             func(childComplexity int) int
+		Stats              func(childComplexity int) int
+		Status             func(childComplexity int) int
+		Symbol             func(childComplexity int) int
+		TokenStandard      func(childComplexity int) int
+		TotalMinted        func(childComplexity int) int
+		TotalSupply        func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
+		UserID             func(childComplexity int) int
+		WebsiteURL         func(childComplexity int) int
+	}
+
+	CollectionAllowlist struct {
+		AddedAt       func(childComplexity int) int
+		AddedByUserID func(childComplexity int) int
+		CollectionID  func(childComplexity int) int
+		ID            func(childComplexity int) int
+		MaxMintAmount func(childComplexity int) int
+		WalletAddress func(childComplexity int) int
+	}
+
+	CollectionConnection struct {
+		Items    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	CollectionMetadata struct {
+		BackgroundColor func(childComplexity int) int
+		CollectionID    func(childComplexity int) int
+		DiscordURL      func(childComplexity int) int
+		ID              func(childComplexity int) int
+		InstagramURL    func(childComplexity int) int
+		IpfsHash        func(childComplexity int) int
+		IpfsURL         func(childComplexity int) int
+		MediumURL       func(childComplexity int) int
+		MetadataURI     func(childComplexity int) int
+		TelegramURL     func(childComplexity int) int
+		TwitterURL      func(childComplexity int) int
+	}
+
+	CollectionStats struct {
+		AveragePriceWei func(childComplexity int) int
+		CollectionID    func(childComplexity int) int
+		FloorPriceWei   func(childComplexity int) int
+		LastMintAt      func(childComplexity int) int
+		LastSaleAt      func(childComplexity int) int
+		Sales24h        func(childComplexity int) int
+		TotalItems      func(childComplexity int) int
+		TotalOwners     func(childComplexity int) int
+		TotalSales      func(childComplexity int) int
+		TotalVolumeWei  func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
+		Volume24hWei    func(childComplexity int) int
+	}
+
 	Mutation struct {
-		LinkWallet     func(childComplexity int, input model.LinkWalletInput) int
-		Logout         func(childComplexity int) int
-		RefreshSession func(childComplexity int, refreshToken *string, userAgent *string, ipAddress *string) int
-		RevokeSession  func(childComplexity int, sessionID string) int
-		UpdateProfile  func(childComplexity int, input model.UpdateProfileInput) int
-		VerifySiwe     func(childComplexity int, accountID string, message string, signature string) int
+		AddToAllowlist   func(childComplexity int, input model.AddToAllowlistInput) int
+		CreateCollection func(childComplexity int, input model.CreateCollectionInput) int
+		DeleteCollection func(childComplexity int, id string) int
+		Empty            func(childComplexity int) int
+		LinkWallet       func(childComplexity int, input model.LinkWalletInput) int
+		Logout           func(childComplexity int) int
+		RefreshSession   func(childComplexity int, refreshToken *string, userAgent *string, ipAddress *string) int
+		RevokeSession    func(childComplexity int, sessionID string) int
+		UpdateCollection func(childComplexity int, id string, input model.UpdateCollectionInput) int
+		UpdateProfile    func(childComplexity int, input model.UpdateProfileInput) int
+		VerifySiwe       func(childComplexity int, accountID string, message string, signature string) int
 	}
 
 	Nonce struct {
 		ExpiresAt func(childComplexity int) int
 		Nonce     func(childComplexity int) int
+	}
+
+	PageInfo struct {
+		HasNext     func(childComplexity int) int
+		HasPrevious func(childComplexity int) int
+		Limit       func(childComplexity int) int
+		Page        func(childComplexity int) int
+		TotalCount  func(childComplexity int) int
 	}
 
 	Profile struct {
@@ -82,11 +181,15 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetNonce   func(childComplexity int, accountID string, chainID string, domain string) int
-		GetUser    func(childComplexity int, userID string) int
-		GetWallets func(childComplexity int, userID string) int
-		Me         func(childComplexity int) int
-		MyWallets  func(childComplexity int) int
+		Collection    func(childComplexity int, id *string, slug *string, contractAddress *string, chainID *string) int
+		Collections   func(childComplexity int, page *int, limit *int, sortBy *string, sortOrder *string, category *string, chainID *string, isVerified *bool, searchQuery *string) int
+		Empty         func(childComplexity int) int
+		GetNonce      func(childComplexity int, accountID string, chainID string, domain string) int
+		GetUser       func(childComplexity int, userID string) int
+		GetWallets    func(childComplexity int, userID string) int
+		Me            func(childComplexity int) int
+		MyCollections func(childComplexity int, page *int, limit *int) int
+		MyWallets     func(childComplexity int) int
 	}
 
 	RefreshResponse struct {
@@ -116,15 +219,24 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
+	Empty(ctx context.Context) (*string, error)
 	VerifySiwe(ctx context.Context, accountID string, message string, signature string) (*model.AuthResponse, error)
 	RefreshSession(ctx context.Context, refreshToken *string, userAgent *string, ipAddress *string) (*model.RefreshResponse, error)
 	RevokeSession(ctx context.Context, sessionID string) (bool, error)
 	Logout(ctx context.Context) (bool, error)
+	CreateCollection(ctx context.Context, input model.CreateCollectionInput) (*model.Collection, error)
+	UpdateCollection(ctx context.Context, id string, input model.UpdateCollectionInput) (*model.Collection, error)
+	AddToAllowlist(ctx context.Context, input model.AddToAllowlistInput) (bool, error)
+	DeleteCollection(ctx context.Context, id string) (bool, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*model.Profile, error)
 	LinkWallet(ctx context.Context, input model.LinkWalletInput) (*model.WalletLink, error)
 }
 type QueryResolver interface {
+	Empty(ctx context.Context) (*string, error)
 	GetNonce(ctx context.Context, accountID string, chainID string, domain string) (*model.Nonce, error)
+	Collection(ctx context.Context, id *string, slug *string, contractAddress *string, chainID *string) (*model.Collection, error)
+	MyCollections(ctx context.Context, page *int, limit *int) (*model.CollectionConnection, error)
+	Collections(ctx context.Context, page *int, limit *int, sortBy *string, sortOrder *string, category *string, chainID *string, isVerified *bool, searchQuery *string) (*model.CollectionConnection, error)
 	Me(ctx context.Context) (*model.User, error)
 	GetUser(ctx context.Context, userID string) (*model.User, error)
 	MyWallets(ctx context.Context) ([]*model.WalletLink, error)
@@ -181,6 +293,464 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthResponse.UserID(childComplexity), true
 
+	case "Collection.allowlistStageEnd":
+		if e.complexity.Collection.AllowlistStageEnd == nil {
+			break
+		}
+
+		return e.complexity.Collection.AllowlistStageEnd(childComplexity), true
+	case "Collection.bannerUrl":
+		if e.complexity.Collection.BannerURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.BannerURL(childComplexity), true
+	case "Collection.baseUri":
+		if e.complexity.Collection.BaseURI == nil {
+			break
+		}
+
+		return e.complexity.Collection.BaseURI(childComplexity), true
+	case "Collection.category":
+		if e.complexity.Collection.Category == nil {
+			break
+		}
+
+		return e.complexity.Collection.Category(childComplexity), true
+	case "Collection.chainId":
+		if e.complexity.Collection.ChainID == nil {
+			break
+		}
+
+		return e.complexity.Collection.ChainID(childComplexity), true
+	case "Collection.contractAddress":
+		if e.complexity.Collection.ContractAddress == nil {
+			break
+		}
+
+		return e.complexity.Collection.ContractAddress(childComplexity), true
+	case "Collection.createdAt":
+		if e.complexity.Collection.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Collection.CreatedAt(childComplexity), true
+	case "Collection.deployedAt":
+		if e.complexity.Collection.DeployedAt == nil {
+			break
+		}
+
+		return e.complexity.Collection.DeployedAt(childComplexity), true
+	case "Collection.deployedBlock":
+		if e.complexity.Collection.DeployedBlock == nil {
+			break
+		}
+
+		return e.complexity.Collection.DeployedBlock(childComplexity), true
+	case "Collection.deployerAddress":
+		if e.complexity.Collection.DeployerAddress == nil {
+			break
+		}
+
+		return e.complexity.Collection.DeployerAddress(childComplexity), true
+	case "Collection.description":
+		if e.complexity.Collection.Description == nil {
+			break
+		}
+
+		return e.complexity.Collection.Description(childComplexity), true
+	case "Collection.featuredImageUrl":
+		if e.complexity.Collection.FeaturedImageURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.FeaturedImageURL(childComplexity), true
+	case "Collection.id":
+		if e.complexity.Collection.ID == nil {
+			break
+		}
+
+		return e.complexity.Collection.ID(childComplexity), true
+	case "Collection.imageUrl":
+		if e.complexity.Collection.ImageURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.ImageURL(childComplexity), true
+	case "Collection.indexStatus":
+		if e.complexity.Collection.IndexStatus == nil {
+			break
+		}
+
+		return e.complexity.Collection.IndexStatus(childComplexity), true
+	case "Collection.isHidden":
+		if e.complexity.Collection.IsHidden == nil {
+			break
+		}
+
+		return e.complexity.Collection.IsHidden(childComplexity), true
+	case "Collection.isVerified":
+		if e.complexity.Collection.IsVerified == nil {
+			break
+		}
+
+		return e.complexity.Collection.IsVerified(childComplexity), true
+	case "Collection.maxSupply":
+		if e.complexity.Collection.MaxSupply == nil {
+			break
+		}
+
+		return e.complexity.Collection.MaxSupply(childComplexity), true
+	case "Collection.metadata":
+		if e.complexity.Collection.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Collection.Metadata(childComplexity), true
+	case "Collection.metadataStandard":
+		if e.complexity.Collection.MetadataStandard == nil {
+			break
+		}
+
+		return e.complexity.Collection.MetadataStandard(childComplexity), true
+	case "Collection.mintLimitPerWallet":
+		if e.complexity.Collection.MintLimitPerWallet == nil {
+			break
+		}
+
+		return e.complexity.Collection.MintLimitPerWallet(childComplexity), true
+	case "Collection.mintPriceAllowlist":
+		if e.complexity.Collection.MintPriceAllowlist == nil {
+			break
+		}
+
+		return e.complexity.Collection.MintPriceAllowlist(childComplexity), true
+	case "Collection.mintPricePublic":
+		if e.complexity.Collection.MintPricePublic == nil {
+			break
+		}
+
+		return e.complexity.Collection.MintPricePublic(childComplexity), true
+	case "Collection.mintStartTime":
+		if e.complexity.Collection.MintStartTime == nil {
+			break
+		}
+
+		return e.complexity.Collection.MintStartTime(childComplexity), true
+	case "Collection.name":
+		if e.complexity.Collection.Name == nil {
+			break
+		}
+
+		return e.complexity.Collection.Name(childComplexity), true
+	case "Collection.royaltyFeeBps":
+		if e.complexity.Collection.RoyaltyFeeBps == nil {
+			break
+		}
+
+		return e.complexity.Collection.RoyaltyFeeBps(childComplexity), true
+	case "Collection.royaltyRecipient":
+		if e.complexity.Collection.RoyaltyRecipient == nil {
+			break
+		}
+
+		return e.complexity.Collection.RoyaltyRecipient(childComplexity), true
+	case "Collection.slug":
+		if e.complexity.Collection.Slug == nil {
+			break
+		}
+
+		return e.complexity.Collection.Slug(childComplexity), true
+	case "Collection.source":
+		if e.complexity.Collection.Source == nil {
+			break
+		}
+
+		return e.complexity.Collection.Source(childComplexity), true
+	case "Collection.stats":
+		if e.complexity.Collection.Stats == nil {
+			break
+		}
+
+		return e.complexity.Collection.Stats(childComplexity), true
+	case "Collection.status":
+		if e.complexity.Collection.Status == nil {
+			break
+		}
+
+		return e.complexity.Collection.Status(childComplexity), true
+	case "Collection.symbol":
+		if e.complexity.Collection.Symbol == nil {
+			break
+		}
+
+		return e.complexity.Collection.Symbol(childComplexity), true
+	case "Collection.tokenStandard":
+		if e.complexity.Collection.TokenStandard == nil {
+			break
+		}
+
+		return e.complexity.Collection.TokenStandard(childComplexity), true
+	case "Collection.totalMinted":
+		if e.complexity.Collection.TotalMinted == nil {
+			break
+		}
+
+		return e.complexity.Collection.TotalMinted(childComplexity), true
+	case "Collection.totalSupply":
+		if e.complexity.Collection.TotalSupply == nil {
+			break
+		}
+
+		return e.complexity.Collection.TotalSupply(childComplexity), true
+	case "Collection.updatedAt":
+		if e.complexity.Collection.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Collection.UpdatedAt(childComplexity), true
+	case "Collection.userId":
+		if e.complexity.Collection.UserID == nil {
+			break
+		}
+
+		return e.complexity.Collection.UserID(childComplexity), true
+	case "Collection.websiteUrl":
+		if e.complexity.Collection.WebsiteURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.WebsiteURL(childComplexity), true
+
+	case "CollectionAllowlist.addedAt":
+		if e.complexity.CollectionAllowlist.AddedAt == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.AddedAt(childComplexity), true
+	case "CollectionAllowlist.addedByUserId":
+		if e.complexity.CollectionAllowlist.AddedByUserID == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.AddedByUserID(childComplexity), true
+	case "CollectionAllowlist.collectionId":
+		if e.complexity.CollectionAllowlist.CollectionID == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.CollectionID(childComplexity), true
+	case "CollectionAllowlist.id":
+		if e.complexity.CollectionAllowlist.ID == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.ID(childComplexity), true
+	case "CollectionAllowlist.maxMintAmount":
+		if e.complexity.CollectionAllowlist.MaxMintAmount == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.MaxMintAmount(childComplexity), true
+	case "CollectionAllowlist.walletAddress":
+		if e.complexity.CollectionAllowlist.WalletAddress == nil {
+			break
+		}
+
+		return e.complexity.CollectionAllowlist.WalletAddress(childComplexity), true
+
+	case "CollectionConnection.items":
+		if e.complexity.CollectionConnection.Items == nil {
+			break
+		}
+
+		return e.complexity.CollectionConnection.Items(childComplexity), true
+	case "CollectionConnection.pageInfo":
+		if e.complexity.CollectionConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.CollectionConnection.PageInfo(childComplexity), true
+
+	case "CollectionMetadata.backgroundColor":
+		if e.complexity.CollectionMetadata.BackgroundColor == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.BackgroundColor(childComplexity), true
+	case "CollectionMetadata.collectionId":
+		if e.complexity.CollectionMetadata.CollectionID == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.CollectionID(childComplexity), true
+	case "CollectionMetadata.discordUrl":
+		if e.complexity.CollectionMetadata.DiscordURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.DiscordURL(childComplexity), true
+	case "CollectionMetadata.id":
+		if e.complexity.CollectionMetadata.ID == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.ID(childComplexity), true
+	case "CollectionMetadata.instagramUrl":
+		if e.complexity.CollectionMetadata.InstagramURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.InstagramURL(childComplexity), true
+	case "CollectionMetadata.ipfsHash":
+		if e.complexity.CollectionMetadata.IpfsHash == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.IpfsHash(childComplexity), true
+	case "CollectionMetadata.ipfsUrl":
+		if e.complexity.CollectionMetadata.IpfsURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.IpfsURL(childComplexity), true
+	case "CollectionMetadata.mediumUrl":
+		if e.complexity.CollectionMetadata.MediumURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.MediumURL(childComplexity), true
+	case "CollectionMetadata.metadataUri":
+		if e.complexity.CollectionMetadata.MetadataURI == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.MetadataURI(childComplexity), true
+	case "CollectionMetadata.telegramUrl":
+		if e.complexity.CollectionMetadata.TelegramURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.TelegramURL(childComplexity), true
+	case "CollectionMetadata.twitterUrl":
+		if e.complexity.CollectionMetadata.TwitterURL == nil {
+			break
+		}
+
+		return e.complexity.CollectionMetadata.TwitterURL(childComplexity), true
+
+	case "CollectionStats.averagePriceWei":
+		if e.complexity.CollectionStats.AveragePriceWei == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.AveragePriceWei(childComplexity), true
+	case "CollectionStats.collectionId":
+		if e.complexity.CollectionStats.CollectionID == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.CollectionID(childComplexity), true
+	case "CollectionStats.floorPriceWei":
+		if e.complexity.CollectionStats.FloorPriceWei == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.FloorPriceWei(childComplexity), true
+	case "CollectionStats.lastMintAt":
+		if e.complexity.CollectionStats.LastMintAt == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.LastMintAt(childComplexity), true
+	case "CollectionStats.lastSaleAt":
+		if e.complexity.CollectionStats.LastSaleAt == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.LastSaleAt(childComplexity), true
+	case "CollectionStats.sales24h":
+		if e.complexity.CollectionStats.Sales24h == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.Sales24h(childComplexity), true
+	case "CollectionStats.totalItems":
+		if e.complexity.CollectionStats.TotalItems == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.TotalItems(childComplexity), true
+	case "CollectionStats.totalOwners":
+		if e.complexity.CollectionStats.TotalOwners == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.TotalOwners(childComplexity), true
+	case "CollectionStats.totalSales":
+		if e.complexity.CollectionStats.TotalSales == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.TotalSales(childComplexity), true
+	case "CollectionStats.totalVolumeWei":
+		if e.complexity.CollectionStats.TotalVolumeWei == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.TotalVolumeWei(childComplexity), true
+	case "CollectionStats.updatedAt":
+		if e.complexity.CollectionStats.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.UpdatedAt(childComplexity), true
+	case "CollectionStats.volume24hWei":
+		if e.complexity.CollectionStats.Volume24hWei == nil {
+			break
+		}
+
+		return e.complexity.CollectionStats.Volume24hWei(childComplexity), true
+
+	case "Mutation.addToAllowlist":
+		if e.complexity.Mutation.AddToAllowlist == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addToAllowlist_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddToAllowlist(childComplexity, args["input"].(model.AddToAllowlistInput)), true
+	case "Mutation.createCollection":
+		if e.complexity.Mutation.CreateCollection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createCollection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateCollection(childComplexity, args["input"].(model.CreateCollectionInput)), true
+	case "Mutation.deleteCollection":
+		if e.complexity.Mutation.DeleteCollection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCollection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteCollection(childComplexity, args["id"].(string)), true
+	case "Mutation._empty":
+		if e.complexity.Mutation.Empty == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Empty(childComplexity), true
 	case "Mutation.linkWallet":
 		if e.complexity.Mutation.LinkWallet == nil {
 			break
@@ -220,6 +790,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RevokeSession(childComplexity, args["sessionId"].(string)), true
+	case "Mutation.updateCollection":
+		if e.complexity.Mutation.UpdateCollection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCollection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCollection(childComplexity, args["id"].(string), args["input"].(model.UpdateCollectionInput)), true
 	case "Mutation.updateProfile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
@@ -255,6 +836,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Nonce.Nonce(childComplexity), true
+
+	case "PageInfo.hasNext":
+		if e.complexity.PageInfo.HasNext == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasNext(childComplexity), true
+	case "PageInfo.hasPrevious":
+		if e.complexity.PageInfo.HasPrevious == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasPrevious(childComplexity), true
+	case "PageInfo.limit":
+		if e.complexity.PageInfo.Limit == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.Limit(childComplexity), true
+	case "PageInfo.page":
+		if e.complexity.PageInfo.Page == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.Page(childComplexity), true
+	case "PageInfo.totalCount":
+		if e.complexity.PageInfo.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.TotalCount(childComplexity), true
 
 	case "Profile.avatarUrl":
 		if e.complexity.Profile.AvatarURL == nil {
@@ -317,6 +929,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Profile.Username(childComplexity), true
 
+	case "Query.collection":
+		if e.complexity.Query.Collection == nil {
+			break
+		}
+
+		args, err := ec.field_Query_collection_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Collection(childComplexity, args["id"].(*string), args["slug"].(*string), args["contractAddress"].(*string), args["chainId"].(*string)), true
+	case "Query.collections":
+		if e.complexity.Query.Collections == nil {
+			break
+		}
+
+		args, err := ec.field_Query_collections_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Collections(childComplexity, args["page"].(*int), args["limit"].(*int), args["sortBy"].(*string), args["sortOrder"].(*string), args["category"].(*string), args["chainId"].(*string), args["isVerified"].(*bool), args["searchQuery"].(*string)), true
+	case "Query._empty":
+		if e.complexity.Query.Empty == nil {
+			break
+		}
+
+		return e.complexity.Query.Empty(childComplexity), true
 	case "Query.getNonce":
 		if e.complexity.Query.GetNonce == nil {
 			break
@@ -356,6 +996,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.myCollections":
+		if e.complexity.Query.MyCollections == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myCollections_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyCollections(childComplexity, args["page"].(*int), args["limit"].(*int)), true
 	case "Query.myWallets":
 		if e.complexity.Query.MyWallets == nil {
 			break
@@ -470,7 +1121,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAddToAllowlistInput,
+		ec.unmarshalInputCreateCollectionInput,
 		ec.unmarshalInputLinkWalletInput,
+		ec.unmarshalInputUpdateCollectionInput,
 		ec.unmarshalInputUpdateProfileInput,
 	)
 	first := true
@@ -568,163 +1222,62 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
+//go:embed "schemas/auth.graphqls" "schemas/collection.graphqls" "schemas/schema.graphqls" "schemas/user.graphqls" "schemas/wallet.graphqls"
+var sourcesFS embed.FS
+
+func sourceData(filename string) string {
+	data, err := sourcesFS.ReadFile(filename)
+	if err != nil {
+		panic(fmt.Sprintf("codegen problem: %s not available", filename))
+	}
+	return string(data)
+}
+
 var sources = []*ast.Source{
-	{Name: "../schema.graphqls", Input: `# GraphQL Schema for NFT Marketplace API
-
-# ============================================
-# Auth Types
-# ============================================
-
-type Nonce {
-  nonce: String!
-  expiresAt: String!
-}
-
-"""
-Response from SIWE verification.
-Note: refreshToken is set as HttpOnly cookie, not returned in response body for security.
-"""
-type AuthResponse {
-  accessToken: String!
-  expiresAt: String!
-  userId: String!
-  address: String!
-  chainId: String!
-}
-
-"""
-Response from session refresh.
-Note: New refreshToken is set as HttpOnly cookie, not returned in response body.
-"""
-type RefreshResponse {
-  accessToken: String!
-  expiresAt: String!
-  userId: String!
-}
-
-# ============================================
-# User Types
-# ============================================
-
-type User {
-  id: ID!
-  status: String!
-  createdAt: String!
-  profile: Profile
-}
-
-type Profile {
-  userId: ID!
-  username: String
-  displayName: String
-  avatarUrl: String
-  bannerUrl: String
-  bio: String
-  locale: String
-  timezone: String
-  socialsJson: String
-  updatedAt: String
-}
-
-input UpdateProfileInput {
-  username: String
-  displayName: String
-  avatarUrl: String
-  bannerUrl: String
-  bio: String
-  locale: String
-  timezone: String
-  socialsJson: String
-}
-
-# ============================================
-# Wallet Types
-# ============================================
-
-type WalletLink {
-  id: ID!
-  userId: ID!
-  accountId: String!
-  address: String!
-  chainId: String!
-  isPrimary: Boolean!
-  verifiedAt: String
-  createdAt: String!
-  updatedAt: String!
-}
-
-input LinkWalletInput {
-  accountId: String!
-  address: String!
-  chainId: String!
-  isPrimary: Boolean!
-  type: String
-  connector: String
-  label: String
-}
-
-# ============================================
-# Queries
-# ============================================
-
-type Query {
-  # Auth
-  getNonce(accountId: String!, chainId: String!, domain: String!): Nonce!
-
-  # User
-  me: User
-  getUser(userId: ID!): User
-
-  # Wallet
-  myWallets: [WalletLink!]!
-  getWallets(userId: ID!): [WalletLink!]!
-}
-
-# ============================================
-# Mutations
-# ============================================
-
-type Mutation {
-  # Auth
-  verifySiwe(
-    accountId: String!
-    message: String!
-    signature: String!
-  ): AuthResponse!
-
-  """
-  Refresh the current session to get a new access token.
-  - refreshToken: Optional. If not provided, will use refresh_token from HttpOnly cookie.
-  - userAgent: Optional. User agent string for session tracking.
-  - ipAddress: Optional. IP address for session tracking.
-  """
-  refreshSession(
-    refreshToken: String
-    userAgent: String
-    ipAddress: String
-  ): RefreshResponse!
-
-  revokeSession(sessionId: ID!): Boolean!
-
-  """
-  Logout the current user by revoking the session from refresh_token cookie.
-  Clears the HttpOnly cookie automatically.
-  """
-  logout: Boolean!
-
-  # User
-  updateProfile(input: UpdateProfileInput!): Profile!
-
-  # Wallet
-  linkWallet(input: LinkWalletInput!): WalletLink!
-}
-`, BuiltIn: false},
+	{Name: "schemas/auth.graphqls", Input: sourceData("schemas/auth.graphqls"), BuiltIn: false},
+	{Name: "schemas/collection.graphqls", Input: sourceData("schemas/collection.graphqls"), BuiltIn: false},
+	{Name: "schemas/schema.graphqls", Input: sourceData("schemas/schema.graphqls"), BuiltIn: false},
+	{Name: "schemas/user.graphqls", Input: sourceData("schemas/user.graphqls"), BuiltIn: false},
+	{Name: "schemas/wallet.graphqls", Input: sourceData("schemas/wallet.graphqls"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addToAllowlist_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddToAllowlistInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createCollection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteCollection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_linkWallet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -766,6 +1319,22 @@ func (ec *executionContext) field_Mutation_revokeSession_args(ctx context.Contex
 		return nil, err
 	}
 	args["sessionId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateCollection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -812,6 +1381,78 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_collection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "slug", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["slug"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "contractAddress", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["contractAddress"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "chainId", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["chainId"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_collections_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["sortBy"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "sortOrder", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["sortOrder"] = arg3
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "category", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["category"] = arg4
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "chainId", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["chainId"] = arg5
+	arg6, err := graphql.ProcessArgField(ctx, rawArgs, "isVerified", ec.unmarshalOBoolean2ᚖbool)
+	if err != nil {
+		return nil, err
+	}
+	args["isVerified"] = arg6
+	arg7, err := graphql.ProcessArgField(ctx, rawArgs, "searchQuery", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["searchQuery"] = arg7
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getNonce_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -852,6 +1493,22 @@ func (ec *executionContext) field_Query_getWallets_args(ctx context.Context, raw
 		return nil, err
 	}
 	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myCollections_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -1052,6 +1709,2176 @@ func (ec *executionContext) fieldContext_AuthResponse_chainId(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Collection_id(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_slug(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_slug,
+		func(ctx context.Context) (any, error) {
+			return obj.Slug, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_userId(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_name(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_symbol(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_symbol,
+		func(ctx context.Context) (any, error) {
+			return obj.Symbol, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_symbol(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_description(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_category(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_category,
+		func(ctx context.Context) (any, error) {
+			return obj.Category, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_contractAddress(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_contractAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.ContractAddress, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_contractAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_chainId(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_chainId,
+		func(ctx context.Context) (any, error) {
+			return obj.ChainID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_chainId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_tokenStandard(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_tokenStandard,
+		func(ctx context.Context) (any, error) {
+			return obj.TokenStandard, nil
+		},
+		nil,
+		ec.marshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_tokenStandard(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type TokenStandard does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_deployerAddress(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_deployerAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.DeployerAddress, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_deployerAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_deployedBlock(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_deployedBlock,
+		func(ctx context.Context) (any, error) {
+			return obj.DeployedBlock, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_deployedBlock(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_status(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CollectionStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_deployedAt(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_deployedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.DeployedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_deployedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_indexStatus(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_indexStatus,
+		func(ctx context.Context) (any, error) {
+			return obj.IndexStatus, nil
+		},
+		nil,
+		ec.marshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_indexStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type IndexStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_isVerified(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_isVerified,
+		func(ctx context.Context) (any, error) {
+			return obj.IsVerified, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_isVerified(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_isHidden(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_isHidden,
+		func(ctx context.Context) (any, error) {
+			return obj.IsHidden, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_isHidden(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_source(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_source,
+		func(ctx context.Context) (any, error) {
+			return obj.Source, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_source(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_imageUrl(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_imageUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.ImageURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_imageUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_bannerUrl(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_bannerUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.BannerURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_bannerUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_featuredImageUrl(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_featuredImageUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.FeaturedImageURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_featuredImageUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_websiteUrl(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_websiteUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.WebsiteURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_websiteUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_baseUri(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_baseUri,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseURI, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_baseUri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_maxSupply(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_maxSupply,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxSupply, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_maxSupply(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_mintPriceAllowlist(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_mintPriceAllowlist,
+		func(ctx context.Context) (any, error) {
+			return obj.MintPriceAllowlist, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_mintPriceAllowlist(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_mintPricePublic(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_mintPricePublic,
+		func(ctx context.Context) (any, error) {
+			return obj.MintPricePublic, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_mintPricePublic(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_mintStartTime(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_mintStartTime,
+		func(ctx context.Context) (any, error) {
+			return obj.MintStartTime, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_mintStartTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_allowlistStageEnd(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_allowlistStageEnd,
+		func(ctx context.Context) (any, error) {
+			return obj.AllowlistStageEnd, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_allowlistStageEnd(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_mintLimitPerWallet(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_mintLimitPerWallet,
+		func(ctx context.Context) (any, error) {
+			return obj.MintLimitPerWallet, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_mintLimitPerWallet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_royaltyFeeBps(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_royaltyFeeBps,
+		func(ctx context.Context) (any, error) {
+			return obj.RoyaltyFeeBps, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_royaltyFeeBps(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_royaltyRecipient(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_royaltyRecipient,
+		func(ctx context.Context) (any, error) {
+			return obj.RoyaltyRecipient, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_royaltyRecipient(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_totalSupply(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_totalSupply,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalSupply, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_totalSupply(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_totalMinted(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_totalMinted,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalMinted, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_totalMinted(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_metadataStandard(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_metadataStandard,
+		func(ctx context.Context) (any, error) {
+			return obj.MetadataStandard, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_metadataStandard(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_metadata,
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		ec.marshalOCollectionMetadata2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_CollectionMetadata_id(ctx, field)
+			case "collectionId":
+				return ec.fieldContext_CollectionMetadata_collectionId(ctx, field)
+			case "metadataUri":
+				return ec.fieldContext_CollectionMetadata_metadataUri(ctx, field)
+			case "ipfsHash":
+				return ec.fieldContext_CollectionMetadata_ipfsHash(ctx, field)
+			case "ipfsUrl":
+				return ec.fieldContext_CollectionMetadata_ipfsUrl(ctx, field)
+			case "discordUrl":
+				return ec.fieldContext_CollectionMetadata_discordUrl(ctx, field)
+			case "twitterUrl":
+				return ec.fieldContext_CollectionMetadata_twitterUrl(ctx, field)
+			case "instagramUrl":
+				return ec.fieldContext_CollectionMetadata_instagramUrl(ctx, field)
+			case "mediumUrl":
+				return ec.fieldContext_CollectionMetadata_mediumUrl(ctx, field)
+			case "telegramUrl":
+				return ec.fieldContext_CollectionMetadata_telegramUrl(ctx, field)
+			case "backgroundColor":
+				return ec.fieldContext_CollectionMetadata_backgroundColor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CollectionMetadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_stats(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Collection_stats,
+		func(ctx context.Context) (any, error) {
+			return obj.Stats, nil
+		},
+		nil,
+		ec.marshalOCollectionStats2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Collection_stats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "collectionId":
+				return ec.fieldContext_CollectionStats_collectionId(ctx, field)
+			case "totalItems":
+				return ec.fieldContext_CollectionStats_totalItems(ctx, field)
+			case "totalOwners":
+				return ec.fieldContext_CollectionStats_totalOwners(ctx, field)
+			case "totalSales":
+				return ec.fieldContext_CollectionStats_totalSales(ctx, field)
+			case "floorPriceWei":
+				return ec.fieldContext_CollectionStats_floorPriceWei(ctx, field)
+			case "totalVolumeWei":
+				return ec.fieldContext_CollectionStats_totalVolumeWei(ctx, field)
+			case "averagePriceWei":
+				return ec.fieldContext_CollectionStats_averagePriceWei(ctx, field)
+			case "volume24hWei":
+				return ec.fieldContext_CollectionStats_volume24hWei(ctx, field)
+			case "sales24h":
+				return ec.fieldContext_CollectionStats_sales24h(ctx, field)
+			case "lastSaleAt":
+				return ec.fieldContext_CollectionStats_lastSaleAt(ctx, field)
+			case "lastMintAt":
+				return ec.fieldContext_CollectionStats_lastMintAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_CollectionStats_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CollectionStats", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_id(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_collectionId(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_collectionId,
+		func(ctx context.Context) (any, error) {
+			return obj.CollectionID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_collectionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_walletAddress(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_walletAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.WalletAddress, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_walletAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_maxMintAmount(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_maxMintAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxMintAmount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_maxMintAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_addedByUserId(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_addedByUserId,
+		func(ctx context.Context) (any, error) {
+			return obj.AddedByUserID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_addedByUserId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionAllowlist_addedAt(ctx context.Context, field graphql.CollectedField, obj *model.CollectionAllowlist) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionAllowlist_addedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.AddedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionAllowlist_addedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionAllowlist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionConnection_items(ctx context.Context, field graphql.CollectedField, obj *model.CollectionConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionConnection_items,
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		ec.marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionConnection_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Collection_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Collection_slug(ctx, field)
+			case "userId":
+				return ec.fieldContext_Collection_userId(ctx, field)
+			case "name":
+				return ec.fieldContext_Collection_name(ctx, field)
+			case "symbol":
+				return ec.fieldContext_Collection_symbol(ctx, field)
+			case "description":
+				return ec.fieldContext_Collection_description(ctx, field)
+			case "category":
+				return ec.fieldContext_Collection_category(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_Collection_contractAddress(ctx, field)
+			case "chainId":
+				return ec.fieldContext_Collection_chainId(ctx, field)
+			case "tokenStandard":
+				return ec.fieldContext_Collection_tokenStandard(ctx, field)
+			case "deployerAddress":
+				return ec.fieldContext_Collection_deployerAddress(ctx, field)
+			case "deployedBlock":
+				return ec.fieldContext_Collection_deployedBlock(ctx, field)
+			case "status":
+				return ec.fieldContext_Collection_status(ctx, field)
+			case "deployedAt":
+				return ec.fieldContext_Collection_deployedAt(ctx, field)
+			case "indexStatus":
+				return ec.fieldContext_Collection_indexStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Collection_isVerified(ctx, field)
+			case "isHidden":
+				return ec.fieldContext_Collection_isHidden(ctx, field)
+			case "source":
+				return ec.fieldContext_Collection_source(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_Collection_imageUrl(ctx, field)
+			case "bannerUrl":
+				return ec.fieldContext_Collection_bannerUrl(ctx, field)
+			case "featuredImageUrl":
+				return ec.fieldContext_Collection_featuredImageUrl(ctx, field)
+			case "websiteUrl":
+				return ec.fieldContext_Collection_websiteUrl(ctx, field)
+			case "baseUri":
+				return ec.fieldContext_Collection_baseUri(ctx, field)
+			case "maxSupply":
+				return ec.fieldContext_Collection_maxSupply(ctx, field)
+			case "mintPriceAllowlist":
+				return ec.fieldContext_Collection_mintPriceAllowlist(ctx, field)
+			case "mintPricePublic":
+				return ec.fieldContext_Collection_mintPricePublic(ctx, field)
+			case "mintStartTime":
+				return ec.fieldContext_Collection_mintStartTime(ctx, field)
+			case "allowlistStageEnd":
+				return ec.fieldContext_Collection_allowlistStageEnd(ctx, field)
+			case "mintLimitPerWallet":
+				return ec.fieldContext_Collection_mintLimitPerWallet(ctx, field)
+			case "royaltyFeeBps":
+				return ec.fieldContext_Collection_royaltyFeeBps(ctx, field)
+			case "royaltyRecipient":
+				return ec.fieldContext_Collection_royaltyRecipient(ctx, field)
+			case "totalSupply":
+				return ec.fieldContext_Collection_totalSupply(ctx, field)
+			case "totalMinted":
+				return ec.fieldContext_Collection_totalMinted(ctx, field)
+			case "metadataStandard":
+				return ec.fieldContext_Collection_metadataStandard(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Collection_updatedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
+			case "stats":
+				return ec.fieldContext_Collection_stats(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.CollectionConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionConnection_pageInfo,
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		ec.marshalNPageInfo2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalCount":
+				return ec.fieldContext_PageInfo_totalCount(ctx, field)
+			case "page":
+				return ec.fieldContext_PageInfo_page(ctx, field)
+			case "limit":
+				return ec.fieldContext_PageInfo_limit(ctx, field)
+			case "hasNext":
+				return ec.fieldContext_PageInfo_hasNext(ctx, field)
+			case "hasPrevious":
+				return ec.fieldContext_PageInfo_hasPrevious(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_id(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_collectionId(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_collectionId,
+		func(ctx context.Context) (any, error) {
+			return obj.CollectionID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_collectionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_metadataUri(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_metadataUri,
+		func(ctx context.Context) (any, error) {
+			return obj.MetadataURI, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_metadataUri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_ipfsHash(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_ipfsHash,
+		func(ctx context.Context) (any, error) {
+			return obj.IpfsHash, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_ipfsHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_ipfsUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_ipfsUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.IpfsURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_ipfsUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_discordUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_discordUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.DiscordURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_discordUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_twitterUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_twitterUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.TwitterURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_twitterUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_instagramUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_instagramUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.InstagramURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_instagramUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_mediumUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_mediumUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.MediumURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_mediumUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_telegramUrl(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_telegramUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.TelegramURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_telegramUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionMetadata_backgroundColor(ctx context.Context, field graphql.CollectedField, obj *model.CollectionMetadata) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionMetadata_backgroundColor,
+		func(ctx context.Context) (any, error) {
+			return obj.BackgroundColor, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionMetadata_backgroundColor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_collectionId(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_collectionId,
+		func(ctx context.Context) (any, error) {
+			return obj.CollectionID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_collectionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_totalItems(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_totalItems,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalItems, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_totalItems(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_totalOwners(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_totalOwners,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalOwners, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_totalOwners(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_totalSales(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_totalSales,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalSales, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_totalSales(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_floorPriceWei(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_floorPriceWei,
+		func(ctx context.Context) (any, error) {
+			return obj.FloorPriceWei, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_floorPriceWei(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_totalVolumeWei(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_totalVolumeWei,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalVolumeWei, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_totalVolumeWei(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_averagePriceWei(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_averagePriceWei,
+		func(ctx context.Context) (any, error) {
+			return obj.AveragePriceWei, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_averagePriceWei(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_volume24hWei(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_volume24hWei,
+		func(ctx context.Context) (any, error) {
+			return obj.Volume24hWei, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_volume24hWei(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_sales24h(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_sales24h,
+		func(ctx context.Context) (any, error) {
+			return obj.Sales24h, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_sales24h(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_lastSaleAt(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_lastSaleAt,
+		func(ctx context.Context) (any, error) {
+			return obj.LastSaleAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_lastSaleAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_lastMintAt(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_lastMintAt,
+		func(ctx context.Context) (any, error) {
+			return obj.LastMintAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_lastMintAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CollectionStats_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.CollectionStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CollectionStats_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CollectionStats_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CollectionStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation__empty(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation__empty,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().Empty(ctx)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation__empty(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_verifySiwe(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1220,6 +4047,326 @@ func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, fiel
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createCollection,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateCollection(ctx, fc.Args["input"].(model.CreateCollectionInput))
+		},
+		nil,
+		ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Collection_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Collection_slug(ctx, field)
+			case "userId":
+				return ec.fieldContext_Collection_userId(ctx, field)
+			case "name":
+				return ec.fieldContext_Collection_name(ctx, field)
+			case "symbol":
+				return ec.fieldContext_Collection_symbol(ctx, field)
+			case "description":
+				return ec.fieldContext_Collection_description(ctx, field)
+			case "category":
+				return ec.fieldContext_Collection_category(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_Collection_contractAddress(ctx, field)
+			case "chainId":
+				return ec.fieldContext_Collection_chainId(ctx, field)
+			case "tokenStandard":
+				return ec.fieldContext_Collection_tokenStandard(ctx, field)
+			case "deployerAddress":
+				return ec.fieldContext_Collection_deployerAddress(ctx, field)
+			case "deployedBlock":
+				return ec.fieldContext_Collection_deployedBlock(ctx, field)
+			case "status":
+				return ec.fieldContext_Collection_status(ctx, field)
+			case "deployedAt":
+				return ec.fieldContext_Collection_deployedAt(ctx, field)
+			case "indexStatus":
+				return ec.fieldContext_Collection_indexStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Collection_isVerified(ctx, field)
+			case "isHidden":
+				return ec.fieldContext_Collection_isHidden(ctx, field)
+			case "source":
+				return ec.fieldContext_Collection_source(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_Collection_imageUrl(ctx, field)
+			case "bannerUrl":
+				return ec.fieldContext_Collection_bannerUrl(ctx, field)
+			case "featuredImageUrl":
+				return ec.fieldContext_Collection_featuredImageUrl(ctx, field)
+			case "websiteUrl":
+				return ec.fieldContext_Collection_websiteUrl(ctx, field)
+			case "baseUri":
+				return ec.fieldContext_Collection_baseUri(ctx, field)
+			case "maxSupply":
+				return ec.fieldContext_Collection_maxSupply(ctx, field)
+			case "mintPriceAllowlist":
+				return ec.fieldContext_Collection_mintPriceAllowlist(ctx, field)
+			case "mintPricePublic":
+				return ec.fieldContext_Collection_mintPricePublic(ctx, field)
+			case "mintStartTime":
+				return ec.fieldContext_Collection_mintStartTime(ctx, field)
+			case "allowlistStageEnd":
+				return ec.fieldContext_Collection_allowlistStageEnd(ctx, field)
+			case "mintLimitPerWallet":
+				return ec.fieldContext_Collection_mintLimitPerWallet(ctx, field)
+			case "royaltyFeeBps":
+				return ec.fieldContext_Collection_royaltyFeeBps(ctx, field)
+			case "royaltyRecipient":
+				return ec.fieldContext_Collection_royaltyRecipient(ctx, field)
+			case "totalSupply":
+				return ec.fieldContext_Collection_totalSupply(ctx, field)
+			case "totalMinted":
+				return ec.fieldContext_Collection_totalMinted(ctx, field)
+			case "metadataStandard":
+				return ec.fieldContext_Collection_metadataStandard(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Collection_updatedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
+			case "stats":
+				return ec.fieldContext_Collection_stats(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createCollection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateCollection,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateCollection(ctx, fc.Args["id"].(string), fc.Args["input"].(model.UpdateCollectionInput))
+		},
+		nil,
+		ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Collection_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Collection_slug(ctx, field)
+			case "userId":
+				return ec.fieldContext_Collection_userId(ctx, field)
+			case "name":
+				return ec.fieldContext_Collection_name(ctx, field)
+			case "symbol":
+				return ec.fieldContext_Collection_symbol(ctx, field)
+			case "description":
+				return ec.fieldContext_Collection_description(ctx, field)
+			case "category":
+				return ec.fieldContext_Collection_category(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_Collection_contractAddress(ctx, field)
+			case "chainId":
+				return ec.fieldContext_Collection_chainId(ctx, field)
+			case "tokenStandard":
+				return ec.fieldContext_Collection_tokenStandard(ctx, field)
+			case "deployerAddress":
+				return ec.fieldContext_Collection_deployerAddress(ctx, field)
+			case "deployedBlock":
+				return ec.fieldContext_Collection_deployedBlock(ctx, field)
+			case "status":
+				return ec.fieldContext_Collection_status(ctx, field)
+			case "deployedAt":
+				return ec.fieldContext_Collection_deployedAt(ctx, field)
+			case "indexStatus":
+				return ec.fieldContext_Collection_indexStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Collection_isVerified(ctx, field)
+			case "isHidden":
+				return ec.fieldContext_Collection_isHidden(ctx, field)
+			case "source":
+				return ec.fieldContext_Collection_source(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_Collection_imageUrl(ctx, field)
+			case "bannerUrl":
+				return ec.fieldContext_Collection_bannerUrl(ctx, field)
+			case "featuredImageUrl":
+				return ec.fieldContext_Collection_featuredImageUrl(ctx, field)
+			case "websiteUrl":
+				return ec.fieldContext_Collection_websiteUrl(ctx, field)
+			case "baseUri":
+				return ec.fieldContext_Collection_baseUri(ctx, field)
+			case "maxSupply":
+				return ec.fieldContext_Collection_maxSupply(ctx, field)
+			case "mintPriceAllowlist":
+				return ec.fieldContext_Collection_mintPriceAllowlist(ctx, field)
+			case "mintPricePublic":
+				return ec.fieldContext_Collection_mintPricePublic(ctx, field)
+			case "mintStartTime":
+				return ec.fieldContext_Collection_mintStartTime(ctx, field)
+			case "allowlistStageEnd":
+				return ec.fieldContext_Collection_allowlistStageEnd(ctx, field)
+			case "mintLimitPerWallet":
+				return ec.fieldContext_Collection_mintLimitPerWallet(ctx, field)
+			case "royaltyFeeBps":
+				return ec.fieldContext_Collection_royaltyFeeBps(ctx, field)
+			case "royaltyRecipient":
+				return ec.fieldContext_Collection_royaltyRecipient(ctx, field)
+			case "totalSupply":
+				return ec.fieldContext_Collection_totalSupply(ctx, field)
+			case "totalMinted":
+				return ec.fieldContext_Collection_totalMinted(ctx, field)
+			case "metadataStandard":
+				return ec.fieldContext_Collection_metadataStandard(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Collection_updatedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
+			case "stats":
+				return ec.fieldContext_Collection_stats(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCollection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addToAllowlist(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_addToAllowlist,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AddToAllowlist(ctx, fc.Args["input"].(model.AddToAllowlistInput))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addToAllowlist(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addToAllowlist_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteCollection,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteCollection(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCollection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1401,6 +4548,151 @@ func (ec *executionContext) fieldContext_Nonce_expiresAt(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_page(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_limit(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_limit,
+		func(ctx context.Context) (any, error) {
+			return obj.Limit, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_limit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_hasNext(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_hasNext,
+		func(ctx context.Context) (any, error) {
+			return obj.HasNext, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasNext(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_hasPrevious(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PageInfo_hasPrevious,
+		func(ctx context.Context) (any, error) {
+			return obj.HasPrevious, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasPrevious(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1696,6 +4988,35 @@ func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Query__empty(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query__empty,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Empty(ctx)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query__empty(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getNonce(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1737,6 +5058,219 @@ func (ec *executionContext) fieldContext_Query_getNonce(ctx context.Context, fie
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getNonce_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_collection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_collection,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Collection(ctx, fc.Args["id"].(*string), fc.Args["slug"].(*string), fc.Args["contractAddress"].(*string), fc.Args["chainId"].(*string))
+		},
+		nil,
+		ec.marshalOCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Collection_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Collection_slug(ctx, field)
+			case "userId":
+				return ec.fieldContext_Collection_userId(ctx, field)
+			case "name":
+				return ec.fieldContext_Collection_name(ctx, field)
+			case "symbol":
+				return ec.fieldContext_Collection_symbol(ctx, field)
+			case "description":
+				return ec.fieldContext_Collection_description(ctx, field)
+			case "category":
+				return ec.fieldContext_Collection_category(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_Collection_contractAddress(ctx, field)
+			case "chainId":
+				return ec.fieldContext_Collection_chainId(ctx, field)
+			case "tokenStandard":
+				return ec.fieldContext_Collection_tokenStandard(ctx, field)
+			case "deployerAddress":
+				return ec.fieldContext_Collection_deployerAddress(ctx, field)
+			case "deployedBlock":
+				return ec.fieldContext_Collection_deployedBlock(ctx, field)
+			case "status":
+				return ec.fieldContext_Collection_status(ctx, field)
+			case "deployedAt":
+				return ec.fieldContext_Collection_deployedAt(ctx, field)
+			case "indexStatus":
+				return ec.fieldContext_Collection_indexStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Collection_isVerified(ctx, field)
+			case "isHidden":
+				return ec.fieldContext_Collection_isHidden(ctx, field)
+			case "source":
+				return ec.fieldContext_Collection_source(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_Collection_imageUrl(ctx, field)
+			case "bannerUrl":
+				return ec.fieldContext_Collection_bannerUrl(ctx, field)
+			case "featuredImageUrl":
+				return ec.fieldContext_Collection_featuredImageUrl(ctx, field)
+			case "websiteUrl":
+				return ec.fieldContext_Collection_websiteUrl(ctx, field)
+			case "baseUri":
+				return ec.fieldContext_Collection_baseUri(ctx, field)
+			case "maxSupply":
+				return ec.fieldContext_Collection_maxSupply(ctx, field)
+			case "mintPriceAllowlist":
+				return ec.fieldContext_Collection_mintPriceAllowlist(ctx, field)
+			case "mintPricePublic":
+				return ec.fieldContext_Collection_mintPricePublic(ctx, field)
+			case "mintStartTime":
+				return ec.fieldContext_Collection_mintStartTime(ctx, field)
+			case "allowlistStageEnd":
+				return ec.fieldContext_Collection_allowlistStageEnd(ctx, field)
+			case "mintLimitPerWallet":
+				return ec.fieldContext_Collection_mintLimitPerWallet(ctx, field)
+			case "royaltyFeeBps":
+				return ec.fieldContext_Collection_royaltyFeeBps(ctx, field)
+			case "royaltyRecipient":
+				return ec.fieldContext_Collection_royaltyRecipient(ctx, field)
+			case "totalSupply":
+				return ec.fieldContext_Collection_totalSupply(ctx, field)
+			case "totalMinted":
+				return ec.fieldContext_Collection_totalMinted(ctx, field)
+			case "metadataStandard":
+				return ec.fieldContext_Collection_metadataStandard(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Collection_updatedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
+			case "stats":
+				return ec.fieldContext_Collection_stats(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_collection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myCollections(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myCollections,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyCollections(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myCollections(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "items":
+				return ec.fieldContext_CollectionConnection_items(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_CollectionConnection_pageInfo(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CollectionConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myCollections_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_collections(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_collections,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Collections(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int), fc.Args["sortBy"].(*string), fc.Args["sortOrder"].(*string), fc.Args["category"].(*string), fc.Args["chainId"].(*string), fc.Args["isVerified"].(*bool), fc.Args["searchQuery"].(*string))
+		},
+		nil,
+		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "items":
+				return ec.fieldContext_CollectionConnection_items(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_CollectionConnection_pageInfo(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CollectionConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_collections_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3983,6 +7517,256 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAddToAllowlistInput(ctx context.Context, obj any) (model.AddToAllowlistInput, error) {
+	var it model.AddToAllowlistInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"collectionId", "walletAddresses", "maxMintAmount"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "collectionId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("collectionId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CollectionID = data
+		case "walletAddresses":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("walletAddresses"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.WalletAddresses = data
+		case "maxMintAmount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxMintAmount"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxMintAmount = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateCollectionInput(ctx context.Context, obj any) (model.CreateCollectionInput, error) {
+	var it model.CreateCollectionInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "symbol", "description", "category", "tokenStandard", "deployerAddress", "chainId", "imageUrl", "bannerUrl", "featuredImageUrl", "websiteUrl", "royaltyFeeBps", "royaltyRecipient", "baseUri", "maxSupply", "mintPriceAllowlist", "mintPricePublic", "mintStartTime", "allowlistStageEnd", "mintLimitPerWallet", "metadataUri", "ipfsHash", "discordUrl", "twitterUrl", "instagramUrl", "mediumUrl", "telegramUrl"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "symbol":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("symbol"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Symbol = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "category":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("category"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Category = data
+		case "tokenStandard":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tokenStandard"))
+			data, err := ec.unmarshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TokenStandard = data
+		case "deployerAddress":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deployerAddress"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeployerAddress = data
+		case "chainId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chainId"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ChainID = data
+		case "imageUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ImageURL = data
+		case "bannerUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bannerUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BannerURL = data
+		case "featuredImageUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuredImageUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FeaturedImageURL = data
+		case "websiteUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("websiteUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.WebsiteURL = data
+		case "royaltyFeeBps":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("royaltyFeeBps"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RoyaltyFeeBps = data
+		case "royaltyRecipient":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("royaltyRecipient"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RoyaltyRecipient = data
+		case "baseUri":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseUri"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BaseURI = data
+		case "maxSupply":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxSupply"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxSupply = data
+		case "mintPriceAllowlist":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintPriceAllowlist"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintPriceAllowlist = data
+		case "mintPricePublic":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintPricePublic"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintPricePublic = data
+		case "mintStartTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintStartTime"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintStartTime = data
+		case "allowlistStageEnd":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowlistStageEnd"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowlistStageEnd = data
+		case "mintLimitPerWallet":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintLimitPerWallet"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintLimitPerWallet = data
+		case "metadataUri":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("metadataUri"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MetadataURI = data
+		case "ipfsHash":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ipfsHash"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IpfsHash = data
+		case "discordUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discordUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscordURL = data
+		case "twitterUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("twitterUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TwitterURL = data
+		case "instagramUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("instagramUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InstagramURL = data
+		case "mediumUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mediumUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MediumURL = data
+		case "telegramUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("telegramUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TelegramURL = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLinkWalletInput(ctx context.Context, obj any) (model.LinkWalletInput, error) {
 	var it model.LinkWalletInput
 	asMap := map[string]any{}
@@ -4046,6 +7830,173 @@ func (ec *executionContext) unmarshalInputLinkWalletInput(ctx context.Context, o
 				return it, err
 			}
 			it.Label = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateCollectionInput(ctx context.Context, obj any) (model.UpdateCollectionInput, error) {
+	var it model.UpdateCollectionInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"description", "category", "imageUrl", "bannerUrl", "featuredImageUrl", "websiteUrl", "discordUrl", "twitterUrl", "instagramUrl", "mediumUrl", "telegramUrl", "backgroundColor", "baseUri", "mintPriceAllowlist", "mintPricePublic", "mintStartTime", "allowlistStageEnd", "mintLimitPerWallet", "status", "contractAddress", "deployedBlock"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "category":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("category"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Category = data
+		case "imageUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ImageURL = data
+		case "bannerUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bannerUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BannerURL = data
+		case "featuredImageUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuredImageUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FeaturedImageURL = data
+		case "websiteUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("websiteUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.WebsiteURL = data
+		case "discordUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discordUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscordURL = data
+		case "twitterUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("twitterUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TwitterURL = data
+		case "instagramUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("instagramUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InstagramURL = data
+		case "mediumUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mediumUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MediumURL = data
+		case "telegramUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("telegramUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TelegramURL = data
+		case "backgroundColor":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("backgroundColor"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BackgroundColor = data
+		case "baseUri":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseUri"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BaseURI = data
+		case "mintPriceAllowlist":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintPriceAllowlist"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintPriceAllowlist = data
+		case "mintPricePublic":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintPricePublic"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintPricePublic = data
+		case "mintStartTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintStartTime"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintStartTime = data
+		case "allowlistStageEnd":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowlistStageEnd"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AllowlistStageEnd = data
+		case "mintLimitPerWallet":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mintLimitPerWallet"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MintLimitPerWallet = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Status = data
+		case "contractAddress":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractAddress"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ContractAddress = data
+		case "deployedBlock":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deployedBlock"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeployedBlock = data
 		}
 	}
 
@@ -4195,6 +8146,413 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var collectionImplementors = []string{"Collection"}
+
+func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSet, obj *model.Collection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, collectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Collection")
+		case "id":
+			out.Values[i] = ec._Collection_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "slug":
+			out.Values[i] = ec._Collection_slug(ctx, field, obj)
+		case "userId":
+			out.Values[i] = ec._Collection_userId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Collection_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "symbol":
+			out.Values[i] = ec._Collection_symbol(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._Collection_description(ctx, field, obj)
+		case "category":
+			out.Values[i] = ec._Collection_category(ctx, field, obj)
+		case "contractAddress":
+			out.Values[i] = ec._Collection_contractAddress(ctx, field, obj)
+		case "chainId":
+			out.Values[i] = ec._Collection_chainId(ctx, field, obj)
+		case "tokenStandard":
+			out.Values[i] = ec._Collection_tokenStandard(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deployerAddress":
+			out.Values[i] = ec._Collection_deployerAddress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deployedBlock":
+			out.Values[i] = ec._Collection_deployedBlock(ctx, field, obj)
+		case "status":
+			out.Values[i] = ec._Collection_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deployedAt":
+			out.Values[i] = ec._Collection_deployedAt(ctx, field, obj)
+		case "indexStatus":
+			out.Values[i] = ec._Collection_indexStatus(ctx, field, obj)
+		case "isVerified":
+			out.Values[i] = ec._Collection_isVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isHidden":
+			out.Values[i] = ec._Collection_isHidden(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "source":
+			out.Values[i] = ec._Collection_source(ctx, field, obj)
+		case "imageUrl":
+			out.Values[i] = ec._Collection_imageUrl(ctx, field, obj)
+		case "bannerUrl":
+			out.Values[i] = ec._Collection_bannerUrl(ctx, field, obj)
+		case "featuredImageUrl":
+			out.Values[i] = ec._Collection_featuredImageUrl(ctx, field, obj)
+		case "websiteUrl":
+			out.Values[i] = ec._Collection_websiteUrl(ctx, field, obj)
+		case "baseUri":
+			out.Values[i] = ec._Collection_baseUri(ctx, field, obj)
+		case "maxSupply":
+			out.Values[i] = ec._Collection_maxSupply(ctx, field, obj)
+		case "mintPriceAllowlist":
+			out.Values[i] = ec._Collection_mintPriceAllowlist(ctx, field, obj)
+		case "mintPricePublic":
+			out.Values[i] = ec._Collection_mintPricePublic(ctx, field, obj)
+		case "mintStartTime":
+			out.Values[i] = ec._Collection_mintStartTime(ctx, field, obj)
+		case "allowlistStageEnd":
+			out.Values[i] = ec._Collection_allowlistStageEnd(ctx, field, obj)
+		case "mintLimitPerWallet":
+			out.Values[i] = ec._Collection_mintLimitPerWallet(ctx, field, obj)
+		case "royaltyFeeBps":
+			out.Values[i] = ec._Collection_royaltyFeeBps(ctx, field, obj)
+		case "royaltyRecipient":
+			out.Values[i] = ec._Collection_royaltyRecipient(ctx, field, obj)
+		case "totalSupply":
+			out.Values[i] = ec._Collection_totalSupply(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalMinted":
+			out.Values[i] = ec._Collection_totalMinted(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadataStandard":
+			out.Values[i] = ec._Collection_metadataStandard(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._Collection_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Collection_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadata":
+			out.Values[i] = ec._Collection_metadata(ctx, field, obj)
+		case "stats":
+			out.Values[i] = ec._Collection_stats(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var collectionAllowlistImplementors = []string{"CollectionAllowlist"}
+
+func (ec *executionContext) _CollectionAllowlist(ctx context.Context, sel ast.SelectionSet, obj *model.CollectionAllowlist) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, collectionAllowlistImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CollectionAllowlist")
+		case "id":
+			out.Values[i] = ec._CollectionAllowlist_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "collectionId":
+			out.Values[i] = ec._CollectionAllowlist_collectionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "walletAddress":
+			out.Values[i] = ec._CollectionAllowlist_walletAddress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxMintAmount":
+			out.Values[i] = ec._CollectionAllowlist_maxMintAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addedByUserId":
+			out.Values[i] = ec._CollectionAllowlist_addedByUserId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addedAt":
+			out.Values[i] = ec._CollectionAllowlist_addedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var collectionConnectionImplementors = []string{"CollectionConnection"}
+
+func (ec *executionContext) _CollectionConnection(ctx context.Context, sel ast.SelectionSet, obj *model.CollectionConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, collectionConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CollectionConnection")
+		case "items":
+			out.Values[i] = ec._CollectionConnection_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._CollectionConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var collectionMetadataImplementors = []string{"CollectionMetadata"}
+
+func (ec *executionContext) _CollectionMetadata(ctx context.Context, sel ast.SelectionSet, obj *model.CollectionMetadata) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, collectionMetadataImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CollectionMetadata")
+		case "id":
+			out.Values[i] = ec._CollectionMetadata_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "collectionId":
+			out.Values[i] = ec._CollectionMetadata_collectionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "metadataUri":
+			out.Values[i] = ec._CollectionMetadata_metadataUri(ctx, field, obj)
+		case "ipfsHash":
+			out.Values[i] = ec._CollectionMetadata_ipfsHash(ctx, field, obj)
+		case "ipfsUrl":
+			out.Values[i] = ec._CollectionMetadata_ipfsUrl(ctx, field, obj)
+		case "discordUrl":
+			out.Values[i] = ec._CollectionMetadata_discordUrl(ctx, field, obj)
+		case "twitterUrl":
+			out.Values[i] = ec._CollectionMetadata_twitterUrl(ctx, field, obj)
+		case "instagramUrl":
+			out.Values[i] = ec._CollectionMetadata_instagramUrl(ctx, field, obj)
+		case "mediumUrl":
+			out.Values[i] = ec._CollectionMetadata_mediumUrl(ctx, field, obj)
+		case "telegramUrl":
+			out.Values[i] = ec._CollectionMetadata_telegramUrl(ctx, field, obj)
+		case "backgroundColor":
+			out.Values[i] = ec._CollectionMetadata_backgroundColor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var collectionStatsImplementors = []string{"CollectionStats"}
+
+func (ec *executionContext) _CollectionStats(ctx context.Context, sel ast.SelectionSet, obj *model.CollectionStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, collectionStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CollectionStats")
+		case "collectionId":
+			out.Values[i] = ec._CollectionStats_collectionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalItems":
+			out.Values[i] = ec._CollectionStats_totalItems(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalOwners":
+			out.Values[i] = ec._CollectionStats_totalOwners(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalSales":
+			out.Values[i] = ec._CollectionStats_totalSales(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "floorPriceWei":
+			out.Values[i] = ec._CollectionStats_floorPriceWei(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalVolumeWei":
+			out.Values[i] = ec._CollectionStats_totalVolumeWei(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "averagePriceWei":
+			out.Values[i] = ec._CollectionStats_averagePriceWei(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "volume24hWei":
+			out.Values[i] = ec._CollectionStats_volume24hWei(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sales24h":
+			out.Values[i] = ec._CollectionStats_sales24h(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastSaleAt":
+			out.Values[i] = ec._CollectionStats_lastSaleAt(ctx, field, obj)
+		case "lastMintAt":
+			out.Values[i] = ec._CollectionStats_lastMintAt(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._CollectionStats_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4214,6 +8572,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "_empty":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation__empty(ctx, field)
+			})
 		case "verifySiwe":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_verifySiwe(ctx, field)
@@ -4238,6 +8600,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "logout":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_logout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createCollection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createCollection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateCollection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCollection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addToAllowlist":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addToAllowlist(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteCollection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCollection(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4297,6 +8687,65 @@ func (ec *executionContext) _Nonce(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "expiresAt":
 			out.Values[i] = ec._Nonce_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pageInfoImplementors = []string{"PageInfo"}
+
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *model.PageInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "totalCount":
+			out.Values[i] = ec._PageInfo_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._PageInfo_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "limit":
+			out.Values[i] = ec._PageInfo_limit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasNext":
+			out.Values[i] = ec._PageInfo_hasNext(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasPrevious":
+			out.Values[i] = ec._PageInfo_hasPrevious(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4399,6 +8848,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "_empty":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query__empty(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getNonce":
 			field := field
 
@@ -4409,6 +8877,69 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getNonce(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "collection":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_collection(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myCollections":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myCollections(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "collections":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_collections(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -5045,6 +9576,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAddToAllowlistInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput(ctx context.Context, v any) (model.AddToAllowlistInput, error) {
+	res, err := ec.unmarshalInputAddToAllowlistInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
 	return ec._AuthResponse(ctx, sel, &v)
 }
@@ -5075,6 +9611,93 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNCollection2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v model.Collection) graphql.Marshaler {
+	return ec._Collection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Collection) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Collection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCollectionConnection2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v model.CollectionConnection) graphql.Marshaler {
+	return ec._CollectionConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v *model.CollectionConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CollectionConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (model.CollectionStatus, error) {
+	var res model.CollectionStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v model.CollectionStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNCreateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput(ctx context.Context, v any) (model.CreateCollectionInput, error) {
+	res, err := ec.unmarshalInputCreateCollectionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5083,6 +9706,22 @@ func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (str
 func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -5108,6 +9747,16 @@ func (ec *executionContext) marshalNNonce2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑ
 		return graphql.Null
 	}
 	return ec._Nonce(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PageInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProfile2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v model.Profile) graphql.Marshaler {
@@ -5152,6 +9801,67 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, v any) (model.TokenStandard, error) {
+	var res model.TokenStandard
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, sel ast.SelectionSet, v model.TokenStandard) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNUpdateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput(ctx context.Context, v any) (model.UpdateCollectionInput, error) {
+	res, err := ec.unmarshalInputUpdateCollectionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
@@ -5500,6 +10210,95 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) marshalOCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Collection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCollectionMetadata2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata(ctx context.Context, sel ast.SelectionSet, v *model.CollectionMetadata) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CollectionMetadata(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCollectionStats2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStats) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CollectionStats(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (*model.CollectionStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.CollectionStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, v any) (*model.IndexStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.IndexStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, sel ast.SelectionSet, v *model.IndexStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
 func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -5522,6 +10321,24 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalString(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
 	return res
 }
 

@@ -11,12 +11,12 @@ All migrations are in `db/migrations/`:
 
 ### Run Migrations
 ```bash
-make migrate-up
+make migrate
 ```
 
 ### Check Current Version
 ```bash
-make migrate-version
+make migrate-status
 ```
 
 ### Create New Migration
@@ -24,13 +24,6 @@ make migrate-version
 make migrate-create NAME=add_new_table
 ```
 
-### Reset Database (Dangerous!)
-```bash
-make db-reset
-```
-This will:
-1. Drop and recreate the database
-2. Run all migrations from scratch
 
 ## Migration Structure
 
@@ -44,7 +37,7 @@ The initial migration (`000001_init_schema.up.sql`) contains schemas for all thr
 Default database connection (can override in Makefile or environment):
 ```bash
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=nft_marketplace
@@ -54,5 +47,4 @@ DB_NAME=nft_marketplace
 
 - ⚠️ Down migrations are NOT created (no rollback support by design)
 - All services share the same PostgreSQL database
-- Migrations run automatically in `make db-reset`
 - Schema version is tracked in `schema_migrations` table

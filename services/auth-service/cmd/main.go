@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -19,6 +18,7 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/repository"
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/server"
 	"github.com/zunokit/zuno-marketplace-api/services/auth-service/internal/service"
+	"github.com/zunokit/zuno-marketplace-api/shared/logger"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -26,7 +26,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 // Version and BuildTime are injected via ldflags during build
@@ -36,7 +36,14 @@ var (
 )
 
 func main() {
-	log.Println("Starting Auth Service...")
+	// Initialize logger
+	log := logger.New(&logger.Config{
+		Level:       logger.LevelInfo,
+		ServiceName: "auth-service",
+		Pretty:      false,
+	})
+
+	log.Info("Starting Auth Service...")
 
 	// Load configuration
 	cfg := config.Load()
@@ -50,39 +57,38 @@ func main() {
 			getBuildVersion(),
 			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
 		); err != nil {
-			log.Printf("Sentry init failed (continuing): %v", err)
+			log.Infof("Sentry init failed (continuing): %v", err)
 		} else {
-			log.Println("Sentry initialized")
+			log.Info("Sentry initialized")
 			defer obs.Flush(2 * time.Second)
 		}
 	} else {
-		log.Println("Sentry DSN not configured, skipping")
+		log.Info("Sentry DSN not configured, skipping")
 	}
 
-	// Initialize database
+	// Initialize database connection
 	dsn := cfg.Database.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.FatalWithErr(err, "Failed to connect to database")
 	}
-	log.Println("Database connected successfully")
 
 	// Initialize Redis (non-blocking)
 	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
-		log.Printf("Redis init failed (continuing without cache): %v", err)
+		log.Infof("Redis init failed (continuing without cache): %v", err)
 	} else {
-		log.Println("Redis connected")
+		log.Info("Redis connected")
 		defer sharedredis.Close()
 	}
 
 	// Initialize RabbitMQ (non-blocking)
 	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
-		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+		log.Infof("RabbitMQ init failed (continuing without events): %v", err)
 	} else {
-		log.Println("RabbitMQ connected")
+		log.Info("RabbitMQ connected")
 		defer sharedrabbitmq.Close()
 	}
 
@@ -103,9 +109,9 @@ func main() {
 	// Initialize gRPC clients
 	clients, err := client.NewServiceClients(cfg.Services.UserServiceURL, cfg.Services.WalletServiceURL)
 	if err != nil {
-		log.Fatalf("Failed to initialize gRPC clients: %v", err)
+		log.FatalWithErr(err, "Failed to initialize gRPC clients")
 	}
-	log.Println("gRPC clients initialized")
+	log.Info("gRPC clients initialized")
 
 	// Create gRPC server with Sentry interceptor
 	grpcServer := grpc.NewServer(
@@ -131,30 +137,30 @@ func main() {
 	// Start gRPC server
 	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
+		log.FatalWithErr(err, "Failed to listen on "+cfg.Server.GRPCPort)
 	}
 
-	log.Printf("Auth Service listening on %s", cfg.Server.GRPCPort)
+	log.Infof("Auth Service listening on %s", cfg.Server.GRPCPort)
 
 	// Graceful shutdown
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
-		log.Println("Shutting down Auth Service...")
+		log.Info("Shutting down Auth Service...")
 
 		// Flush Sentry before shutdown
 		if cfg.Sentry.DSN != "" {
-			log.Println("Flushing Sentry events...")
+			log.Info("Flushing Sentry events...")
 			obs.Flush(2 * time.Second)
 		}
 
 		grpcServer.GracefulStop()
-		log.Println("Auth Service stopped")
+		log.Info("Auth Service stopped")
 	}()
 
 	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		log.FatalWithErr(err, "Failed to serve")
 	}
 }
 

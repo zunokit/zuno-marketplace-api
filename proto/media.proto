@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package media;
+
+option go_package = "github.com/zunokit/zuno-marketplace-api/shared/proto/pb";
+
+// MediaService handles file uploads to Metadata Service
+service MediaService {
+  // Upload a single file
+  rpc UploadMedia(UploadMediaRequest) returns (UploadMediaResponse);
+
+  // Upload multiple files
+  rpc BatchUploadMedia(BatchUploadMediaRequest) returns (BatchUploadMediaResponse);
+
+  // Get media info by ID
+  rpc GetMedia(GetMediaRequest) returns (GetMediaResponse);
+}
+
+// UploadMediaRequest for single file upload
+message UploadMediaRequest {
+  string user_id = 1;
+  bytes file_data = 2;
+  string filename = 3;
+  string content_type = 4;
+  string folder = 5;           // optional: collections, nfts, avatars
+  repeated string tags = 6;    // optional: for categorization
+}
+
+// UploadMediaResponse
+message UploadMediaResponse {
+  MediaInfo media = 1;
+}
+
+// BatchUploadMediaRequest for multiple files
+message BatchUploadMediaRequest {
+  string user_id = 1;
+  repeated FileData files = 2;
+  string folder = 3;
+}
+
+// FileData represents a single file in batch upload
+message FileData {
+  bytes data = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+// BatchUploadMediaResponse
+message BatchUploadMediaResponse {
+  repeated MediaInfo media = 1;
+}
+
+// GetMediaRequest
+message GetMediaRequest {
+  string media_id = 1;
+}
+
+// GetMediaResponse
+message GetMediaResponse {
+  MediaInfo media = 1;
+}
+
+// MediaInfo represents uploaded media information
+message MediaInfo {
+  string id = 1;
+  string file_name = 2;
+  int64 file_size = 3;
+  string mime_type = 4;
+  string media_type = 5;       // image, video, audio
+  string url = 6;              // ImageKit URL
+  string thumbnail_url = 7;
+  int32 width = 8;
+  int32 height = 9;
+  string ipfs_hash = 10;       // empty initially, set after async pinning
+  string ipfs_url = 11;        // empty initially
+  bool is_pinned = 12;         // false initially, true after ~10-30s
+  string pinned_at = 13;
+  string created_at = 14;
+}

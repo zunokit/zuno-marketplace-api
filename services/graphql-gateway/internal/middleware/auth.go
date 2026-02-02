@@ -92,3 +92,12 @@ func RequireAuth(ctx context.Context) (*UserClaims, error) {
 	}
 	return claims, nil
 }
+
+// GetUserIDFromContext retrieves the user ID from context
+func GetUserIDFromContext(ctx context.Context) string {
+	claims, ok := GetUserClaims(ctx)
+	if !ok {
+		return ""
+	}
+	return claims.UserID
+}

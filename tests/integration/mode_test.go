@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
@@ -95,7 +96,7 @@ func TestServerlessDatabaseURL(t *testing.T) {
 	}
 
 	// Check for postgres:// or postgresql:// prefix
-	if len(dbURL) < 11 || (dbURL[:10] != "postgres://" && dbURL[:11] != "postgresql://") {
+	if !strings.HasPrefix(dbURL, "postgres://") && !strings.HasPrefix(dbURL, "postgresql://") {
 		t.Errorf("DATABASE_URL has invalid format (should start with postgres:// or postgresql://)")
 	} else {
 		t.Logf("✅ DATABASE_URL format valid")
@@ -115,8 +116,8 @@ func TestServerlessRedisURL(t *testing.T) {
 		t.Skip("REDIS_URL not set")
 	}
 
-	// Check for redis:// prefix
-	if len(redisURL) < 9 || redisURL[:9] != "redis://" && redisURL[:8] != "rediss://" {
+	// Check for redis:// or rediss:// prefix
+	if !strings.HasPrefix(redisURL, "redis://") && !strings.HasPrefix(redisURL, "rediss://") {
 		t.Errorf("REDIS_URL has invalid format (should start with redis:// or rediss://)")
 	} else {
 		t.Logf("✅ REDIS_URL format valid")
@@ -137,7 +138,7 @@ func TestServerlessCloudAMQPURL(t *testing.T) {
 	}
 
 	// Check for amqp:// or amqps:// prefix
-	if len(amqpURL) < 7 || (amqpURL[:7] != "amqp://" && amqpURL[:8] != "amqps://") {
+	if !strings.HasPrefix(amqpURL, "amqp://") && !strings.HasPrefix(amqpURL, "amqps://") {
 		t.Errorf("CLOUDAMQP_URL has invalid format (should start with amqp:// or amqps://)")
 	} else {
 		t.Logf("✅ CLOUDAMQP_URL format valid")

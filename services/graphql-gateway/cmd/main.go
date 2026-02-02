@@ -25,6 +25,7 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/graph"
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/config"
 	appcontext "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/context"
+	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/handlers"
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/health"
 	authmiddleware "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
@@ -122,15 +123,36 @@ func main() {
 	}
 	defer walletConn.Close()
 
+	collectionConn, err := grpc.Dial(cfg.Services.CollectionServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to collection service: %v", err)
+	}
+	defer collectionConn.Close()
+
+	mediaConn, err := grpc.Dial(cfg.Services.MediaServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to media service: %v", err)
+	}
+	defer mediaConn.Close()
+
 	// Create GraphQL resolver with gRPC clients
 	resolver := &graph.Resolver{
-		AuthClient:   pb.NewAuthServiceClient(authConn),
-		UserClient:   pb.NewUserServiceClient(userConn),
-		WalletClient: pb.NewWalletServiceClient(walletConn),
+		AuthClient:       pb.NewAuthServiceClient(authConn),
+		UserClient:       pb.NewUserServiceClient(userConn),
+		WalletClient:     pb.NewWalletServiceClient(walletConn),
+		CollectionClient: pb.NewCollectionServiceClient(collectionConn),
 	}
 
 	// Create GraphQL server
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+
+	// Initialize upload handler with Media Service client
+	logger := log.New(os.Stdout, "[GraphQL-Gateway] ", log.LstdFlags)
+	mediaClient := pb.NewMediaServiceClient(mediaConn)
+	uploadHandler := handlers.NewUploadHandler(mediaClient, logger)
+
+	// Initialize webhook handler with Collection Service client
+	webhookHandler := handlers.NewWebhookHandler(collectionConn, cfg.WebhookSecret)
 
 	// Setup HTTP router
 	router := chi.NewRouter()
@@ -153,7 +175,7 @@ func main() {
 	}))
 
 	// JWT authentication middleware
-	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.AccessSecret))
+	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// Rate limiting middleware
 	router.Use(authmiddleware.RateLimit)
@@ -163,6 +185,8 @@ func main() {
 	healthRegistry.Register("auth_service", health.NewServiceHealthChecker(authConn))
 	healthRegistry.Register("user_service", health.NewServiceHealthChecker(userConn))
 	healthRegistry.Register("wallet_service", health.NewServiceHealthChecker(walletConn))
+	healthRegistry.Register("collection_service", health.NewServiceHealthChecker(collectionConn))
+	healthRegistry.Register("media_service", health.NewServiceHealthChecker(mediaConn))
 
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		healthStatus := healthRegistry.CheckAll(r.Context())
@@ -187,9 +211,19 @@ func main() {
 		log.Println("GraphQL Playground enabled at http://localhost" + cfg.Server.HTTPAddr + "/playground")
 	}
 
+	// Upload endpoints
+	router.Post("/api/upload/media", uploadHandler.UploadMedia)
+	router.Post("/api/upload/batch", uploadHandler.BatchUploadMedia)
+
+	// Webhook endpoints
+	router.Post("/api/webhooks/indexer", webhookHandler.HandleIndexerWebhook)
+
 	// Start server with graceful shutdown
 	log.Printf("GraphQL Gateway listening on %s", cfg.Server.HTTPAddr)
 	log.Printf("GraphQL endpoint: http://localhost%s/graphql", cfg.Server.HTTPAddr)
+	log.Printf("Upload Media endpoint: http://localhost%s/api/upload/media", cfg.Server.HTTPAddr)
+	log.Printf("Batch Upload endpoint: http://localhost%s/api/upload/batch", cfg.Server.HTTPAddr)
+	log.Printf("Indexer Webhook endpoint: http://localhost%s/api/webhooks/indexer", cfg.Server.HTTPAddr)
 
 	// Create server with timeout context
 	server := &http.Server{
