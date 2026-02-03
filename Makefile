@@ -58,7 +58,8 @@ help: ## Show help
 	@echo   make format        - Format code
 	@echo
 	@echo Tools:
-	@echo   make install-tools - Install dev tools
+	@echo   make install-tools    - Install dev tools
+	@echo   make generate NAME=X  - Generate new service
 	@echo ============================================================
 
 # ============================================================
@@ -244,3 +245,13 @@ install-tools: ## Install development tools
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/air-verse/air@latest
 	@echo Tools installed!
+
+generate: ## Generate new service (usage: make generate NAME=payment)
+ifndef NAME
+	@echo Error: NAME parameter is required
+	@echo Usage: make generate NAME=^<service-name^>
+	@echo Example: make generate NAME=payment
+	@exit 1
+endif
+	@echo Generating $(NAME) service...
+	@go run tools/create_service.go -name=$(NAME)
