@@ -11,6 +11,7 @@ import (
 
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
+	"github.com/zunokit/zuno-marketplace-api/shared/utils"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -139,8 +140,12 @@ func (s *CollectionServer) handleCollectionCreated(
 	// Build chainID in eip155 format
 	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
+	// Normalize address for case-insensitive lookup
+	normalizedAddress := utils.NormalizeAddress(data.CollectionAddress)
+
 	s.logger.Info("Processing collection.created event",
-		zap.String("collection_address", data.CollectionAddress),
+		zap.String("collection_address", normalizedAddress),
+		zap.String("original_address", data.CollectionAddress),
 		zap.String("chain_id", chainID),
 		zap.String("creator", data.Creator),
 		zap.String("token_type", data.TokenType),
@@ -148,10 +153,10 @@ func (s *CollectionServer) handleCollectionCreated(
 	)
 
 	// Find collection by contract address and chainID
-	dbCollection, err := s.service.GetCollectionByContract(ctx, data.CollectionAddress, chainID)
+	dbCollection, err := s.service.GetCollectionByContract(ctx, normalizedAddress, chainID)
 	if err != nil {
 		s.logger.Warn("Collection not found in database",
-			zap.String("collection_address", data.CollectionAddress),
+			zap.String("collection_address", normalizedAddress),
 			zap.String("chain_id", chainID),
 			zap.Error(err),
 		)
@@ -183,13 +188,13 @@ func (s *CollectionServer) handleCollectionCreated(
 
 	s.logger.Info("Collection indexed successfully",
 		zap.String("collection_id", dbCollection.ID.String()),
-		zap.String("collection_address", data.CollectionAddress),
+		zap.String("collection_address", normalizedAddress),
 		zap.String("status", string(models.CollectionStatusDeployed)),
 	)
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
-		Message: fmt.Sprintf("Collection %s indexed successfully", data.CollectionAddress),
+		Message: fmt.Sprintf("Collection %s indexed successfully", normalizedAddress),
 	}, nil
 }
 
@@ -202,17 +207,20 @@ func (s *CollectionServer) handleCollectionMinted(
 	// Build chainID in eip155 format
 	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
+	// Normalize address for case-insensitive lookup
+	normalizedAddress := utils.NormalizeAddress(data.ContractAddress)
+
 	s.logger.Debug("Processing collection.minted event",
-		zap.String("contract_address", data.ContractAddress),
+		zap.String("contract_address", normalizedAddress),
 		zap.String("chain_id", chainID),
 	)
 
 	// Find collection by contract address and chainID
-	dbCollection, err := s.service.GetCollectionByContract(ctx, data.ContractAddress, chainID)
+	dbCollection, err := s.service.GetCollectionByContract(ctx, normalizedAddress, chainID)
 	if err != nil {
 		// Collection might not be in our database yet (external collection)
 		s.logger.Info("External collection not in database, skipping stats update",
-			zap.String("contract_address", data.ContractAddress),
+			zap.String("contract_address", normalizedAddress),
 			zap.String("chain_id", chainID),
 		)
 		return &pb.ProcessIndexerWebhookResponse{
@@ -225,7 +233,7 @@ func (s *CollectionServer) handleCollectionMinted(
 	if err := s.service.IncrementTotalMinted(ctx, dbCollection.ID, 1); err != nil {
 		s.logger.Error("Failed to update collection stats",
 			zap.String("collection_id", dbCollection.ID.String()),
-			zap.String("contract_address", data.ContractAddress),
+			zap.String("contract_address", normalizedAddress),
 			zap.Error(err),
 		)
 		return nil, status.Errorf(codes.Internal, "failed to update collection stats: %v", err)
@@ -233,12 +241,12 @@ func (s *CollectionServer) handleCollectionMinted(
 
 	s.logger.Debug("Collection stats updated",
 		zap.String("collection_id", dbCollection.ID.String()),
-		zap.String("contract_address", data.ContractAddress),
+		zap.String("contract_address", normalizedAddress),
 	)
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
-		Message: fmt.Sprintf("Collection %s stats updated", data.ContractAddress),
+		Message: fmt.Sprintf("Collection %s stats updated", normalizedAddress),
 	}, nil
 }
 
@@ -251,17 +259,20 @@ func (s *CollectionServer) handleCollectionBatchMinted(
 	// Build chainID in eip155 format
 	chainID := fmt.Sprintf("eip155:%d", req.ChainId)
 
+	// Normalize address for case-insensitive lookup
+	normalizedAddress := utils.NormalizeAddress(data.ContractAddress)
+
 	s.logger.Debug("Processing collection.batch_minted event",
-		zap.String("contract_address", data.ContractAddress),
+		zap.String("contract_address", normalizedAddress),
 		zap.String("chain_id", chainID),
 	)
 
 	// Find collection by contract address and chainID
-	dbCollection, err := s.service.GetCollectionByContract(ctx, data.ContractAddress, chainID)
+	dbCollection, err := s.service.GetCollectionByContract(ctx, normalizedAddress, chainID)
 	if err != nil {
 		// Collection might not be in our database yet (external collection)
 		s.logger.Info("External collection not in database, skipping batch stats update",
-			zap.String("contract_address", data.ContractAddress),
+			zap.String("contract_address", normalizedAddress),
 			zap.String("chain_id", chainID),
 		)
 		return &pb.ProcessIndexerWebhookResponse{
@@ -279,7 +290,7 @@ func (s *CollectionServer) handleCollectionBatchMinted(
 	if err := s.service.IncrementTotalMinted(ctx, dbCollection.ID, batchSize); err != nil {
 		s.logger.Error("Failed to update collection stats",
 			zap.String("collection_id", dbCollection.ID.String()),
-			zap.String("contract_address", data.ContractAddress),
+			zap.String("contract_address", normalizedAddress),
 			zap.Error(err),
 		)
 		return nil, status.Errorf(codes.Internal, "failed to update collection stats: %v", err)
@@ -287,13 +298,13 @@ func (s *CollectionServer) handleCollectionBatchMinted(
 
 	s.logger.Debug("Collection stats updated for batch mint",
 		zap.String("collection_id", dbCollection.ID.String()),
-		zap.String("contract_address", data.ContractAddress),
+		zap.String("contract_address", normalizedAddress),
 		zap.Int64("batch_size", batchSize),
 	)
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
-		Message: fmt.Sprintf("Collection %s stats updated for batch mint", data.ContractAddress),
+		Message: fmt.Sprintf("Collection %s stats updated for batch mint", normalizedAddress),
 	}, nil
 }
 
