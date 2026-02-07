@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/config"
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/repository"
@@ -12,6 +13,9 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/service"
 	"github.com/zunokit/zuno-marketplace-api/shared/database"
 	"github.com/zunokit/zuno-marketplace-api/shared/logger"
+	grpcMiddleware "github.com/zunokit/zuno-marketplace-api/shared/observability/middleware"
+	obs "github.com/zunokit/zuno-marketplace-api/shared/observability/sentry"
+	obsTrace "github.com/zunokit/zuno-marketplace-api/shared/observability/tracing"
 	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -19,6 +23,12 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	gormlogger "gorm.io/gorm/logger"
+)
+
+// Version and BuildTime are injected via ldflags during build
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
 )
 
 func main() {
@@ -33,6 +43,24 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
+
+	// Initialize Sentry (non-blocking)
+	if cfg.Sentry.DSN != "" {
+		if err := obs.Init(
+			cfg.Sentry.DSN,
+			cfg.Sentry.Environment,
+			"collection-service",
+			getBuildVersion(),
+			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
+		); err != nil {
+			log.Infof("Sentry init failed (continuing): %v", err)
+		} else {
+			log.Info("Sentry initialized")
+			defer obs.Flush(2 * time.Second)
+		}
+	} else {
+		log.Info("Sentry DSN not configured, skipping")
+	}
 
 	// Initialize database using shared package
 	dbConfig := &database.Config{
@@ -67,6 +95,9 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
 		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
+		grpc.ChainUnaryInterceptor(
+			grpcMiddleware.UnaryServerInterceptor(),
+		),
 	)
 
 	// Register services
@@ -96,6 +127,13 @@ func main() {
 		<-sigChan
 
 		log.Info("Shutting down Collection Service...")
+
+		// Flush Sentry before shutdown
+		if cfg.Sentry.DSN != "" {
+			log.Info("Flushing Sentry events...")
+			obs.Flush(2 * time.Second)
+		}
+
 		grpcServer.GracefulStop()
 		log.Info("Collection Service stopped")
 	}()
@@ -104,4 +142,9 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.FatalWithErr(err, "Failed to serve")
 	}
+}
+
+// getBuildVersion returns the version injected by build ldflags
+func getBuildVersion() string {
+	return Version
 }

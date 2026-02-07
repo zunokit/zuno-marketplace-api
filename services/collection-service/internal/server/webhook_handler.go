@@ -6,10 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/repository"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"github.com/zunokit/zuno-marketplace-api/shared/utils"
 	"go.uber.org/zap"
@@ -66,69 +68,89 @@ func (s *CollectionServer) ProcessIndexerWebhook(
 	// 3. Build event ID for idempotency
 	eventID := BuildEventID(eventData.TxHash, eventData.LogIndex)
 
-	// 4. Check if event was already processed
-	processed, err := s.processedEventRepo.IsEventProcessed(ctx, eventID)
-	if err != nil {
-		s.logger.Error("Failed to check if event was processed",
-			zap.String("event_id", eventID),
-			zap.Error(err),
-		)
-		return nil, status.Errorf(codes.Internal, "failed to check event status: %v", err)
-	}
-
-	if processed {
-		s.logger.Info("Event already processed, skipping",
-			zap.String("event_id", eventID),
-			zap.String("event_type", req.Event),
-		)
-		return &pb.ProcessIndexerWebhookResponse{
-			Success: true,
-			Message: "Event already processed",
-		}, nil
-	}
-
-	// 5. Handle event based on type
+	// 4-6. Serialize idempotency check + marking using a transaction-scoped advisory lock.
+	// The transaction is held open for the duration of processing to keep the xact lock alive.
 	var response *pb.ProcessIndexerWebhookResponse
-	var handleErr error
+	err := s.processedEventRepo.WithTransaction(ctx, func(txRepo repository.ProcessedEventRepository) error {
+		// Acquire advisory lock BEFORE idempotency check to prevent race conditions.
+		if err := txRepo.AcquireEventLock(ctx, eventID); err != nil {
+			if errors.Is(err, repository.ErrLockNotAcquired) {
+				s.logger.Info("Event already being processed by another transaction",
+					zap.String("event_id", eventID),
+					zap.String("event_type", req.Event),
+				)
+				return status.Error(codes.Aborted, "event lock not acquired: another transaction processing this event")
+			}
+			return status.Errorf(codes.Internal, "failed to acquire lock: %v", err)
+		}
 
-	switch req.Event {
-	case "collection.created":
-		response, handleErr = s.handleCollectionCreated(ctx, req, eventData)
-	case "collection.minted":
-		response, handleErr = s.handleCollectionMinted(ctx, req, eventData)
-	case "collection.batch_minted":
-		response, handleErr = s.handleCollectionBatchMinted(ctx, req, eventData)
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "unknown event type: %s", req.Event)
-	}
-
-	// 6. Mark event as processed if handling succeeded
-	if handleErr == nil && response.Success {
-		processedEvent := models.NewProcessedEvent(
-			eventID,
-			req.Event,
-			chainID,
-			eventData.BlockNumber,
-			eventData.TxHash,
-			int(eventData.LogIndex),
-			getCollectionAddress(eventData),
-		)
-
-		if err := s.processedEventRepo.CreateProcessedEvent(ctx, processedEvent); err != nil {
-			// Log error but don't fail the request
-			s.logger.Error("Failed to mark event as processed",
+		processed, err := txRepo.IsEventProcessed(ctx, eventID)
+		if err != nil {
+			s.logger.Error("Failed to check if event was processed",
 				zap.String("event_id", eventID),
 				zap.Error(err),
 			)
-		} else {
-			s.logger.Info("Event marked as processed",
+			return status.Errorf(codes.Internal, "failed to check event status: %v", err)
+		}
+
+		if processed {
+			s.logger.Info("Event already processed, skipping",
 				zap.String("event_id", eventID),
 				zap.String("event_type", req.Event),
 			)
+			response = &pb.ProcessIndexerWebhookResponse{Success: true, Message: "Event already processed"}
+			return nil
 		}
+
+		// Handle event based on type
+		var handleErr error
+		switch req.Event {
+		case "collection.created":
+			response, handleErr = s.handleCollectionCreated(ctx, req, eventData)
+		case "collection.minted":
+			response, handleErr = s.handleCollectionMinted(ctx, req, eventData)
+		case "collection.batch_minted":
+			response, handleErr = s.handleCollectionBatchMinted(ctx, req, eventData)
+		default:
+			return status.Errorf(codes.InvalidArgument, "unknown event type: %s", req.Event)
+		}
+		if handleErr != nil {
+			return handleErr
+		}
+
+		// Mark event as processed if handling succeeded
+		if response != nil && response.Success {
+			processedEvent := models.NewProcessedEvent(
+				eventID,
+				req.Event,
+				chainID,
+				eventData.BlockNumber,
+				eventData.TxHash,
+				int(eventData.LogIndex),
+				getCollectionAddress(eventData),
+			)
+
+			if err := txRepo.CreateProcessedEvent(ctx, processedEvent); err != nil {
+				// Log error but don't fail the request (keep existing behavior)
+				s.logger.Error("Failed to mark event as processed",
+					zap.String("event_id", eventID),
+					zap.Error(err),
+				)
+			} else {
+				s.logger.Info("Event marked as processed",
+					zap.String("event_id", eventID),
+					zap.String("event_type", req.Event),
+				)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return response, handleErr
+	return response, nil
 }
 
 // handleCollectionCreated processes collection.created webhook events

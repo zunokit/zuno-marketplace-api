@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"hash/crc32"
 	"regexp"
 	"strings"
 )
@@ -34,4 +35,11 @@ func IsValidEthereumAddress(address string) bool {
 func IsZeroAddress(address string) bool {
 	normalized := NormalizeAddress(address)
 	return normalized == "0x0000000000000000000000000000000000000000"
+}
+
+// GenerateAdvisoryLockKey creates a numeric PostgreSQL advisory lock key from a string identifier.
+// CRC32 provides stable hashing with low collision probability for idempotency keys.
+func GenerateAdvisoryLockKey(identifier string) int64 {
+	checksum := crc32.ChecksumIEEE([]byte(identifier))
+	return int64(checksum)
 }
