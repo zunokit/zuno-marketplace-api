@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"hash/crc32"
+	"hash/fnv"
 	"regexp"
 	"strings"
 )
@@ -38,8 +38,9 @@ func IsZeroAddress(address string) bool {
 }
 
 // GenerateAdvisoryLockKey creates a numeric PostgreSQL advisory lock key from a string identifier.
-// CRC32 provides stable hashing with low collision probability for idempotency keys.
+// FNV-1a 64-bit provides low collision probability for idempotency keys.
 func GenerateAdvisoryLockKey(identifier string) int64 {
-	checksum := crc32.ChecksumIEEE([]byte(identifier))
-	return int64(checksum)
+	h := fnv.New64a()
+	h.Write([]byte(identifier))
+	return int64(h.Sum64())
 }

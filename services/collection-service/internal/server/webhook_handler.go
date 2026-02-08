@@ -131,12 +131,10 @@ func (s *CollectionServer) ProcessIndexerWebhook(
 			)
 
 			if err := txRepo.CreateProcessedEvent(ctx, processedEvent); err != nil {
-				// Log error but don't fail the request (keep existing behavior)
-				s.logger.Error("Failed to mark event as processed",
-					zap.String("event_id", eventID),
-					zap.Error(err),
-				)
-			} else {
+				return fmt.Errorf("failed to mark event as processed: %w", err)
+			}
+
+			s.logger.Info("Event marked as processed",
 				s.logger.Info("Event marked as processed",
 					zap.String("event_id", eventID),
 					zap.String("event_type", req.Event),
