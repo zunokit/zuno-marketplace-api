@@ -134,12 +134,7 @@ func (s *CollectionServer) ProcessIndexerWebhook(
 				return fmt.Errorf("failed to mark event as processed: %w", err)
 			}
 
-			s.logger.Info("Event marked as processed",
-				s.logger.Info("Event marked as processed",
-					zap.String("event_id", eventID),
-					zap.String("event_type", req.Event),
-				)
-			}
+			s.logger.Info("Event marked as processed",				zap.String("event_id", eventID),				zap.String("event_type", req.Event),			)
 		}
 
 		return nil
@@ -212,6 +207,11 @@ func (s *CollectionServer) handleCollectionCreated(
 		zap.String("status", string(models.CollectionStatusDeployed)),
 	)
 
+	// Invalidate cache after successful update
+	if s.cacheRepo != nil {
+		s.cacheRepo.InvalidateCollection(ctx, dbCollection.ID, normalizedAddress, chainID)
+	}
+
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
 		Message: fmt.Sprintf("Collection %s indexed successfully", normalizedAddress),
@@ -263,6 +263,11 @@ func (s *CollectionServer) handleCollectionMinted(
 		zap.String("collection_id", dbCollection.ID.String()),
 		zap.String("contract_address", normalizedAddress),
 	)
+
+	// Invalidate cache after successful increment
+	if s.cacheRepo != nil {
+		s.cacheRepo.InvalidateCollection(ctx, dbCollection.ID, normalizedAddress, chainID)
+	}
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,
@@ -321,6 +326,11 @@ func (s *CollectionServer) handleCollectionBatchMinted(
 		zap.String("contract_address", normalizedAddress),
 		zap.Int64("batch_size", batchSize),
 	)
+
+	// Invalidate cache after successful increment
+	if s.cacheRepo != nil {
+		s.cacheRepo.InvalidateCollection(ctx, dbCollection.ID, normalizedAddress, chainID)
+	}
 
 	return &pb.ProcessIndexerWebhookResponse{
 		Success: true,

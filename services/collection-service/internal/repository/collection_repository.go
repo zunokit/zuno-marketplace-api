@@ -33,6 +33,8 @@ type CollectionRepository interface {
 	List(ctx context.Context, filters *ListFilters, page, limit int) ([]*models.Collection, int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error
+	// InvalidateCollection removes a collection from cache (no-op for non-cached repositories)
+	InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string)
 }
 
 type collectionRepository struct {
@@ -219,4 +221,9 @@ func (r *collectionRepository) IncrementTotalMinted(ctx context.Context, id uuid
 	}
 
 	return nil
+}
+
+// InvalidateCollection is a no-op for the base repository (no caching)
+func (r *collectionRepository) InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string) {
+	// No-op: base repository doesn't cache
 }

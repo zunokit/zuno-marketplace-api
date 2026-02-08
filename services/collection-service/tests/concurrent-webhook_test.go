@@ -115,7 +115,7 @@ func TestConcurrentWebhookProcessing_AdvisoryLockSerializesDuplicates(t *testing
 
 	collectionSvc := service.NewCollectionService(collectionRepo, allowlistRepo, metadataRepo)
 	zapLogger := zap.NewNop()
-	srv := server.NewCollectionServer(collectionSvc, processedEventRepo, zapLogger)
+	srv := server.NewCollectionServer(collectionSvc, processedEventRepo, collectionRepo, zapLogger)
 
 	// Use an event type that succeeds even when the collection is not present in DB.
 	// Only one request should actually handle the event; others should be either Aborted (lock contention)
@@ -194,7 +194,7 @@ func TestConcurrentWebhookProcessing_DifferentEventsDoNotBlock(t *testing.T) {
 
 	collectionSvc := service.NewCollectionService(collectionRepo, allowlistRepo, metadataRepo)
 	zapLogger := zap.NewNop()
-	srv := server.NewCollectionServer(collectionSvc, processedEventRepo, zapLogger)
+	srv := server.NewCollectionServer(collectionSvc, processedEventRepo, collectionRepo, zapLogger)
 
 	const n = 25
 	start := make(chan struct{})

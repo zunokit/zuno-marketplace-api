@@ -76,13 +76,14 @@ func main() {
 	db := database.MustConnect(dbConfig)
 
 	// Initialize repositories
-	collectionRepo := repository.NewCollectionRepository(db)
+	baseCollectionRepo := repository.NewCollectionRepository(db)
+	collectionRepo := repository.NewCachedCollectionRepository(baseCollectionRepo)
 	allowlistRepo := repository.NewAllowlistRepository(db)
 	metadataRepo := repository.NewMetadataRepository(db)
 	processedEventRepo := repository.NewProcessedEventRepository(db)
 
-	// Initialize service
-	collectionSvc := service.NewCollectionService(collectionRepo, allowlistRepo, metadataRepo)
+	// Initialize service (uses base repo for writes, cached repo for reads)
+	collectionSvc := service.NewCollectionService(baseCollectionRepo, allowlistRepo, metadataRepo)
 
 	// Initialize zap logger
 	zapLogger, err := zap.NewProduction()
@@ -101,7 +102,7 @@ func main() {
 	)
 
 	// Register services
-	collectionServer := server.NewCollectionServer(collectionSvc, processedEventRepo, zapLogger)
+	collectionServer := server.NewCollectionServer(collectionSvc, processedEventRepo, collectionRepo, zapLogger)
 	pb.RegisterCollectionServiceServer(grpcServer, collectionServer)
 
 	// Register health check
