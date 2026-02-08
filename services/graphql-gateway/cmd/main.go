@@ -27,7 +27,7 @@ import (
 	appcontext "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/context"
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/handlers"
 	"github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/health"
-	authmiddleware "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
+	appmiddleware "github.com/zunokit/zuno-marketplace-api/services/graphql-gateway/internal/middleware"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -92,6 +92,7 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			obs.UnaryClientInterceptor(),
+			appmiddleware.GrpcFieldConverter(),
 		),
 	)
 	if err != nil {
@@ -104,6 +105,7 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			obs.UnaryClientInterceptor(),
+			appmiddleware.GrpcFieldConverter(),
 		),
 	)
 	if err != nil {
@@ -116,6 +118,7 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			obs.UnaryClientInterceptor(),
+			appmiddleware.GrpcFieldConverter(),
 		),
 	)
 	if err != nil {
@@ -123,13 +126,25 @@ func main() {
 	}
 	defer walletConn.Close()
 
-	collectionConn, err := grpc.Dial(cfg.Services.CollectionServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	collectionConn, err := grpc.Dial(
+		cfg.Services.CollectionServiceURL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			appmiddleware.GrpcFieldConverter(),
+		),
+	)
 	if err != nil {
 		log.Fatalf("Failed to connect to collection service: %v", err)
 	}
 	defer collectionConn.Close()
 
-	mediaConn, err := grpc.Dial(cfg.Services.MediaServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	mediaConn, err := grpc.Dial(
+		cfg.Services.MediaServiceURL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			appmiddleware.GrpcFieldConverter(),
+		),
+	)
 	if err != nil {
 		log.Fatalf("Failed to connect to media service: %v", err)
 	}
@@ -175,10 +190,10 @@ func main() {
 	}))
 
 	// JWT authentication middleware
-	router.Use(authmiddleware.AuthMiddleware(cfg.JWT.Secret))
+	router.Use(appmiddleware.AuthMiddleware(cfg.JWT.Secret))
 
 	// Rate limiting middleware
-	router.Use(authmiddleware.RateLimit)
+	router.Use(appmiddleware.RateLimit)
 
 	// Health check endpoint
 	healthRegistry := health.NewRegistry()
