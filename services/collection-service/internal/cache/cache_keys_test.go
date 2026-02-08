@@ -66,7 +66,7 @@ func TestCollectionsListKey_DifferentPages(t *testing.T) {
 
 func TestTTLConstants(t *testing.T) {
 	assert.Equal(t, CacheTTL(0), NoTTL)
-	assert.Equal(t, CacheTTL(300), StatsTTL)   // 5 minutes
-	assert.Equal(t, CacheTTL(600), ListTTL)    // 10 minutes
+	assert.Equal(t, CacheTTL(300), StatsTTL)    // 5 minutes
+	assert.Equal(t, CacheTTL(600), ListTTL)     // 10 minutes
 	assert.Equal(t, CacheTTL(86400), SafetyTTL) // 24 hours
 }
