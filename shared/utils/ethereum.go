@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"hash/fnv"
 	"regexp"
 	"strings"
 )
@@ -34,4 +35,12 @@ func IsValidEthereumAddress(address string) bool {
 func IsZeroAddress(address string) bool {
 	normalized := NormalizeAddress(address)
 	return normalized == "0x0000000000000000000000000000000000000000"
+}
+
+// GenerateAdvisoryLockKey creates a numeric PostgreSQL advisory lock key from a string identifier.
+// FNV-1a 64-bit provides low collision probability for idempotency keys.
+func GenerateAdvisoryLockKey(identifier string) int64 {
+	h := fnv.New64a()
+	h.Write([]byte(identifier))
+	return int64(h.Sum64())
 }

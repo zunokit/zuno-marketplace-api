@@ -7,6 +7,20 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
+// Config holds configuration for the collection service.
+type Config struct {
+	Server      sharedConfig.ServerConfig
+	Database    sharedConfig.DatabaseConfig
+	DatabaseDSN string
+	Sentry      SentryConfig
+}
+
+// SentryConfig holds Sentry monitoring configuration.
+type SentryConfig struct {
+	DSN         string
+	Environment string
+}
+
 // DatabaseConfig holds database connection configuration
 type DatabaseConfig struct {
 	Mode     string // "docker" or "serverless"
@@ -32,8 +46,8 @@ func (c *DatabaseConfig) GetDSN() string {
 		" password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
 }
 
-// Load loads configuration from environment variables
-func Load() *sharedConfig.Config {
+// Load loads configuration from environment variables.
+func Load() *Config {
 	mode := env.GetString("INFRA_MODE", "docker")
 
 	// Database config
@@ -49,7 +63,7 @@ func Load() *sharedConfig.Config {
 		dbConfig.SSLMode = env.GetString("POSTGRES_SSL_MODE", "disable")
 	}
 
-	return &sharedConfig.Config{
+	return &Config{
 		Server: sharedConfig.ServerConfig{
 			GRPCPort: env.GetString("COLLECTION_GRPC_PORT", ":50054"),
 		},
@@ -62,5 +76,9 @@ func Load() *sharedConfig.Config {
 			SSLMode:  dbConfig.SSLMode,
 		},
 		DatabaseDSN: dbConfig.GetDSN(),
+		Sentry: SentryConfig{
+			DSN:         env.GetString("SENTRY_DSN", ""),
+			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
+		},
 	}
 }
