@@ -49,6 +49,7 @@ func ProtoToGraphQLCollection(proto *pb.Collection) *model.Collection {
 		TotalSupply:        int(proto.TotalSupply),
 		TotalMinted:        int(proto.TotalMinted),
 		MetadataStandard:   ptrOrNil(proto.MetadataStandard),
+		SettingsJson:       ptrOrNil(proto.SettingsJson),
 		CreatedAt:          timestampToTimeObj(proto.CreatedAt),
 		UpdatedAt:          timestampToTimeObj(proto.UpdatedAt),
 		Metadata:           ProtoToGraphQLMetadata(proto.Metadata),

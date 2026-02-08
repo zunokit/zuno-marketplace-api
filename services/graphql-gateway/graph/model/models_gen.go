@@ -61,6 +61,7 @@ type Collection struct {
 	TotalSupply        int                 `json:"totalSupply"`
 	TotalMinted        int                 `json:"totalMinted"`
 	MetadataStandard   *string             `json:"metadataStandard,omitempty"`
+	SettingsJson       *string             `json:"settingsJson,omitempty"`
 	CreatedAt          time.Time           `json:"createdAt"`
 	UpdatedAt          time.Time           `json:"updatedAt"`
 	Metadata           *CollectionMetadata `json:"metadata,omitempty"`
