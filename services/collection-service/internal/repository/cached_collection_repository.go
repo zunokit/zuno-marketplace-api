@@ -253,7 +253,7 @@ func (r *CachedCollectionRepository) Delete(ctx context.Context, id uuid.UUID) e
 		cache.CollectionStatsKey(id),
 	}
 
-	if collection.ContractAddress != nil && *collection.ContractAddress != "" && collection.ChainID != nil {
+	if collection.ContractAddress != nil && *collection.ContractAddress != "" && collection.ChainID != nil && *collection.ChainID != "" {
 		keys = append(keys, cache.CollectionByContractKey(*collection.ChainID, *collection.ContractAddress))
 	}
 
