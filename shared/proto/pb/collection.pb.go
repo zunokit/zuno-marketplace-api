@@ -223,6 +223,8 @@ type Collection struct {
 	// Relations
 	Metadata      *CollectionMetadata `protobuf:"bytes,37,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	Stats         *CollectionStats    `protobuf:"bytes,38,opt,name=stats,proto3" json:"stats,omitempty"`
+	// Settings JSON stores rich metadata for collection display
+	SettingsJson  string              `protobuf:"bytes,39,opt,name=settings_json,json=settingsJson,proto3" json:"settings_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -521,6 +523,13 @@ func (x *Collection) GetStats() *CollectionStats {
 		return x.Stats
 	}
 	return nil
+}
+
+func (x *Collection) GetSettingsJson() string {
+	if x != nil {
+		return x.SettingsJson
+	}
+	return ""
 }
 
 type CollectionMetadata struct {

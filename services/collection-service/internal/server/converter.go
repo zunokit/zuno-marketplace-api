@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/json"
+
 	"github.com/google/uuid"
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
 	"github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
@@ -94,6 +96,12 @@ func ConvertCollectionToProto(c *models.Collection) *pb.Collection {
 	}
 	if c.MetadataStandard != nil {
 		pbCollection.MetadataStandard = *c.MetadataStandard
+	}
+	if c.SettingsJSON != nil {
+		settingsJSONBytes, err := json.Marshal(c.SettingsJSON)
+		if err == nil {
+			pbCollection.SettingsJson = string(settingsJSONBytes)
+		}
 	}
 
 	// Metadata relations

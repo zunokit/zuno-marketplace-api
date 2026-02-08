@@ -77,6 +77,9 @@ message Collection {
   // Relations
   CollectionMetadata metadata = 37;
   CollectionStats stats = 38;
+
+  // Settings JSON stores rich metadata for collection display
+  string settings_json = 39;
 }
 
 message CollectionMetadata {

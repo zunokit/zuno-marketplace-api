@@ -84,6 +84,7 @@ type Collection {
   totalSupply: Int!
   totalMinted: Int!
   metadataStandard: String
+  settingsJson: String
   createdAt: Time!
   updatedAt: Time!
 
