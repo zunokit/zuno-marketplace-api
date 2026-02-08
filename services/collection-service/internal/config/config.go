@@ -19,6 +19,14 @@ type DatabaseConfig struct {
 	URL      string // Full connection URL for serverless mode
 }
 
+// RedisConfig holds Redis connection configuration
+type RedisConfig struct {
+	Mode string // "docker" or "serverless"
+	Host string
+	Port string
+	URL  string // Full URL for serverless (Upstash)
+}
+
 // GetDSN returns the database connection string
 func (c *DatabaseConfig) GetDSN() string {
 	if c.Mode == "serverless" && c.URL != "" {
@@ -30,6 +38,14 @@ func (c *DatabaseConfig) GetDSN() string {
 	}
 	return "host=" + c.Host + " port=" + c.Port + " user=" + c.User +
 		" password=" + c.Password + " dbname=" + c.Database + " sslmode=" + c.SSLMode
+}
+
+// GetAddr returns the Redis address
+func (c *RedisConfig) GetAddr() string {
+	if c.Mode == "serverless" && c.URL != "" {
+		return c.URL
+	}
+	return c.Host + ":" + c.Port
 }
 
 // Load loads configuration from environment variables
@@ -63,4 +79,17 @@ func Load() *sharedConfig.Config {
 		},
 		DatabaseDSN: dbConfig.GetDSN(),
 	}
+}
+
+// GetRedisConfig returns Redis configuration (call this in main.go)
+func GetRedisConfig() RedisConfig {
+	mode := env.GetString("INFRA_MODE", "docker")
+	redisConfig := RedisConfig{Mode: mode}
+	if mode == "serverless" {
+		redisConfig.URL = env.GetString("REDIS_URL", "")
+	} else {
+		redisConfig.Host = env.GetString("REDIS_HOST", "localhost")
+		redisConfig.Port = env.GetString("REDIS_PORT", "6379")
+	}
+	return redisConfig
 }
