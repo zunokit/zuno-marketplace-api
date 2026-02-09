@@ -278,3 +278,17 @@ func (r *CachedCollectionRepository) IncrementTotalMinted(ctx context.Context, i
 
 	return nil
 }
+
+// InvalidateCollection removes a collection from cache (used by webhook handlers)
+func (r *CachedCollectionRepository) InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string) {
+	keys := []string{
+		cache.CollectionKey(id),
+		cache.CollectionStatsKey(id),
+	}
+	if address != "" && chainID != "" {
+		keys = append(keys, cache.CollectionByContractKey(chainID, address))
+	}
+	if err := r.cache.Delete(ctx, keys...); err != nil {
+		// Non-blocking: log but don't fail
+	}
+}
