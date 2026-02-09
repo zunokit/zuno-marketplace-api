@@ -1,14 +1,18 @@
 package config
 
 import (
-	sharedConfig "github.com/zunokit/zuno-marketplace-api/shared/config"
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
 // Config holds all configuration for the Media Service
 type Config struct {
-	Server          sharedConfig.ServerConfig
+	Server          ServerConfig
 	MetadataService MetadataServiceConfig
+}
+
+// ServerConfig holds server configuration
+type ServerConfig struct {
+	GRPCPort string
 }
 
 // MetadataServiceConfig holds metadata service configuration
@@ -20,7 +24,7 @@ type MetadataServiceConfig struct {
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
-		Server: sharedConfig.ServerConfig{
+		Server: ServerConfig{
 			GRPCPort: env.GetString("MEDIA_GRPC_PORT", ":50055"),
 		},
 		MetadataService: MetadataServiceConfig{

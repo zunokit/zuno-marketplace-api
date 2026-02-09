@@ -71,14 +71,13 @@ func main() {
 		Password: cfg.Database.Password,
 		DBName:   cfg.Database.Database,
 		SSLMode:  cfg.Database.SSLMode,
-		DSN:      cfg.DatabaseDSN, // Use full DSN for serverless mode
+		DSN:      cfg.Database.GetDSN(), // Use full DSN for serverless mode
 		LogLevel: gormlogger.Info,
 	}
 	db := database.MustConnect(dbConfig)
 
 	// Initialize Redis (non-blocking - continues without cache if Redis fails)
-	redisConfig := config.GetRedisConfig()
-	if err := sharedredis.Init(redisConfig.GetAddr()); err != nil {
+	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
 		log.Infof("Redis init failed (continuing without cache): %v", err)
 	} else {
 		log.Info("Redis connected")
