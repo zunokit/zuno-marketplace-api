@@ -248,6 +248,77 @@ type WalletLink struct {
 	UpdatedAt  string  `json:"updatedAt"`
 }
 
+type CollectionSortField string
+
+const (
+	CollectionSortFieldCreatedAt     CollectionSortField = "createdAt"
+	CollectionSortFieldUpdatedAt     CollectionSortField = "updatedAt"
+	CollectionSortFieldName          CollectionSortField = "name"
+	CollectionSortFieldSymbol        CollectionSortField = "symbol"
+	CollectionSortFieldTotalSupply   CollectionSortField = "totalSupply"
+	CollectionSortFieldTotalMinted   CollectionSortField = "totalMinted"
+	CollectionSortFieldMaxSupply     CollectionSortField = "maxSupply"
+	CollectionSortFieldVolume        CollectionSortField = "volume"
+	CollectionSortFieldFloorPrice    CollectionSortField = "floorPrice"
+	CollectionSortFieldMintStartTime CollectionSortField = "mintStartTime"
+)
+
+var AllCollectionSortField = []CollectionSortField{
+	CollectionSortFieldCreatedAt,
+	CollectionSortFieldUpdatedAt,
+	CollectionSortFieldName,
+	CollectionSortFieldSymbol,
+	CollectionSortFieldTotalSupply,
+	CollectionSortFieldTotalMinted,
+	CollectionSortFieldMaxSupply,
+	CollectionSortFieldVolume,
+	CollectionSortFieldFloorPrice,
+	CollectionSortFieldMintStartTime,
+}
+
+func (e CollectionSortField) IsValid() bool {
+	switch e {
+	case CollectionSortFieldCreatedAt, CollectionSortFieldUpdatedAt, CollectionSortFieldName, CollectionSortFieldSymbol, CollectionSortFieldTotalSupply, CollectionSortFieldTotalMinted, CollectionSortFieldMaxSupply, CollectionSortFieldVolume, CollectionSortFieldFloorPrice, CollectionSortFieldMintStartTime:
+		return true
+	}
+	return false
+}
+
+func (e CollectionSortField) String() string {
+	return string(e)
+}
+
+func (e *CollectionSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CollectionSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CollectionSortField", str)
+	}
+	return nil
+}
+
+func (e CollectionSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *CollectionSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e CollectionSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type CollectionStatus string
 
 const (
@@ -361,6 +432,61 @@ func (e *IndexStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e IndexStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type SortOrder string
+
+const (
+	SortOrderAsc  SortOrder = "asc"
+	SortOrderDesc SortOrder = "desc"
+)
+
+var AllSortOrder = []SortOrder{
+	SortOrderAsc,
+	SortOrderDesc,
+}
+
+func (e SortOrder) IsValid() bool {
+	switch e {
+	case SortOrderAsc, SortOrderDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortOrder) String() string {
+	return string(e)
+}
+
+func (e *SortOrder) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortOrder(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortOrder", str)
+	}
+	return nil
+}
+
+func (e SortOrder) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SortOrder) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SortOrder) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

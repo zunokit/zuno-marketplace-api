@@ -27,6 +27,24 @@ enum IndexStatus {
   FAILED
 }
 
+enum CollectionSortField {
+  createdAt
+  updatedAt
+  name
+  symbol
+  totalSupply
+  totalMinted
+  maxSupply
+  volume
+  floorPrice
+  mintStartTime
+}
+
+enum SortOrder {
+  asc
+  desc
+}
+
 # ============================================
 # Types
 # ============================================
@@ -227,8 +245,8 @@ extend type Query {
   collections(
     page: Int
     limit: Int
-    sortBy: String
-    sortOrder: String
+    sortBy: CollectionSortField
+    sortOrder: SortOrder
     category: String
     chainId: String
     isVerified: Boolean

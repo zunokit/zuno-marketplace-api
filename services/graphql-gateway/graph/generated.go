@@ -182,7 +182,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Collection    func(childComplexity int, id *string, slug *string, contractAddress *string, chainID *string) int
-		Collections   func(childComplexity int, page *int, limit *int, sortBy *string, sortOrder *string, category *string, chainID *string, isVerified *bool, searchQuery *string) int
+		Collections   func(childComplexity int, page *int, limit *int, sortBy *model.CollectionSortField, sortOrder *model.SortOrder, category *string, chainID *string, isVerified *bool, searchQuery *string) int
 		Empty         func(childComplexity int) int
 		GetNonce      func(childComplexity int, accountID string, chainID string, domain string) int
 		GetUser       func(childComplexity int, userID string) int
@@ -236,7 +236,7 @@ type QueryResolver interface {
 	GetNonce(ctx context.Context, accountID string, chainID string, domain string) (*model.Nonce, error)
 	Collection(ctx context.Context, id *string, slug *string, contractAddress *string, chainID *string) (*model.Collection, error)
 	MyCollections(ctx context.Context, page *int, limit *int) (*model.CollectionConnection, error)
-	Collections(ctx context.Context, page *int, limit *int, sortBy *string, sortOrder *string, category *string, chainID *string, isVerified *bool, searchQuery *string) (*model.CollectionConnection, error)
+	Collections(ctx context.Context, page *int, limit *int, sortBy *model.CollectionSortField, sortOrder *model.SortOrder, category *string, chainID *string, isVerified *bool, searchQuery *string) (*model.CollectionConnection, error)
 	Me(ctx context.Context) (*model.User, error)
 	GetUser(ctx context.Context, userID string) (*model.User, error)
 	MyWallets(ctx context.Context) ([]*model.WalletLink, error)
@@ -950,7 +950,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Collections(childComplexity, args["page"].(*int), args["limit"].(*int), args["sortBy"].(*string), args["sortOrder"].(*string), args["category"].(*string), args["chainId"].(*string), args["isVerified"].(*bool), args["searchQuery"].(*string)), true
+		return e.complexity.Query.Collections(childComplexity, args["page"].(*int), args["limit"].(*int), args["sortBy"].(*model.CollectionSortField), args["sortOrder"].(*model.SortOrder), args["category"].(*string), args["chainId"].(*string), args["isVerified"].(*bool), args["searchQuery"].(*string)), true
 	case "Query._empty":
 		if e.complexity.Query.Empty == nil {
 			break
@@ -1249,7 +1249,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_addToAllowlist_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddToAllowlistInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddToAllowlistInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1260,7 +1260,7 @@ func (ec *executionContext) field_Mutation_addToAllowlist_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_createCollection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateCollectionInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1282,7 +1282,7 @@ func (ec *executionContext) field_Mutation_deleteCollection_args(ctx context.Con
 func (ec *executionContext) field_Mutation_linkWallet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLinkWalletInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐLinkWalletInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLinkWalletInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐLinkWalletInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1330,7 +1330,7 @@ func (ec *executionContext) field_Mutation_updateCollection_args(ctx context.Con
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateCollectionInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1341,7 +1341,7 @@ func (ec *executionContext) field_Mutation_updateCollection_args(ctx context.Con
 func (ec *executionContext) field_Mutation_updateProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateProfileInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateProfileInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateProfileInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateProfileInput)
 	if err != nil {
 		return nil, err
 	}
@@ -1420,12 +1420,12 @@ func (ec *executionContext) field_Query_collections_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOString2ᚖstring)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "sortBy", ec.unmarshalOCollectionSortField2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionSortField)
 	if err != nil {
 		return nil, err
 	}
 	args["sortBy"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "sortOrder", ec.unmarshalOString2ᚖstring)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "sortOrder", ec.unmarshalOSortOrder2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐSortOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -1980,7 +1980,7 @@ func (ec *executionContext) _Collection_tokenStandard(ctx context.Context, field
 			return obj.TokenStandard, nil
 		},
 		nil,
-		ec.marshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard,
+		ec.marshalNTokenStandard2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard,
 		true,
 		true,
 	)
@@ -2067,7 +2067,7 @@ func (ec *executionContext) _Collection_status(ctx context.Context, field graphq
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus,
+		ec.marshalNCollectionStatus2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus,
 		true,
 		true,
 	)
@@ -2125,7 +2125,7 @@ func (ec *executionContext) _Collection_indexStatus(ctx context.Context, field g
 			return obj.IndexStatus, nil
 		},
 		nil,
-		ec.marshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus,
+		ec.marshalOIndexStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus,
 		true,
 		false,
 	)
@@ -2763,7 +2763,7 @@ func (ec *executionContext) _Collection_metadata(ctx context.Context, field grap
 			return obj.Metadata, nil
 		},
 		nil,
-		ec.marshalOCollectionMetadata2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata,
+		ec.marshalOCollectionMetadata2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata,
 		true,
 		false,
 	)
@@ -2816,7 +2816,7 @@ func (ec *executionContext) _Collection_stats(ctx context.Context, field graphql
 			return obj.Stats, nil
 		},
 		nil,
-		ec.marshalOCollectionStats2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats,
+		ec.marshalOCollectionStats2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats,
 		true,
 		false,
 	)
@@ -3045,7 +3045,7 @@ func (ec *executionContext) _CollectionConnection_items(ctx context.Context, fie
 			return obj.Items, nil
 		},
 		nil,
-		ec.marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ,
+		ec.marshalNCollection2ᚕᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ,
 		true,
 		true,
 	)
@@ -3152,7 +3152,7 @@ func (ec *executionContext) _CollectionConnection_pageInfo(ctx context.Context, 
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo,
+		ec.marshalNPageInfo2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo,
 		true,
 		true,
 	)
@@ -3890,7 +3890,7 @@ func (ec *executionContext) _Mutation_verifySiwe(ctx context.Context, field grap
 			return ec.resolvers.Mutation().VerifySiwe(ctx, fc.Args["accountId"].(string), fc.Args["message"].(string), fc.Args["signature"].(string))
 		},
 		nil,
-		ec.marshalNAuthResponse2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse,
+		ec.marshalNAuthResponse2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse,
 		true,
 		true,
 	)
@@ -3943,7 +3943,7 @@ func (ec *executionContext) _Mutation_refreshSession(ctx context.Context, field 
 			return ec.resolvers.Mutation().RefreshSession(ctx, fc.Args["refreshToken"].(*string), fc.Args["userAgent"].(*string), fc.Args["ipAddress"].(*string))
 		},
 		nil,
-		ec.marshalNRefreshResponse2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse,
+		ec.marshalNRefreshResponse2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse,
 		true,
 		true,
 	)
@@ -4062,7 +4062,7 @@ func (ec *executionContext) _Mutation_createCollection(ctx context.Context, fiel
 			return ec.resolvers.Mutation().CreateCollection(ctx, fc.Args["input"].(model.CreateCollectionInput))
 		},
 		nil,
-		ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		ec.marshalNCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
 		true,
 		true,
 	)
@@ -4181,7 +4181,7 @@ func (ec *executionContext) _Mutation_updateCollection(ctx context.Context, fiel
 			return ec.resolvers.Mutation().UpdateCollection(ctx, fc.Args["id"].(string), fc.Args["input"].(model.UpdateCollectionInput))
 		},
 		nil,
-		ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		ec.marshalNCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
 		true,
 		true,
 	)
@@ -4382,7 +4382,7 @@ func (ec *executionContext) _Mutation_updateProfile(ctx context.Context, field g
 			return ec.resolvers.Mutation().UpdateProfile(ctx, fc.Args["input"].(model.UpdateProfileInput))
 		},
 		nil,
-		ec.marshalNProfile2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile,
+		ec.marshalNProfile2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile,
 		true,
 		true,
 	)
@@ -4445,7 +4445,7 @@ func (ec *executionContext) _Mutation_linkWallet(ctx context.Context, field grap
 			return ec.resolvers.Mutation().LinkWallet(ctx, fc.Args["input"].(model.LinkWalletInput))
 		},
 		nil,
-		ec.marshalNWalletLink2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink,
+		ec.marshalNWalletLink2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink,
 		true,
 		true,
 	)
@@ -5028,7 +5028,7 @@ func (ec *executionContext) _Query_getNonce(ctx context.Context, field graphql.C
 			return ec.resolvers.Query().GetNonce(ctx, fc.Args["accountId"].(string), fc.Args["chainId"].(string), fc.Args["domain"].(string))
 		},
 		nil,
-		ec.marshalNNonce2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce,
+		ec.marshalNNonce2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce,
 		true,
 		true,
 	)
@@ -5075,7 +5075,7 @@ func (ec *executionContext) _Query_collection(ctx context.Context, field graphql
 			return ec.resolvers.Query().Collection(ctx, fc.Args["id"].(*string), fc.Args["slug"].(*string), fc.Args["contractAddress"].(*string), fc.Args["chainId"].(*string))
 		},
 		nil,
-		ec.marshalOCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
+		ec.marshalOCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection,
 		true,
 		false,
 	)
@@ -5194,7 +5194,7 @@ func (ec *executionContext) _Query_myCollections(ctx context.Context, field grap
 			return ec.resolvers.Query().MyCollections(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
 		},
 		nil,
-		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
+		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
 		true,
 		true,
 	)
@@ -5238,10 +5238,10 @@ func (ec *executionContext) _Query_collections(ctx context.Context, field graphq
 		ec.fieldContext_Query_collections,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Collections(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int), fc.Args["sortBy"].(*string), fc.Args["sortOrder"].(*string), fc.Args["category"].(*string), fc.Args["chainId"].(*string), fc.Args["isVerified"].(*bool), fc.Args["searchQuery"].(*string))
+			return ec.resolvers.Query().Collections(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int), fc.Args["sortBy"].(*model.CollectionSortField), fc.Args["sortOrder"].(*model.SortOrder), fc.Args["category"].(*string), fc.Args["chainId"].(*string), fc.Args["isVerified"].(*bool), fc.Args["searchQuery"].(*string))
 		},
 		nil,
-		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
+		ec.marshalNCollectionConnection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection,
 		true,
 		true,
 	)
@@ -5287,7 +5287,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 			return ec.resolvers.Query().Me(ctx)
 		},
 		nil,
-		ec.marshalOUser2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser,
+		ec.marshalOUser2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser,
 		true,
 		false,
 	)
@@ -5327,7 +5327,7 @@ func (ec *executionContext) _Query_getUser(ctx context.Context, field graphql.Co
 			return ec.resolvers.Query().GetUser(ctx, fc.Args["userId"].(string))
 		},
 		nil,
-		ec.marshalOUser2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser,
+		ec.marshalOUser2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser,
 		true,
 		false,
 	)
@@ -5377,7 +5377,7 @@ func (ec *executionContext) _Query_myWallets(ctx context.Context, field graphql.
 			return ec.resolvers.Query().MyWallets(ctx)
 		},
 		nil,
-		ec.marshalNWalletLink2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ,
+		ec.marshalNWalletLink2ᚕᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ,
 		true,
 		true,
 	)
@@ -5427,7 +5427,7 @@ func (ec *executionContext) _Query_getWallets(ctx context.Context, field graphql
 			return ec.resolvers.Query().GetWallets(ctx, fc.Args["userId"].(string))
 		},
 		nil,
-		ec.marshalNWalletLink2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ,
+		ec.marshalNWalletLink2ᚕᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ,
 		true,
 		true,
 	)
@@ -5769,7 +5769,7 @@ func (ec *executionContext) _User_profile(ctx context.Context, field graphql.Col
 			return obj.Profile, nil
 		},
 		nil,
-		ec.marshalOProfile2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile,
+		ec.marshalOProfile2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile,
 		true,
 		false,
 	)
@@ -7602,7 +7602,7 @@ func (ec *executionContext) unmarshalInputCreateCollectionInput(ctx context.Cont
 			it.Category = data
 		case "tokenStandard":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tokenStandard"))
-			data, err := ec.unmarshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx, v)
+			data, err := ec.unmarshalNTokenStandard2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7978,7 +7978,7 @@ func (ec *executionContext) unmarshalInputUpdateCollectionInput(ctx context.Cont
 			it.MintLimitPerWallet = data
 		case "status":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-			data, err := ec.unmarshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx, v)
+			data, err := ec.unmarshalOCollectionStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -9576,19 +9576,19 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddToAllowlistInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput(ctx context.Context, v any) (model.AddToAllowlistInput, error) {
+func (ec *executionContext) unmarshalNAddToAllowlistInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAddToAllowlistInput(ctx context.Context, v any) (model.AddToAllowlistInput, error) {
 	res, err := ec.unmarshalInputAddToAllowlistInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthResponse2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v model.AuthResponse) graphql.Marshaler {
 	return ec._AuthResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAuthResponse2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v *model.AuthResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthResponse2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐAuthResponse(ctx context.Context, sel ast.SelectionSet, v *model.AuthResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
@@ -9605,17 +9605,17 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	res := graphql.MarshalBoolean(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
 }
 
-func (ec *executionContext) marshalNCollection2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollection2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v model.Collection) graphql.Marshaler {
 	return ec._Collection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Collection) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9639,7 +9639,7 @@ func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx, sel, v[i])
+			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9659,41 +9659,41 @@ func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋquangdang46�
 	return ret
 }
 
-func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
 	return ec._Collection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCollectionConnection2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v model.CollectionConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollectionConnection2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v model.CollectionConnection) graphql.Marshaler {
 	return ec._CollectionConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCollectionConnection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v *model.CollectionConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollectionConnection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionConnection(ctx context.Context, sel ast.SelectionSet, v *model.CollectionConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
 	return ec._CollectionConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (model.CollectionStatus, error) {
+func (ec *executionContext) unmarshalNCollectionStatus2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (model.CollectionStatus, error) {
 	var res model.CollectionStatus
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCollectionStatus2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v model.CollectionStatus) graphql.Marshaler {
+func (ec *executionContext) marshalNCollectionStatus2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v model.CollectionStatus) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalNCreateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput(ctx context.Context, v any) (model.CreateCollectionInput, error) {
+func (ec *executionContext) unmarshalNCreateCollectionInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCreateCollectionInput(ctx context.Context, v any) (model.CreateCollectionInput, error) {
 	res, err := ec.unmarshalInputCreateCollectionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -9708,7 +9708,7 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
@@ -9724,63 +9724,63 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
 }
 
-func (ec *executionContext) unmarshalNLinkWalletInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐLinkWalletInput(ctx context.Context, v any) (model.LinkWalletInput, error) {
+func (ec *executionContext) unmarshalNLinkWalletInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐLinkWalletInput(ctx context.Context, v any) (model.LinkWalletInput, error) {
 	res, err := ec.unmarshalInputLinkWalletInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNNonce2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce(ctx context.Context, sel ast.SelectionSet, v model.Nonce) graphql.Marshaler {
+func (ec *executionContext) marshalNNonce2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce(ctx context.Context, sel ast.SelectionSet, v model.Nonce) graphql.Marshaler {
 	return ec._Nonce(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNNonce2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce(ctx context.Context, sel ast.SelectionSet, v *model.Nonce) graphql.Marshaler {
+func (ec *executionContext) marshalNNonce2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐNonce(ctx context.Context, sel ast.SelectionSet, v *model.Nonce) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
 	return ec._Nonce(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProfile2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v model.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v model.Profile) graphql.Marshaler {
 	return ec._Profile(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProfile2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
 	return ec._Profile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRefreshResponse2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse(ctx context.Context, sel ast.SelectionSet, v model.RefreshResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNRefreshResponse2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse(ctx context.Context, sel ast.SelectionSet, v model.RefreshResponse) graphql.Marshaler {
 	return ec._RefreshResponse(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNRefreshResponse2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse(ctx context.Context, sel ast.SelectionSet, v *model.RefreshResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNRefreshResponse2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐRefreshResponse(ctx context.Context, sel ast.SelectionSet, v *model.RefreshResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
@@ -9797,7 +9797,7 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
@@ -9843,37 +9843,37 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	res := graphql.MarshalTime(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
 }
 
-func (ec *executionContext) unmarshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, v any) (model.TokenStandard, error) {
+func (ec *executionContext) unmarshalNTokenStandard2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, v any) (model.TokenStandard, error) {
 	var res model.TokenStandard
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNTokenStandard2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, sel ast.SelectionSet, v model.TokenStandard) graphql.Marshaler {
+func (ec *executionContext) marshalNTokenStandard2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐTokenStandard(ctx context.Context, sel ast.SelectionSet, v model.TokenStandard) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalNUpdateCollectionInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput(ctx context.Context, v any) (model.UpdateCollectionInput, error) {
+func (ec *executionContext) unmarshalNUpdateCollectionInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateCollectionInput(ctx context.Context, v any) (model.UpdateCollectionInput, error) {
 	res, err := ec.unmarshalInputUpdateCollectionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
+func (ec *executionContext) unmarshalNUpdateProfileInput2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNWalletLink2githubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx context.Context, sel ast.SelectionSet, v model.WalletLink) graphql.Marshaler {
+func (ec *executionContext) marshalNWalletLink2githubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx context.Context, sel ast.SelectionSet, v model.WalletLink) graphql.Marshaler {
 	return ec._WalletLink(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWalletLink2ᚕᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WalletLink) graphql.Marshaler {
+func (ec *executionContext) marshalNWalletLink2ᚕᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLinkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WalletLink) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9897,7 +9897,7 @@ func (ec *executionContext) marshalNWalletLink2ᚕᚖgithubᚗcomᚋquangdang46�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNWalletLink2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx, sel, v[i])
+			ret[i] = ec.marshalNWalletLink2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9917,10 +9917,10 @@ func (ec *executionContext) marshalNWalletLink2ᚕᚖgithubᚗcomᚋquangdang46�
 	return ret
 }
 
-func (ec *executionContext) marshalNWalletLink2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx context.Context, sel ast.SelectionSet, v *model.WalletLink) graphql.Marshaler {
+func (ec *executionContext) marshalNWalletLink2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐWalletLink(ctx context.Context, sel ast.SelectionSet, v *model.WalletLink) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
@@ -9985,7 +9985,7 @@ func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Conte
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
@@ -10157,7 +10157,7 @@ func (ec *executionContext) marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 func (ec *executionContext) marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx context.Context, sel ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 		return graphql.Null
 	}
@@ -10174,7 +10174,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
 		}
 	}
 	return res
@@ -10210,28 +10210,44 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCollection2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalOCollection2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Collection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCollectionMetadata2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata(ctx context.Context, sel ast.SelectionSet, v *model.CollectionMetadata) graphql.Marshaler {
+func (ec *executionContext) marshalOCollectionMetadata2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionMetadata(ctx context.Context, sel ast.SelectionSet, v *model.CollectionMetadata) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._CollectionMetadata(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCollectionStats2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStats) graphql.Marshaler {
+func (ec *executionContext) unmarshalOCollectionSortField2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionSortField(ctx context.Context, v any) (*model.CollectionSortField, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.CollectionSortField)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCollectionSortField2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionSortField(ctx context.Context, sel ast.SelectionSet, v *model.CollectionSortField) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOCollectionStats2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStats(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStats) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._CollectionStats(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (*model.CollectionStatus, error) {
+func (ec *executionContext) unmarshalOCollectionStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, v any) (*model.CollectionStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -10240,7 +10256,7 @@ func (ec *executionContext) unmarshalOCollectionStatus2ᚖgithubᚗcomᚋquangda
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOCollectionStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOCollectionStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐCollectionStatus(ctx context.Context, sel ast.SelectionSet, v *model.CollectionStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10265,7 +10281,7 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, v any) (*model.IndexStatus, error) {
+func (ec *executionContext) unmarshalOIndexStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, v any) (*model.IndexStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -10274,7 +10290,7 @@ func (ec *executionContext) unmarshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOIndexStatus2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, sel ast.SelectionSet, v *model.IndexStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOIndexStatus2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐIndexStatus(ctx context.Context, sel ast.SelectionSet, v *model.IndexStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10299,11 +10315,27 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalOProfile2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐProfile(ctx context.Context, sel ast.SelectionSet, v *model.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Profile(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOSortOrder2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐSortOrder(ctx context.Context, v any) (*model.SortOrder, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.SortOrder)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOSortOrder2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐSortOrder(ctx context.Context, sel ast.SelectionSet, v *model.SortOrder) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
@@ -10342,7 +10374,7 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋquangdang46ᚋNFTᚑMarketplaceᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋzunokitᚋzunoᚑmarketplaceᚑapiᚋservicesᚋgraphqlᚑgatewayᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

@@ -2,41 +2,52 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/cache"
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
 	sharedredis "github.com/zunokit/zuno-marketplace-api/shared/redis"
-)
-
-const (
-	defaultCollectionTTL = 5 * time.Minute
-	keyCollectionByID    = "collection:id:%s"
-	keyCollectionByAddr  = "collection:addr:%s:%s"
 )
 
 // CachedCollectionRepository wraps CollectionRepository with Redis caching
 type CachedCollectionRepository struct {
 	repo  CollectionRepository
 	cache *sharedredis.Cache
-	ttl   time.Duration
 }
 
-// NewCachedCollectionRepository creates a new cached collection repository
-func NewCachedCollectionRepository(repo CollectionRepository) CollectionRepository {
+// NewCachedCollectionRepository creates a new cached repository
+func NewCachedCollectionRepository(repo CollectionRepository, cache *sharedredis.Cache) CollectionRepository {
 	return &CachedCollectionRepository{
 		repo:  repo,
-		cache: sharedredis.NewCache(),
-		ttl:   defaultCollectionTTL,
+		cache: cache,
 	}
 }
 
-// GetByID retrieves a collection by ID with caching
+// GetByID retrieves collection by ID with caching (event-based invalidation with safety TTL)
+// Stats are fetched separately with shorter TTL since they change frequently
 func (r *CachedCollectionRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Collection, error) {
-	key := r.keyByID(id)
+	// Fetch collection metadata (cached, event-based)
+	collection, err := r.getCollectionFromCache(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 
-	// Try cache first
+	// Fetch stats separately (cached, 5 min TTL)
+	stats, err := r.getStatsFromCache(ctx, id)
+	if err != nil {
+		// Stats non-critical, continue without
+		stats = nil
+	}
+
+	collection.Stats = stats
+	return collection, nil
+}
+
+// getCollectionFromCache fetches collection metadata without stats
+func (r *CachedCollectionRepository) getCollectionFromCache(ctx context.Context, id uuid.UUID) (*models.Collection, error) {
+	key := cache.CollectionKey(id)
+
 	var cached models.Collection
 	if err := r.cache.Get(ctx, key, &cached); err == nil {
 		return &cached, nil
@@ -48,85 +59,222 @@ func (r *CachedCollectionRepository) GetByID(ctx context.Context, id uuid.UUID) 
 		return nil, err
 	}
 
-	// Populate cache
-	if err := r.cache.Set(ctx, key, collection, r.ttl); err != nil {
-		// Non-blocking: log cache error but don't fail the operation
+	// Store without stats for cleaner separation
+	collectionWithoutStats := *collection
+	collectionWithoutStats.Stats = nil
+
+	// Populate cache with safety TTL (event-based invalidation primary)
+	if err := r.cache.Set(ctx, key, collectionWithoutStats, time.Duration(cache.SafetyTTL)*time.Second); err != nil {
+		// Non-blocking: log but don't fail
 	}
 
 	return collection, nil
 }
 
-// GetByContractAddress retrieves a collection by contract address with caching
-func (r *CachedCollectionRepository) GetByContractAddress(ctx context.Context, address, chainID string) (*models.Collection, error) {
-	key := r.keyByAddress(address, chainID)
+// getStatsFromCache fetches only stats with short TTL (5 minutes)
+func (r *CachedCollectionRepository) getStatsFromCache(ctx context.Context, id uuid.UUID) (*models.CollectionStats, error) {
+	key := cache.CollectionStatsKey(id)
 
-	// Try cache first
+	var cached models.CollectionStats
+	if err := r.cache.Get(ctx, key, &cached); err == nil {
+		return &cached, nil
+	}
+
+	// Fetch from DB
+	collection, err := r.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if collection.Stats == nil {
+		return nil, nil
+	}
+
+	// Cache with 5 min TTL
+	if err := r.cache.Set(ctx, key, *collection.Stats, time.Duration(cache.StatsTTL)*time.Second); err != nil {
+		// Non-blocking
+	}
+
+	return collection.Stats, nil
+}
+
+// GetByContractAddress retrieves by contract with caching
+func (r *CachedCollectionRepository) GetByContractAddress(ctx context.Context, address, chainID string) (*models.Collection, error) {
+	// First try to get by contract key
+	key := cache.CollectionByContractKey(chainID, address)
+
 	var cached models.Collection
 	if err := r.cache.Get(ctx, key, &cached); err == nil {
 		return &cached, nil
 	}
 
-	// Cache miss - fetch from DB
+	// Cache miss
 	collection, err := r.repo.GetByContractAddress(ctx, address, chainID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Populate cache
-	if err := r.cache.Set(ctx, key, collection, r.ttl); err != nil {
-		// Non-blocking: log cache error but don't fail the operation
+	// Cache both keys for consistency
+	if err := r.cache.Set(ctx, key, collection, time.Duration(cache.SafetyTTL)*time.Second); err != nil {
+		// Non-blocking
+	}
+
+	// Also cache by ID for direct lookups
+	idKey := cache.CollectionKey(collection.ID)
+	if err := r.cache.Set(ctx, idKey, collection, time.Duration(cache.SafetyTTL)*time.Second); err != nil {
+		// Non-blocking
 	}
 
 	return collection, nil
 }
 
-// InvalidateCollection removes a collection from cache
-func (r *CachedCollectionRepository) InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string) {
-	keys := []string{r.keyByID(id)}
-	if address != "" && chainID != "" {
-		keys = append(keys, r.keyByAddress(address, chainID))
-	}
-	r.cache.Delete(ctx, keys...)
-}
-
-// keyByID generates cache key for collection ID
-func (r *CachedCollectionRepository) keyByID(id uuid.UUID) string {
-	return fmt.Sprintf(keyCollectionByID, id.String())
-}
-
-// keyByAddress generates cache key for contract address
-func (r *CachedCollectionRepository) keyByAddress(address, chainID string) string {
-	return fmt.Sprintf(keyCollectionByAddr, chainID, address)
-}
-
-// Pass-through methods (no caching)
-
-// Create creates a new collection (no caching)
-func (r *CachedCollectionRepository) Create(ctx context.Context, collection *models.Collection) error {
-	return r.repo.Create(ctx, collection)
-}
-
-// Update updates a collection (no caching)
-func (r *CachedCollectionRepository) Update(ctx context.Context, id uuid.UUID, updates map[string]interface{}) error {
-	return r.repo.Update(ctx, id, updates)
-}
-
-// ListByUser lists collections by user (no caching)
+// ListByUser retrieves user's collections with caching (10 min TTL)
 func (r *CachedCollectionRepository) ListByUser(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.Collection, int64, error) {
-	return r.repo.ListByUser(ctx, userID, page, limit)
+	key := cache.CollectionsByUserKey(userID, page, limit)
+
+	// Try cache
+	var cached struct {
+		Collections []*models.Collection
+		Total       int64
+	}
+	if err := r.cache.Get(ctx, key, &cached); err == nil {
+		return cached.Collections, cached.Total, nil
+	}
+
+	// Cache miss
+	collections, total, err := r.repo.ListByUser(ctx, userID, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Populate cache
+	cached.Collections = collections
+	cached.Total = total
+	if err := r.cache.Set(ctx, key, cached, time.Duration(cache.ListTTL)*time.Second); err != nil {
+		// Non-blocking
+	}
+
+	return collections, total, nil
 }
 
-// List lists collections with filters (no caching)
+// List retrieves filtered collections with caching (10 min TTL)
 func (r *CachedCollectionRepository) List(ctx context.Context, filters *ListFilters, page, limit int) ([]*models.Collection, int64, error) {
-	return r.repo.List(ctx, filters, page, limit)
+	// Convert repository ListFilters to cache ListFilters
+	cacheFilters := &cache.ListFilters{
+		SortBy:      filters.SortBy,
+		SortOrder:   filters.SortOrder,
+		Category:    filters.Category,
+		ChainID:     filters.ChainID,
+		IsVerified:  filters.IsVerified,
+		SearchQuery: filters.SearchQuery,
+	}
+	key := cache.CollectionsListKey(cacheFilters, page, limit)
+
+	// Try cache
+	var cached struct {
+		Collections []*models.Collection
+		Total       int64
+	}
+	if err := r.cache.Get(ctx, key, &cached); err == nil {
+		return cached.Collections, cached.Total, nil
+	}
+
+	// Cache miss
+	collections, total, err := r.repo.List(ctx, filters, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Populate cache
+	cached.Collections = collections
+	cached.Total = total
+	if err := r.cache.Set(ctx, key, cached, time.Duration(cache.ListTTL)*time.Second); err != nil {
+		// Non-blocking
+	}
+
+	return collections, total, nil
 }
 
-// Delete deletes a collection (no caching)
+// Create creates collection and invalidates relevant caches
+func (r *CachedCollectionRepository) Create(ctx context.Context, collection *models.Collection) error {
+	if err := r.repo.Create(ctx, collection); err != nil {
+		return err
+	}
+
+	// Note: We don't cache on create since the collection is new
+	// List caches will be refreshed on next query (TTL-based)
+
+	return nil
+}
+
+// Update updates collection and invalidates cache
+func (r *CachedCollectionRepository) Update(ctx context.Context, id uuid.UUID, updates map[string]interface{}) error {
+	if err := r.repo.Update(ctx, id, updates); err != nil {
+		return err
+	}
+
+	// Invalidate collection caches
+	keys := []string{
+		cache.CollectionKey(id),
+		cache.CollectionStatsKey(id),
+	}
+
+	// Also invalidate by contract if address in updates
+	if contractAddr, ok := updates["contract_address"].(string); ok && contractAddr != "" {
+		if chainID, ok := updates["chain_id"].(string); ok && chainID != "" {
+			keys = append(keys, cache.CollectionByContractKey(chainID, contractAddr))
+		}
+	}
+
+	if err := r.cache.Delete(ctx, keys...); err != nil {
+		// Non-blocking: log but don't fail
+	}
+
+	// Note: List caches use TTL-based invalidation for simplicity
+
+	return nil
+}
+
+// Delete deletes collection and invalidates cache
 func (r *CachedCollectionRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.repo.Delete(ctx, id)
+	// Get collection first to find contract key for invalidation
+	collection, err := r.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := r.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// Invalidate all related caches
+	keys := []string{
+		cache.CollectionKey(id),
+		cache.CollectionStatsKey(id),
+	}
+
+	if collection.ContractAddress != nil && *collection.ContractAddress != "" && collection.ChainID != nil && *collection.ChainID != "" {
+		keys = append(keys, cache.CollectionByContractKey(*collection.ChainID, *collection.ContractAddress))
+	}
+
+	if err := r.cache.Delete(ctx, keys...); err != nil {
+		// Non-blocking
+	}
+
+	return nil
 }
 
-// IncrementTotalMinted atomically increments total_minted (no caching)
+// IncrementTotalMinted increments counter and invalidates stats cache
 func (r *CachedCollectionRepository) IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error {
-	return r.repo.IncrementTotalMinted(ctx, id, increment)
+	if err := r.repo.IncrementTotalMinted(ctx, id, increment); err != nil {
+		return err
+	}
+
+	// Invalidate stats cache (will be refreshed on next read)
+	key := cache.CollectionStatsKey(id)
+	if err := r.cache.Delete(ctx, key); err != nil {
+		// Non-blocking
+	}
+
+	return nil
 }
