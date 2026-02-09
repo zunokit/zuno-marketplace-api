@@ -71,3 +71,6 @@ secrets.yaml
 
 .sensity
 .env.temp
+
+# Binaries
+*.exe

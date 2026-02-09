@@ -504,16 +504,20 @@ func generateConfigGo(serviceName string) string {
 	return fmt.Sprintf(`package config
 
 import (
-	sharedConfig "github.com/zunokit/zuno-marketplace-api/shared/config"
 	"github.com/zunokit/zuno-marketplace-api/shared/env"
 )
 
 // Config holds all configuration for the %s Service
 type Config struct {
-	Server   sharedConfig.ServerConfig
+	Server   ServerConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
 	// Add other configuration sections as needed
+}
+
+// ServerConfig holds server configuration
+type ServerConfig struct {
+	GRPCPort string
 }
 
 // DatabaseConfig holds database configuration
@@ -529,7 +533,7 @@ type RedisConfig struct {
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
-		Server: sharedConfig.ServerConfig{
+		Server: ServerConfig{
 			GRPCPort: env.GetString("%s_GRPC_PORT", ":50051"),
 		},
 		Database: DatabaseConfig{

@@ -16,17 +16,20 @@ type CollectionServer struct {
 	pb.UnimplementedCollectionServiceServer
 	service            *service.CollectionService
 	processedEventRepo repository.ProcessedEventRepository
+	cacheRepo          repository.CollectionRepository // Cached wrapper for cache invalidation
 	logger             *zap.Logger
 }
 
 func NewCollectionServer(
 	service *service.CollectionService,
 	processedEventRepo repository.ProcessedEventRepository,
+	cacheRepo repository.CollectionRepository,
 	logger *zap.Logger,
 ) *CollectionServer {
 	return &CollectionServer{
 		service:            service,
 		processedEventRepo: processedEventRepo,
+		cacheRepo:          cacheRepo,
 		logger:             logger,
 	}
 }

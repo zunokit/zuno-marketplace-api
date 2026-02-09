@@ -79,6 +79,10 @@ func (m *mockCollectionRepo) IncrementTotalMinted(ctx context.Context, id uuid.U
 	return nil
 }
 
+func (m *mockCollectionRepo) InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string) {
+	// No-op for mock
+}
+
 type mockAllowlistRepo struct {
 	addWalletsFunc      func(ctx context.Context, entries []*models.CollectionAllowlist) error
 	getByCollectionFunc func(ctx context.Context, collectionID uuid.UUID) ([]*models.CollectionAllowlist, error)

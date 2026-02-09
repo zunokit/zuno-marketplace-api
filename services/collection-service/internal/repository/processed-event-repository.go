@@ -6,15 +6,25 @@ import (
 	"fmt"
 
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/shared/utils"
 	"gorm.io/gorm"
 )
 
 var (
 	ErrEventAlreadyProcessed = errors.New("event already processed")
+	ErrLockNotAcquired       = errors.New("advisory lock not acquired")
 )
 
 // ProcessedEventRepository handles processed event data operations
 type ProcessedEventRepository interface {
+	// WithTransaction executes fn within a single database transaction.
+	// Useful for holding transaction-scoped advisory locks for the duration of webhook processing.
+	WithTransaction(ctx context.Context, fn func(repo ProcessedEventRepository) error) error
+
+	// AcquireEventLock tries to acquire a PostgreSQL transaction-scoped advisory lock for event serialization.
+	// Returns ErrLockNotAcquired if another transaction is currently processing the same event.
+	AcquireEventLock(ctx context.Context, eventID string) error
+
 	// IsEventProcessed checks if an event has been processed
 	IsEventProcessed(ctx context.Context, eventID string) (bool, error)
 
@@ -36,6 +46,32 @@ type processedEventRepository struct {
 // NewProcessedEventRepository creates a new ProcessedEventRepository
 func NewProcessedEventRepository(db *gorm.DB) ProcessedEventRepository {
 	return &processedEventRepository{db: db}
+}
+
+func (r *processedEventRepository) WithTransaction(ctx context.Context, fn func(repo ProcessedEventRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txRepo := &processedEventRepository{db: tx}
+		return fn(txRepo)
+	})
+}
+
+func (r *processedEventRepository) AcquireEventLock(ctx context.Context, eventID string) error {
+	lockKey := utils.GenerateAdvisoryLockKey(eventID)
+
+	var acquired bool
+	err := r.db.WithContext(ctx).
+		Raw("SELECT pg_try_advisory_xact_lock(?) AS acquired", lockKey).
+		Scan(&acquired).
+		Error
+	if err != nil {
+		return fmt.Errorf("failed to acquire advisory lock: %w", err)
+	}
+
+	if !acquired {
+		return ErrLockNotAcquired
+	}
+
+	return nil
 }
 
 // IsEventProcessed checks if an event has been processed

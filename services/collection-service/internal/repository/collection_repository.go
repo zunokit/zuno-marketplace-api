@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/zunokit/zuno-marketplace-api/services/collection-service/internal/models"
+	"github.com/zunokit/zuno-marketplace-api/shared/utils"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +33,8 @@ type CollectionRepository interface {
 	List(ctx context.Context, filters *ListFilters, page, limit int) ([]*models.Collection, int64, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	IncrementTotalMinted(ctx context.Context, id uuid.UUID, increment int64) error
+	// InvalidateCollection removes a collection from cache (no-op for non-cached repositories)
+	InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string)
 }
 
 type collectionRepository struct {
@@ -81,11 +84,14 @@ func (r *collectionRepository) GetByID(ctx context.Context, id uuid.UUID) (*mode
 }
 
 func (r *collectionRepository) GetByContractAddress(ctx context.Context, address, chainID string) (*models.Collection, error) {
+	// Normalize address to lowercase for case-insensitive comparison
+	normalizedAddress := utils.NormalizeAddress(address)
+
 	var collection models.Collection
 	err := r.db.WithContext(ctx).
 		Preload("Metadata").
 		Preload("Stats").
-		Where("contract_address = ? AND chain_id = ?", address, chainID).
+		Where("contract_address = ? AND chain_id = ?", normalizedAddress, chainID).
 		First(&collection).Error
 
 	if err != nil {
@@ -215,4 +221,9 @@ func (r *collectionRepository) IncrementTotalMinted(ctx context.Context, id uuid
 	}
 
 	return nil
+}
+
+// InvalidateCollection is a no-op for the base repository (no caching)
+func (r *collectionRepository) InvalidateCollection(ctx context.Context, id uuid.UUID, address, chainID string) {
+	// No-op: base repository doesn't cache
 }
