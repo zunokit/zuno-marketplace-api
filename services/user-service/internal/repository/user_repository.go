@@ -99,7 +99,11 @@ func (r *userRepository) UpdateProfile(ctx context.Context, profile *models.Prof
 
 	if result.Error != nil {
 		// Check for unique constraint violation on username
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+		// Both gorm.ErrDuplicatedKey and string matching for SQLite compatibility
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) ||
+			(result.Error.Error() != "" &&
+				(result.Error.Error() == "UNIQUE constraint failed: profiles.username" ||
+					result.Error.Error() == "ERROR: duplicate key value violates unique constraint \"uq_profiles_username\" (SQLSTATE 23505)")) {
 			return ErrUsernameTaken
 		}
 		return result.Error

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -17,6 +16,7 @@ import (
 	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/config"
 	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/repository"
 	"github.com/zunokit/zuno-marketplace-api/services/wallet-service/internal/server"
+	"github.com/zunokit/zuno-marketplace-api/shared/logger"
 	pb "github.com/zunokit/zuno-marketplace-api/shared/proto/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 // Version and BuildTime are injected via ldflags during build
@@ -34,7 +34,14 @@ var (
 )
 
 func main() {
-	log.Println("Starting Wallet Service...")
+	// Initialize logger
+	log := logger.New(&logger.Config{
+		Level:       logger.LevelInfo,
+		ServiceName: "wallet-service",
+		Pretty:      false,
+	})
+
+	log.Info("Starting Wallet Service...")
 
 	// Load configuration
 	cfg := config.Load()
@@ -48,40 +55,38 @@ func main() {
 			getBuildVersion(),
 			obsTrace.GetTracesSampleRate(cfg.Sentry.Environment),
 		); err != nil {
-			log.Printf("Sentry init failed (continuing): %v", err)
+			log.Infof("Sentry init failed (continuing): %v", err)
 		} else {
-			log.Println("Sentry initialized")
+			log.Info("Sentry initialized")
 			defer obs.Flush(2 * time.Second)
 		}
 	} else {
-		log.Println("Sentry DSN not configured, skipping")
+		log.Info("Sentry DSN not configured, skipping")
 	}
 
 	// Initialize database connection
 	dsn := cfg.Database.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.FatalWithErr(err, "Failed to connect to database")
 	}
-
-	log.Println("Database connected successfully")
 
 	// Initialize Redis (non-blocking)
 	if err := sharedredis.Init(cfg.Redis.GetAddr()); err != nil {
-		log.Printf("Redis init failed (continuing without cache): %v", err)
+		log.Infof("Redis init failed (continuing without cache): %v", err)
 	} else {
-		log.Println("Redis connected")
+		log.Info("Redis connected")
 		defer sharedredis.Close()
 	}
 
 	// Initialize RabbitMQ (non-blocking)
 	if err := sharedrabbitmq.Init(cfg.RabbitMQ.GetURL()); err != nil {
-		log.Printf("RabbitMQ init failed (continuing without events): %v", err)
+		log.Infof("RabbitMQ init failed (continuing without events): %v", err)
 	} else {
-		log.Println("RabbitMQ connected")
+		log.Info("RabbitMQ connected")
 		defer sharedrabbitmq.Close()
 	}
 
@@ -112,10 +117,10 @@ func main() {
 	// Start gRPC server
 	listener, err := net.Listen("tcp", cfg.Server.GRPCPort)
 	if err != nil {
-		log.Fatalf("Failed to listen on %s: %v", cfg.Server.GRPCPort, err)
+		log.FatalWithErr(err, "Failed to listen on "+cfg.Server.GRPCPort)
 	}
 
-	log.Printf("Wallet Service listening on %s", cfg.Server.GRPCPort)
+	log.Infof("Wallet Service listening on %s", cfg.Server.GRPCPort)
 
 	// Graceful shutdown
 	go func() {
@@ -123,21 +128,21 @@ func main() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 
-		log.Println("Shutting down Wallet Service...")
+		log.Info("Shutting down Wallet Service...")
 
 		// Flush Sentry before shutdown
 		if cfg.Sentry.DSN != "" {
-			log.Println("Flushing Sentry events...")
+			log.Info("Flushing Sentry events...")
 			obs.Flush(2 * time.Second)
 		}
 
 		grpcServer.GracefulStop()
-		log.Println("Wallet Service stopped")
+		log.Info("Wallet Service stopped")
 	}()
 
 	// Start serving
 	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		log.FatalWithErr(err, "Failed to serve")
 	}
 }
 

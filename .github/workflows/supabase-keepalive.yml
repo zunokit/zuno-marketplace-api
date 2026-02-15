@@ -1,0 +1,75 @@
+name: Supabase Keep Alive
+
+# This workflow keeps your Supabase project warm by periodically:
+# 1) Opening a short-lived Postgres connection and running `SELECT 1;`
+# 2) Optionally calling one or more Edge Function URLs to avoid cold starts
+#
+# Required repository secrets:
+# - SUPABASE_DB_URL            -> e.g. postgres://user:pass@db.<ref>.supabase.co:6543/postgres?sslmode=require
+# Optional repository secrets:
+# - SUPABASE_FUNCTION_URLS     -> One or more URLs (comma or newline separated)
+# - SUPABASE_SERVICE_ROLE_KEY  -> Used as Bearer token for Edge Functions (preferred)
+# - SUPABASE_ANON_KEY          -> Fallback Bearer token for Edge Functions
+#
+# Adjust the schedule as needed.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # every 15 minutes
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_FUNCTION_URLS: ${{ secrets.SUPABASE_FUNCTION_URLS }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Ping database with SELECT 1
+        if: ${{ env.SUPABASE_DB_URL != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Do not echo the connection string to logs
+          psql -v ON_ERROR_STOP=1 -qAt "$SUPABASE_DB_URL" -c 'select 1;'
+          echo "DB ping OK"
+
+      - name: Trigger Edge Function(s) (optional)
+        if: ${{ env.SUPABASE_FUNCTION_URLS != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Support comma or newline separated list
+          mapfile -t URLS < <(printf '%s\n' "$SUPABASE_FUNCTION_URLS" | tr ',' '\n')
+          TOKEN="${SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_ANON_KEY:-}}"
+          for url in "${URLS[@]}"; do
+            url="$(echo "$url" | xargs)" # trim
+            [ -z "$url" ] && continue
+            echo "Pinging function: ${url}"
+            if [ -n "$TOKEN" ]; then
+              STATUS=$(curl -sS -m 20 -H "Authorization: Bearer $TOKEN" -o /dev/null -w '%{http_code}' "$url")
+            else
+              STATUS=$(curl -sS -m 20 -o /dev/null -w '%{http_code}' "$url")
+            fi
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+              echo "Function responded with $STATUS"
+            else
+              echo "Function ping failed with status $STATUS" >&2
+              exit 1
+            fi
+          done

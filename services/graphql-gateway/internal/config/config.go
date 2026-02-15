@@ -8,13 +8,14 @@ import (
 
 // Config holds all configuration for the GraphQL gateway
 type Config struct {
-	Server   ServerConfig
-	JWT      JWTConfig
-	Services ServicesConfig
-	Features FeatureConfig
-	Redis    RedisConfig
-	RabbitMQ RabbitMQConfig
-	Sentry   SentryConfig
+	Server        ServerConfig
+	JWT           JWTConfig
+	Services      ServicesConfig
+	Features      FeatureConfig
+	Redis         RedisConfig
+	RabbitMQ      RabbitMQConfig
+	Sentry        SentryConfig
+	WebhookSecret string
 }
 
 // ServerConfig holds HTTP server configuration
@@ -22,16 +23,18 @@ type ServerConfig struct {
 	HTTPAddr string
 }
 
-// JWTConfig holds JWT authentication configuration
+// JWTConfig holds JWT configuration
 type JWTConfig struct {
-	AccessSecret string
+	Secret string
 }
 
-// ServicesConfig holds URLs for backend gRPC services
+// ServicesConfig holds URLs for dependent services
 type ServicesConfig struct {
-	AuthServiceURL   string
-	UserServiceURL   string
-	WalletServiceURL string
+	AuthServiceURL       string
+	UserServiceURL       string
+	WalletServiceURL     string
+	CollectionServiceURL string
+	MediaServiceURL      string
 }
 
 // FeatureConfig holds feature flags
@@ -94,12 +97,14 @@ func Load() *Config {
 			HTTPAddr: env.GetString("GATEWAY_HTTP_ADDR", ":8081"),
 		},
 		JWT: JWTConfig{
-			AccessSecret: env.GetString("JWT_ACCESS_SECRET", ""),
+			Secret: env.GetString("JWT_ACCESS_SECRET", ""),
 		},
 		Services: ServicesConfig{
-			AuthServiceURL:   env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
-			UserServiceURL:   env.GetString("USER_SERVICE_URL", "localhost:50052"),
-			WalletServiceURL: env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+			AuthServiceURL:       env.GetString("AUTH_SERVICE_URL", "localhost:50051"),
+			UserServiceURL:       env.GetString("USER_SERVICE_URL", "localhost:50052"),
+			WalletServiceURL:     env.GetString("WALLET_SERVICE_URL", "localhost:50053"),
+			CollectionServiceURL: env.GetString("COLLECTION_SERVICE_URL", "localhost:50054"),
+			MediaServiceURL:      env.GetString("MEDIA_SERVICE_URL", "localhost:50055"),
 		},
 		Features: FeatureConfig{
 			PlaygroundEnabled: env.GetBool("GRAPHQL_PLAYGROUND", true),
@@ -110,6 +115,7 @@ func Load() *Config {
 			DSN:         env.GetString("SENTRY_DSN", ""),
 			Environment: env.GetString("SENTRY_ENVIRONMENT", "development"),
 		},
+		WebhookSecret: env.GetString("WEBHOOK_SECRET", ""),
 	}
 }
 
@@ -132,7 +138,7 @@ func (c *RabbitMQConfig) GetURL() string {
 
 // Validate checks if required configuration is present
 func (c *Config) Validate() error {
-	if c.JWT.AccessSecret == "" {
+	if c.JWT.Secret == "" {
 		return ErrMissingJWTSecret
 	}
 	return nil

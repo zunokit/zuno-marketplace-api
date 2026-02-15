@@ -9,7 +9,8 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	AuthClient   pb.AuthServiceClient
-	UserClient   pb.UserServiceClient
-	WalletClient pb.WalletServiceClient
+	AuthClient       pb.AuthServiceClient
+	UserClient       pb.UserServiceClient
+	WalletClient     pb.WalletServiceClient
+	CollectionClient pb.CollectionServiceClient
 }

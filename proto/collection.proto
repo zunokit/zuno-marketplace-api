@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/zunokit/zuno-marketplace-api/shared/proto/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum TokenStandard {
+  TOKEN_STANDARD_UNSPECIFIED = 0;
+  TOKEN_STANDARD_ERC721 = 1;
+  TOKEN_STANDARD_ERC1155 = 2;
+}
+
+enum CollectionStatus {
+  COLLECTION_STATUS_UNSPECIFIED = 0;
+  COLLECTION_STATUS_PENDING = 1;
+  COLLECTION_STATUS_DEPLOYED = 2;
+  COLLECTION_STATUS_FAILED = 3;
+  COLLECTION_STATUS_ARCHIVED = 4;
+}
+
+enum IndexStatus {
+  INDEX_STATUS_UNSPECIFIED = 0;
+  INDEX_STATUS_NOT_STARTED = 1;
+  INDEX_STATUS_SYNCING = 2;
+  INDEX_STATUS_SYNCED = 3;
+  INDEX_STATUS_FAILED = 4;
+}
+
+// ============================================================================
+// Messages
+// ============================================================================
+
+message Collection {
+  string id = 1;
+  string slug = 2;
+  string user_id = 3;
+  string name = 4;
+  string symbol = 5;
+  string description = 6;
+  string category = 7;
+  string contract_address = 8;
+  string chain_id = 9;
+  TokenStandard token_standard = 10;
+  string deployer_address = 11;
+  int64 deployed_block = 12;
+  CollectionStatus status = 13;
+  google.protobuf.Timestamp deployed_at = 14;
+  IndexStatus index_status = 15;
+  bool is_verified = 16;
+  bool is_hidden = 17;
+  string source = 18;
+  string image_url = 19;
+  string banner_url = 20;
+  string featured_image_url = 21;
+  string website_url = 22;
+  string base_uri = 23;
+  int64 max_supply = 24;
+  string mint_price_allowlist = 25; // Wei as string
+  string mint_price_public = 26;    // Wei as string
+  google.protobuf.Timestamp mint_start_time = 27;
+  google.protobuf.Timestamp allowlist_stage_end = 28;
+  int32 mint_limit_per_wallet = 29;
+  int32 royalty_fee_bps = 30;
+  string royalty_recipient = 31;
+  int32 total_supply = 32;
+  int32 total_minted = 33;
+  string metadata_standard = 34;
+  google.protobuf.Timestamp created_at = 35;
+  google.protobuf.Timestamp updated_at = 36;
+  
+  // Relations
+  CollectionMetadata metadata = 37;
+  CollectionStats stats = 38;
+}
+
+message CollectionMetadata {
+  string id = 1;
+  string collection_id = 2;
+  string metadata_uri = 3;
+  string ipfs_hash = 4;
+  string ipfs_url = 5;
+  string discord_url = 6;
+  string twitter_url = 7;
+  string instagram_url = 8;
+  string medium_url = 9;
+  string telegram_url = 10;
+  string background_color = 11;
+}
+
+message CollectionStats {
+  string collection_id = 1;
+  int32 total_items = 2;
+  int32 total_owners = 3;
+  int32 total_sales = 4;
+  string floor_price_wei = 5;
+  string total_volume_wei = 6;
+  string average_price_wei = 7;
+  string volume_24h_wei = 8;
+  int32 sales_24h = 9;
+  google.protobuf.Timestamp last_sale_at = 10;
+  google.protobuf.Timestamp last_mint_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message CollectionAllowlist {
+  string id = 1;
+  string collection_id = 2;
+  string wallet_address = 3;
+  int32 max_mint_amount = 4;
+  string added_by_user_id = 5;
+  google.protobuf.Timestamp added_at = 6;
+}
+
+// ============================================================================
+// Requests / Responses
+// ============================================================================
+
+message CreateCollectionRequest {
+  string user_id = 1;
+  string name = 2;
+  string symbol = 3;
+  string description = 4;
+  string category = 5;
+  TokenStandard token_standard = 6;
+  string deployer_address = 7;
+  string chain_id = 8;
+  string image_url = 9;
+  string banner_url = 10;
+  string featured_image_url = 11;
+  string website_url = 12;
+  int32 royalty_fee_bps = 13;
+  string royalty_recipient = 14;
+  string base_uri = 15;
+  int64 max_supply = 16;
+  string mint_price_allowlist = 17;
+  string mint_price_public = 18;
+  google.protobuf.Timestamp mint_start_time = 19;
+  google.protobuf.Timestamp allowlist_stage_end = 20;
+  int32 mint_limit_per_wallet = 21;
+  
+  // Metadata
+  string metadata_uri = 22;
+  string ipfs_hash = 23;
+  string discord_url = 24;
+  string twitter_url = 25;
+  string instagram_url = 26;
+  string medium_url = 27;
+  string telegram_url = 28;
+}
+
+message CreateCollectionResponse {
+  Collection collection = 1;
+}
+
+message GetCollectionRequest {
+  string id = 1;
+  string slug = 2;
+  string contract_address = 3;
+  string chain_id = 4;
+}
+
+message GetCollectionResponse {
+  Collection collection = 1;
+}
+
+message UpdateCollectionRequest {
+  string id = 1;
+  string user_id = 2; // For authorization
+  
+  // Updateable fields
+  optional string description = 3;
+  optional string category = 4;
+  optional string image_url = 5;
+  optional string banner_url = 6;
+  optional string featured_image_url = 7;
+  optional string website_url = 8;
+  optional string discord_url = 9;
+  optional string twitter_url = 10;
+  optional string instagram_url = 11;
+  optional string medium_url = 12;
+  optional string telegram_url = 13;
+  optional string background_color = 14;
+  
+  // Mint settings
+  optional string base_uri = 15;
+  optional string mint_price_allowlist = 16;
+  optional string mint_price_public = 17;
+  optional google.protobuf.Timestamp mint_start_time = 18;
+  optional google.protobuf.Timestamp allowlist_stage_end = 19;
+  optional int32 mint_limit_per_wallet = 20;
+  
+  // Status update (e.g. after deployment)
+  optional CollectionStatus status = 21;
+  optional string contract_address = 22;
+  optional int64 deployed_block = 23;
+}
+
+message UpdateCollectionResponse {
+  Collection collection = 1;
+}
+
+message ListCollectionsByUserRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListCollectionsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string sort_by = 3; // "created_at", "volume", "floor_price"
+  string sort_order = 4; // "asc", "desc"
+  string category = 5;
+  string chain_id = 6;
+  optional bool is_verified = 7;
+  string search_query = 8;
+}
+
+message ListCollectionsResponse {
+  repeated Collection collections = 1;
+  int64 total_count = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message AddToAllowlistRequest {
+  string collection_id = 1;
+  string user_id = 2; // For authorization
+  repeated string wallet_addresses = 3;
+  int32 max_mint_amount = 4;
+}
+
+message AddToAllowlistResponse {
+  int32 added_count = 1;
+}
+
+message DeleteCollectionRequest {
+  string id = 1;
+  string user_id = 2; // For authorization
+}
+
+message DeleteCollectionResponse {
+  bool success = 1;
+}
+
+// Indexer Webhook Request/Response
+message ProcessIndexerWebhookRequest {
+  string event = 1;               // e.g., "collection.created"
+  int64 chain_id = 2;             // Chain ID (e.g., 31337)
+  int64 timestamp = 3;            // Block timestamp
+  string data_json = 4;           // JSON-encoded event data
+}
+
+message ProcessIndexerWebhookResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============================================================================
+// Service
+// ============================================================================
+
+service CollectionService {
+  rpc CreateCollection(CreateCollectionRequest) returns (CreateCollectionResponse);
+  rpc GetCollection(GetCollectionRequest) returns (GetCollectionResponse);
+  rpc UpdateCollection(UpdateCollectionRequest) returns (UpdateCollectionResponse);
+  rpc ListCollectionsByUser(ListCollectionsByUserRequest) returns (ListCollectionsResponse);
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+  rpc AddToAllowlist(AddToAllowlistRequest) returns (AddToAllowlistResponse);
+  rpc DeleteCollection(DeleteCollectionRequest) returns (DeleteCollectionResponse);
+  rpc ProcessIndexerWebhook(ProcessIndexerWebhookRequest) returns (ProcessIndexerWebhookResponse);
+}
